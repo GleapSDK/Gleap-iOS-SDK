@@ -1,14 +1,14 @@
-# Bugbattle iOS SDK
+# Gleap iOS SDK
 
-![Bugbattle iOS SDK Intro](https://github.com/Gleap/iOS-SDK/blob/master/imgs/bugbattle-intro.png)
+![Gleap iOS SDK Intro](https://github.com/GleapSDK/iOS-SDK/blob/master/imgs/gleapheader.png)
 
-The Bugbattle SDK for iOS is the easiest way to integrate Bugbattle into your apps!
+The Gleap SDK for iOS is the easiest way to integrate Gleap into your apps!
 
-You have two ways to set up the Bugbattle SDK for iOS. The easiest way ist to install and link the SDK with CocoaPods. If you haven't heard about [CocoaPods](https://cocoapods.org) yet, we strongly encourage you to check out their getting started here (it's super easy to get started & worth using 😍)
+You have two ways to set up the Gleap SDK for iOS. The easiest way ist to install and link the SDK with CocoaPods. If you haven't heard about [CocoaPods](https://cocoapods.org) yet, we strongly encourage you to check out their getting started here (it's super easy to get started & worth using 😍)
 
 ## Docs & Examples
 
-Checkout our [documentation](https://docs.bugbattle.io/ios-sdk/customizations) for full reference.
+Checkout our [documentation](https://docs.gleap.io/ios-sdk/customizations) for full reference.
 
 ## Installation with CocoaPods
 
@@ -40,9 +40,9 @@ Let's carry on with the initialization 🎉
 Open your XCode project (.xcworkspace) and open your App Delegate (AppDelegate.swift)
 
 
-**Import the Bugbattle SDK**
+**Import the Gleap SDK**
 
-Import the Bugbattle SDK by adding the following import below your other imports.
+Import the Gleap SDK by adding the following import below your other imports.
 
 ```
 import Gleap
@@ -50,15 +50,10 @@ import Gleap
 
 **Initialize the SDK**
 
-The last step is to initialize the Bugbattle SDK by adding the following Code to the end of the ```applicationDidFinishLaunchingWithOptions``` delegate:
+The last step is to initialize the Gleap SDK by adding the following Code to the end of the ```applicationDidFinishLaunchingWithOptions``` delegate:
 
 ```
-Gleap.initWithToken("YOUR-API-KEY", andActivationMethod: SHAKE)
+Gleap.initialize(withToken: "YOUR_API_KEY")
 ```
 
-(Your API key can be found in the project settings within Bugbattle)
-
-It's also possible to specify multiple activation methods.
-```
-[Gleap initWithToken: @"YOUR_API_KEY" andActivationMethods: @[@(THREE_FINGER_DOUBLE_TAB), @(SHAKE), @(SCREENSHOT)]];
-```
+(Your API key can be found in the project settings within Gleap)

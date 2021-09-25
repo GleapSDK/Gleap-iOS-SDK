@@ -16,5 +16,7 @@ class BBSessionManager: Alamofire.Session {
         Gleap.startNetworkRecording(for:  configuration)
         let manager = BBSessionManager(configuration: configuration)
         return manager
+        
+        Gleap.initialize(withToken: "")
     }()
 }
