@@ -1,0 +1,6 @@
+framework module Pods_Gleap_Tests {
+  umbrella header "Pods-Gleap_Tests-umbrella.h"
+
+  export *
+  module * { export * }
+}
