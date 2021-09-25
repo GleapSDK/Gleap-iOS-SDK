@@ -8,14 +8,14 @@
 
 Pod::Spec.new do |s|
   s.name         = "Gleap"
-  s.version      = "5.0.2"
-  s.summary      = "In-App Bug Reporting and Testing for Apps. Learn more at https://www.bugbattle.io"
-  s.homepage     = "https://www.bugbattle.io"
+  s.version      = "6.0.0"
+  s.summary      = "In-App Bug Reporting and Testing for Apps. Learn more at https://www.gleap.io"
+  s.homepage     = "https://www.gleap.io"
   s.license      = { :type => 'Commercial', :file => 'LICENSE.md' }
   s.author       = { "Gleap" => "hello@bugbattle.io" }
 
   s.platform     = :ios, '9.0'
-  s.source       = { :git => "https://github.com/Gleap/iOS-SDK.git", :tag => s.version.to_s }
+  s.source       = { :git => "https://github.com/GleapSDK/iOS-SDK", :tag => s.version.to_s }
   
   s.source_files = 'Gleap/Classes/**/*'
   s.public_header_files = 'Gleap/Classes/**/*.h'
