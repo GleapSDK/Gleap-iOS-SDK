@@ -1,6 +1,6 @@
 # Gleap iOS SDK
 
-![Gleap iOS SDK Intro](https://github.com/GleapSDK/iOS-SDK/blob/master/imgs/gleapheader.png)
+![Gleap iOS SDK Intro](https://github.com/GleapSDK/iOS-SDK/blob/master/imgs/gleapheader.png?raw=true)
 
 The Gleap SDK for iOS is the easiest way to integrate Gleap into your apps!
 
