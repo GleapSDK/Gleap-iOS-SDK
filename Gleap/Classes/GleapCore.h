@@ -13,7 +13,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 typedef enum activationMethodTypes { NONE, SHAKE, THREE_FINGER_DOUBLE_TAB, SCREENSHOT } GleapActivationMethod;
-typedef enum bugPriorityTypes { LOW, MEDIUM, HIGH } GleapBugPriority;
+typedef enum bugSeverityTypes { LOW, MEDIUM, HIGH } GleapBugSeverity;
 typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationType;
 
 @protocol GleapDelegate <NSObject>
@@ -60,11 +60,11 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)startFeedbackFlow;
 
 /**
- * Manually start a silent bug reporting workflow.
+ * Sends a silent bug report.
  * @author Gleap
  *
  */
-+ (void)sendSilentBugReportWith:(NSString *)email andDescription:(NSString *)description andPriority:(GleapBugPriority)priority;
++ (void)sendSilentBugReportWith:(NSString *)description andPriority:(GleapBugSeverity)severity;
 
 /**
  * Updates a session's user data.
@@ -79,13 +79,6 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
  * @author Gleap
  */
 + (void)clearUserSession;
-
-/**
- * Enables replays
- * @author Gleap
- *
- */
-+ (void)enableReplays: (BOOL)enable;
 
 /**
  * Attaches custom data, which can be viewed in the Gleap dashboard. New data will be merged with existing custom data.
@@ -192,6 +185,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)stopNetworkRecording;
 
 // Helper
++ (void)enableReplays: (BOOL)enable;
 + (void)setApplicationType: (GleapApplicationType)applicationType;
 + (void)attachData: (NSDictionary *)data;
 + (NSBundle *)frameworkBundle;

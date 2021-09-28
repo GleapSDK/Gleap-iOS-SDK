@@ -33,6 +33,10 @@
     [Gleap updateUserSessionWithData: userSession];
 }
 
+- (IBAction)sendSilentBugReport:(id)sender {
+    [Gleap sendSilentBugReportWith: @"Testing silence." andPriority: MEDIUM];
+}
+
 - (void)viewDidLoad
 {
     [super viewDidLoad];

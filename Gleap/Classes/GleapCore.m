@@ -329,20 +329,19 @@
 }
 
 /*
- Starts a silent bug reporting flow, when a SDK key has been assigned.
+ Sends a silent bug report.
  */
-+ (void)sendSilentBugReportWith:(NSString *)email andDescription:(NSString *)description andPriority:(GleapBugPriority)priority {
++ (void)sendSilentBugReportWith:(NSString *)description andPriority:(GleapBugSeverity)severity; {
     NSMutableDictionary *dataToAppend = [[NSMutableDictionary alloc] init];
     
     NSString *bugReportPriority = @"LOW";
-    if (priority == MEDIUM) {
+    if (severity == MEDIUM) {
         bugReportPriority = @"MEDIUM";
     }
-    if (priority == HIGH) {
+    if (severity == HIGH) {
         bugReportPriority = @"HIGH";
     }
     
-    [dataToAppend setValue: email forKey: @"reportedBy"];
     [dataToAppend setValue: description forKey: @"description"];
     [dataToAppend setValue: bugReportPriority forKey: @"priority"];
     

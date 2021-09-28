@@ -74,6 +74,19 @@
                                     <action selector="performAuth:" destination="whP-gf-Uak" eventType="touchUpInside" id="mvp-jv-JGS"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="I22-Je-9mC">
+                                <rect key="frame" x="104.5" y="30" width="166" height="63"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="166" id="W4b-ra-AIx"/>
+                                    <constraint firstAttribute="height" constant="63" id="cMC-Uz-yPJ"/>
+                                </constraints>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" title="Silent bug report"/>
+                                <connections>
+                                    <action selector="performAuth:" destination="whP-gf-Uak" eventType="touchUpInside" id="bQL-Xe-GMu"/>
+                                    <action selector="sendSilentBugReport:" destination="whP-gf-Uak" eventType="touchUpInside" id="iOW-9O-5ax"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <color key="backgroundColor" red="0.02745098248" green="0.050980389119999997" blue="0.13725490870000001" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                         <constraints>
@@ -82,8 +95,10 @@
                             <constraint firstAttribute="trailingMargin" secondItem="KUF-M9-kXH" secondAttribute="trailing" constant="20" id="JE6-96-CrW"/>
                             <constraint firstItem="KUF-M9-kXH" firstAttribute="top" secondItem="vQU-z8-UoT" secondAttribute="bottom" constant="45" id="MCb-HP-gnK"/>
                             <constraint firstItem="lwX-gu-1UV" firstAttribute="centerX" secondItem="TpU-gO-2f1" secondAttribute="centerX" id="Z2A-OO-I8o"/>
+                            <constraint firstItem="I22-Je-9mC" firstAttribute="centerX" secondItem="TpU-gO-2f1" secondAttribute="centerX" id="a3b-wO-ibf"/>
                             <constraint firstItem="KUF-M9-kXH" firstAttribute="leading" secondItem="TpU-gO-2f1" secondAttribute="leadingMargin" constant="20" id="kcv-r2-pZR"/>
                             <constraint firstItem="lwX-gu-1UV" firstAttribute="centerY" secondItem="TpU-gO-2f1" secondAttribute="centerY" id="uBG-aX-KYE"/>
+                            <constraint firstItem="I22-Je-9mC" firstAttribute="top" secondItem="uEw-UM-LJ8" secondAttribute="bottom" constant="30" id="utC-Px-0gy"/>
                             <constraint firstItem="W3Y-FC-UwO" firstAttribute="centerX" secondItem="TpU-gO-2f1" secondAttribute="centerX" id="wus-uh-zhE"/>
                             <constraint firstItem="Mvr-aV-6Um" firstAttribute="top" secondItem="KUF-M9-kXH" secondAttribute="bottom" constant="20" id="zAx-qC-ugG"/>
                         </constraints>
