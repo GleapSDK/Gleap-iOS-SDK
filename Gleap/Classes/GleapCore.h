@@ -162,6 +162,21 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)logEvent: (NSString *)name withData: (NSDictionary *)data;
 
 /**
+ * Attaches a file to the bug report
+ * @author Gleap
+ *
+ * @param name The file name
+ * @param filePath The file to attach to the bug report
+ */
++ (bool)addAttachmentWithPath: (NSString *)filePath;
+
+/**
+ * Removes all attachments
+ * @author Gleap
+ */
++ (void)removeAllAttachments;
+
+/**
  * Starts network recording.
  * @author Gleap
  *

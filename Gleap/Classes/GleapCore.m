@@ -24,6 +24,7 @@
 @property (retain, nonatomic) NSMutableArray *stepsToReproduce;
 @property (retain, nonatomic) NSMutableDictionary *customData;
 @property (retain, nonatomic) NSMutableDictionary *customActions;
+@property (retain, nonatomic) NSMutableArray *customAttachments;
 @property (retain, nonatomic) NSPipe *inputPipe;
 @property (nonatomic, retain) UITapGestureRecognizer *tapGestureRecognizer;
 
@@ -69,6 +70,7 @@
     self.consoleLog = [[NSMutableArray alloc] init];
     self.callstack = [[NSMutableArray alloc] init];
     self.stepsToReproduce = [[NSMutableArray alloc] init];
+    self.customAttachments = [[NSMutableArray alloc] init];
     self.customData = [[NSMutableDictionary alloc] init];
     self.language = [[NSLocale preferredLanguages] firstObject];
 }
@@ -462,6 +464,58 @@
     [[Gleap sharedInstance].customData removeObjectForKey: key];
 }
 
+/**
+ * Attaches a file to the bug report
+ */
++ (bool)addAttachmentWithPath: (NSString *)filePath {
+    if (![[NSFileManager defaultManager] fileExistsAtPath: filePath]) {
+        return false;
+    }
+    
+    NSError* error = nil;
+    NSData* data = [NSData dataWithContentsOfFile: filePath options:0 error: &error];
+    if (error == nil && data != nil) {
+        NSString * mimeType = @"text/plain";
+        NSString *pathExtension = [filePath pathExtension];
+        NSLog(@"%@", pathExtension);
+        if ([pathExtension isEqualToString: @"json"]) {
+            mimeType = @"application/json";
+        }
+        if ([pathExtension isEqualToString: @"xml"]) {
+            mimeType = @"application/xml";
+        }
+        if ([pathExtension isEqualToString: @"svg"]) {
+            mimeType = @"image/svg+xml";
+        }
+        if ([pathExtension isEqualToString: @"jpg"] || [pathExtension isEqualToString: @"jpeg"]) {
+            mimeType = @"image/jpeg";
+        }
+        if ([pathExtension isEqualToString: @"png"]) {
+            mimeType = @"image/png";
+        }
+        if ([pathExtension isEqualToString: @"mp4"]) {
+            mimeType = @"video/mp4";
+        }
+        
+        [[Gleap sharedInstance].customAttachments addObject: @{
+            @"name": [filePath lastPathComponent],
+            @"data": data,
+            @"type": mimeType,
+        }];
+        
+        return true;
+    } else {
+        return false;
+    }
+}
+
+/**
+ * Removes all attachments
+ */
++ (void)removeAllAttachments {
+    [[Gleap sharedInstance].customAttachments removeAllObjects];
+}
+
 /*
  Attaches a screenshot.
  */
@@ -518,6 +572,47 @@
  Sends a bugreport to our backend.
  */
 - (void)sendReport: (void (^)(bool success))completion {
+    [self optionallyUploadReplaySteps:^(bool success) {
+        [self optionallyUploadAttachments:^(bool success) {
+            [self uploadScreenshotAndSendBugReport:^(bool success) {
+                completion(success);
+            }];
+        }];
+    }];
+}
+
+/*
+ Optionally upload attachments (if any exist)
+ */
+- (void)optionallyUploadAttachments: (void (^)(bool success))completion {
+    if (self.customAttachments.count > 0) {
+        [self uploadFiles: self.customAttachments forEndpoint: @"attachments" andCompletion:^(bool success, NSArray *fileUrls) {
+            if (success) {
+                // Attach attachments
+                NSMutableArray *attachmentsArray = [[NSMutableArray alloc] init];
+                
+                for (int i = 0; i < self.customAttachments.count; i++) {
+                    NSMutableDictionary *currentAttachment = [[self.customAttachments objectAtIndex: i] mutableCopy];
+                    NSString *currentAttachmentURL = [fileUrls objectAtIndex: i];
+                    [currentAttachment setObject: currentAttachmentURL forKey: @"url"];
+                    [currentAttachment removeObjectForKey: @"data"];
+                    [attachmentsArray addObject: currentAttachment];
+                }
+                
+                [Gleap attachData: @{ @"attachments": attachmentsArray }];
+            }
+            
+            completion(success);
+        }];
+    } else {
+        completion(YES);
+    }
+}
+
+/*
+ Optionally upload replays steps (if any exist)
+ */
+- (void)optionallyUploadReplaySteps: (void (^)(bool success))completion {
     if (self.replaysEnabled) {
         [[Gleap sharedInstance] uploadStepImages: [GleapReplayHelper sharedInstance].replaySteps andCompletion:^(bool success, NSArray * _Nonnull fileUrls) {
             if (success) {
@@ -528,14 +623,10 @@
                 } }];
             }
             
-            [self uploadScreenshotAndSendBugReport:^(bool success) {
                 completion(success);
-            }];
         }];
     } else {
-        [self uploadScreenshotAndSendBugReport:^(bool success) {
-            completion(success);
-        }];
+        completion(YES);
     }
 }
 
@@ -687,12 +778,60 @@
 }
 
 /*
- Upload files
+ Upload SDK steps
  */
 - (void)uploadStepImages: (NSArray *)steps andCompletion: (void (^)(bool success, NSArray *fileUrls))completion {
+    // Prepare images for upload.
+    NSMutableArray * files = [[NSMutableArray alloc] init];
+    for (int i = 0; i < steps.count; i++) {
+        NSDictionary *currentStep = [steps objectAtIndex: i];
+        UIImage *currentImage = [currentStep objectForKey: @"image"];
+        
+        // Resize screenshot
+        CGSize size = CGSizeMake(currentImage.size.width * 0.5, currentImage.size.height * 0.5);
+        UIGraphicsBeginImageContext(size);
+        [currentImage drawInRect:CGRectMake(0, 0, size.width, size.height)];
+        UIImage *destImage = UIGraphicsGetImageFromCurrentImageContext();
+        UIGraphicsEndImageContext();
+        
+        NSData *imageData = UIImageJPEGRepresentation(destImage, 0.9);
+        NSString *filename = [NSString stringWithFormat: @"step_%i", i];
+        
+        if (imageData != nil) {
+            [files addObject: @{
+                @"name": filename,
+                @"data": imageData,
+                @"type": @"image/jpeg",
+            }];
+        }
+    }
+    
+    [self uploadFiles: files forEndpoint: @"sdksteps" andCompletion:^(bool success, NSArray *fileUrls) {
+        if (success) {
+            NSMutableArray *replayArray = [[NSMutableArray alloc] init];
+            
+            for (int i = 0; i < steps.count; i++) {
+                NSMutableDictionary *currentStep = [[steps objectAtIndex: i] mutableCopy];
+                NSString *currentImageUrl = [fileUrls objectAtIndex: i];
+                [currentStep setObject: currentImageUrl forKey: @"url"];
+                [currentStep removeObjectForKey: @"image"];
+                [replayArray addObject: currentStep];
+            }
+            
+            return completion(true, replayArray);
+        } else {
+            return completion(false, nil);
+        }
+    }];
+}
+
+/*
+ Upload files
+ */
+- (void)uploadFiles: (NSArray *)files forEndpoint:(NSString *)endpoint andCompletion: (void (^)(bool success, NSArray *fileUrls))completion {
     dispatch_async(dispatch_get_main_queue(), ^{
         NSMutableURLRequest *request = [NSMutableURLRequest new];
-        [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/uploads/sdksteps", self->_apiUrl]]];
+        [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/uploads/%@", self->_apiUrl, endpoint]]];
         [GleapSessionHelper injectSessionInRequest: request];
         [request setCachePolicy:NSURLRequestReloadIgnoringLocalCacheData];
         [request setHTTPShouldHandleCookies:NO];
@@ -705,25 +844,17 @@
         [request setValue: headerContentType forHTTPHeaderField: @"Content-Type"];
         NSMutableData *body = [NSMutableData data];
         
-        for (int i = 0; i < steps.count; i++) {
-            NSDictionary *currentStep = [steps objectAtIndex: i];
-            UIImage *currentImage = [currentStep objectForKey: @"image"];
+        for (int i = 0; i < files.count; i++) {
+            NSDictionary *currentFile = [files objectAtIndex: i];
+            NSData *fileData = [currentFile objectForKey: @"data"];
+            NSData *fileName = [currentFile objectForKey: @"name"];
+            NSData *fileContentType = [currentFile objectForKey: @"type"];
             
-            // Resize screenshot
-            CGSize size = CGSizeMake(currentImage.size.width * 0.5, currentImage.size.height * 0.5);
-            UIGraphicsBeginImageContext(size);
-            [currentImage drawInRect:CGRectMake(0, 0, size.width, size.height)];
-            UIImage *destImage = UIGraphicsGetImageFromCurrentImageContext();
-            UIGraphicsEndImageContext();
-            
-            NSData *imageData = UIImageJPEGRepresentation(destImage, 0.9);
-            NSString *filename = [NSString stringWithFormat: @"step_%i", i];
-            if (imageData) {
-                NSString *contentType = @"image/jpeg";
+            if (fileData != nil && fileName != nil) {
                 [body appendData:[[NSString stringWithFormat:@"--%@\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
-                [body appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=%@; filename=%@\r\n", @"file", filename] dataUsingEncoding:NSUTF8StringEncoding]];
-                [body appendData:[[NSString stringWithFormat: @"Content-Type: %@\r\n\r\n", contentType] dataUsingEncoding:NSUTF8StringEncoding]];
-                [body appendData: imageData];
+                [body appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=%@; filename=%@\r\n", @"file", fileName] dataUsingEncoding:NSUTF8StringEncoding]];
+                [body appendData:[[NSString stringWithFormat: @"Content-Type: %@\r\n\r\n", fileContentType] dataUsingEncoding:NSUTF8StringEncoding]];
+                [body appendData: fileData];
                 [body appendData:[[NSString stringWithFormat:@"\r\n"] dataUsingEncoding:NSUTF8StringEncoding]];
             }
         }
@@ -744,17 +875,7 @@
             NSDictionary *responseDict = [NSJSONSerialization JSONObjectWithData: data options: 0 error:&parseError];
             if (!parseError) {
                 NSArray* fileUrls = [responseDict objectForKey: @"fileUrls"];
-                NSMutableArray *replayArray = [[NSMutableArray alloc] init];
-                
-                for (int i = 0; i < steps.count; i++) {
-                    NSMutableDictionary *currentStep = [[steps objectAtIndex: i] mutableCopy];
-                    NSString *currentImageUrl = [fileUrls objectAtIndex: i];
-                    [currentStep setObject: currentImageUrl forKey: @"url"];
-                    [currentStep removeObjectForKey: @"image"];
-                    [replayArray addObject: currentStep];
-                }
-                
-                return completion(true, replayArray);
+                return completion(true, fileUrls);
             } else {
                 return completion(false, nil);
             }

@@ -60,11 +60,13 @@
         @"skillLevel": @"🤩"
     }];
     
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        [self getDataFrom: @"https://run.mocky.io/v3/9cc59b27-14ed-4866-bd42-f8de47ac3d16"];
-        [self getDataFrom: @"https://run.mocky.io/v3/9cc59b27-14ed-4866-bd42-f8de47ac3d12"];
-        [self getDataFrom: @"https://run.mocky.io/v3/9cc59b27-14ed-4866-bd42-f8de47ac3d15"];
-    });
+    NSString *filePath = [NSTemporaryDirectory() stringByAppendingPathComponent: [NSString stringWithFormat: @"%.0f.%@", [NSDate timeIntervalSinceReferenceDate] * 1000.0, @"txt"]];
+    [@"XOXO" writeToFile:filePath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    [Gleap addAttachmentWithPath: filePath];
+    
+    NSString *filePathX = [NSTemporaryDirectory() stringByAppendingPathComponent: @"privatedata.json"];
+    [@"PENIS" writeToFile:filePathX atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    [Gleap addAttachmentWithPath: filePathX];
 }
 
 - (NSString *) getDataFrom:(NSString *)url{
