@@ -1,10 +1,12 @@
 //
 //  Gleap.m
-//  AyAyObjectiveCPort
+//  GleapCore
 //
 //  Created by Lukas on 13.01.19.
-//  Copyright © 2019 Gleap. All rights reserved.
+//  Copyright © 2021 Gleap. All rights reserved.
 //
+
+#define SDK_VERSION @"6.0.4"
 
 #import "GleapCore.h"
 #import "GleapWidgetViewController.h"
@@ -903,11 +905,11 @@
 }
 
 - (NSString *)getApplicationTypeAsString {
-    NSString *applicationType = @"Native";
+    NSString *applicationType = @"iOS";
     if (self.applicationType == FLUTTER) {
-        applicationType = @"Flutter";
+        applicationType = @"Flutter/iOS";
     } else if (self.applicationType == REACTNATIVE) {
-        applicationType = @"ReactNative";
+        applicationType = @"ReactNative/iOS";
     }
     return applicationType;
 }
@@ -938,9 +940,10 @@
         @"buildVersionNumber": buildVersionNumber,
         @"releaseVersionNumber": releaseVersionNumber,
         @"sessionDuration": sessionDuration,
-        @"applicationType": [self getApplicationTypeAsString],
         @"lastScreenName": _lastScreenName,
-        @"preferredUserLocale": preferredUserLocale
+        @"preferredUserLocale": preferredUserLocale,
+        @"sdkType": [self getApplicationTypeAsString],
+        @"sdkVersion": SDK_VERSION,
     };
 }
 

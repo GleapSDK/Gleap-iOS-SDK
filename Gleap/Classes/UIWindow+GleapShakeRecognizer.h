@@ -1,6 +1,6 @@
 //
 //  UIWindow+GleapShakeRecognizer.h
-//  AyAyObjectiveCPort
+//  Gleap
 //
 //  Created by Lukas on 13.01.19.
 //  Copyright © 2019 Gleap. All rights reserved.
