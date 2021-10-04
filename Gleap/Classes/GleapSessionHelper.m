@@ -41,7 +41,6 @@
 
 - (void)startSessionWithData:(nullable GleapUserSession *)data andCompletion:(void (^)(bool success))completion {
     NSMutableDictionary *sessionRequestData = [[NSMutableDictionary alloc] init];
-    
     if (data != nil && data.name != nil) {
         [sessionRequestData setValue: data.name forKey: @"name"];
     }
@@ -59,25 +58,28 @@
     
     NSMutableURLRequest *request = [NSMutableURLRequest new];
     request.HTTPMethod = @"POST";
-    [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/sessions/start", Gleap.sharedInstance.apiUrl]]];
+    [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/sessions", Gleap.sharedInstance.apiUrl]]];
     [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
     [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
     [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
     
     // Merge guest session.
     NSString *sessionType = [[NSUserDefaults standardUserDefaults] stringForKey:@"glSessionType"];
+    NSString *glSessionId = [[NSUserDefaults standardUserDefaults] stringForKey:@"glSessionId"];
+    NSString *glSessionHash = [[NSUserDefaults standardUserDefaults] stringForKey:@"glSessionHash"];
     if ([sessionType isEqualToString: @"GUEST"]) {
-        NSString *glSessionId = [[NSUserDefaults standardUserDefaults] stringForKey:@"glSessionId"];
         [request setValue: glSessionId forHTTPHeaderField: @"Guest-Id"];
-        NSString *glSessionHash = [[NSUserDefaults standardUserDefaults] stringForKey:@"glSessionHash"];
         [request setValue: glSessionHash forHTTPHeaderField: @"Guest-Hash"];
+    } else {
+        if (data.userId == nil && data.userId == nil) {
+            [request setValue: glSessionId forHTTPHeaderField: @"User-Id"];
+            [request setValue: glSessionHash forHTTPHeaderField: @"User-Hash"];
+        }
     }
     
     // Additionally set the user id
-    if (data != nil && data.userId != nil) {
+    if (data != nil && data.userId != nil && data.userHash != nil) {
         [request setValue: data.userId forHTTPHeaderField: @"User-Id"];
-    }
-    if (data != nil && data.userHash != nil) {
         [request setValue: data.userHash forHTTPHeaderField: @"User-Hash"];
     }
     

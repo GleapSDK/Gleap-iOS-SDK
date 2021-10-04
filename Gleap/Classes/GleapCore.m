@@ -245,7 +245,7 @@
  *
  * @param data The updated user data.
  */
-+ (void)updateUserSessionWithData:(nullable GleapUserSession *)data {
++ (void)identifyUserWith:(nullable GleapUserSession *)data {
     [GleapSessionHelper.sharedInstance startSessionWithData: data andCompletion:^(bool success) {}];
 }
 
@@ -253,7 +253,7 @@
  * Clears a user session.
  * @author Gleap
  */
-+ (void)clearUserSession {
++ (void)clearIdentity {
     [GleapSessionHelper.sharedInstance clearSession];
 }
 

@@ -30,7 +30,7 @@
     userSession.name = @"Franz";
     userSession.email = @"lukas@boehlerbrothers.com";
     
-    [Gleap updateUserSessionWithData: userSession];
+    [Gleap identifyUserWith: userSession];
 }
 
 - (IBAction)sendSilentBugReport:(id)sender {

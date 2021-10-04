@@ -159,7 +159,7 @@
     {
         NSData *data = UIImagePNGRepresentation(self.screenshotImage);
         NSString *base64Data = [data base64EncodedStringWithOptions: 0];
-        [self.webView evaluateJavaScript: [NSString stringWithFormat: @"Gleap.default.setScreenshot('data:image/png;base64,%@', true)", base64Data] completionHandler: nil];
+        [self.webView evaluateJavaScript: [NSString stringWithFormat: @"Gleap.setScreenshot('data:image/png;base64,%@', true)", base64Data] completionHandler: nil];
     }
     @catch(id exception) {}
 }
@@ -167,7 +167,7 @@
 - (void)showSuccessMessage {
     @try
     {
-        [self.webView evaluateJavaScript: @"Gleap.default.getInstance().showSuccessAndClose()" completionHandler: nil];
+        [self.webView evaluateJavaScript: @"Gleap.getInstance().showSuccessAndClose()" completionHandler: nil];
     }
     @catch(id exception) {}
 }

@@ -67,18 +67,18 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)sendSilentBugReportWith:(NSString *)description andPriority:(GleapBugSeverity)severity;
 
 /**
- * Updates a session's user data.
+ * Updates a session's identity.
  * @author Gleap
  *
  * @param data The updated user data.
  */
-+ (void)updateUserSessionWithData:(nullable GleapUserSession *)data;
++ (void)identifyUserWith:(nullable GleapUserSession *)data;
 
 /**
  * Clears a user session.
  * @author Gleap
  */
-+ (void)clearUserSession;
++ (void)clearIdentity;
 
 /**
  * Attaches custom data, which can be viewed in the Gleap dashboard. New data will be merged with existing custom data.
@@ -165,7 +165,6 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
  * Attaches a file to the bug report
  * @author Gleap
  *
- * @param name The file name
  * @param filePath The file to attach to the bug report
  */
 + (bool)addAttachmentWithPath: (NSString *)filePath;
