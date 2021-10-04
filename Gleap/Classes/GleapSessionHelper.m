@@ -70,11 +70,10 @@
     if ([sessionType isEqualToString: @"GUEST"]) {
         [request setValue: glSessionId forHTTPHeaderField: @"Guest-Id"];
         [request setValue: glSessionHash forHTTPHeaderField: @"Guest-Hash"];
-    } else {
-        if (data.userId == nil && data.userId == nil) {
-            [request setValue: glSessionId forHTTPHeaderField: @"User-Id"];
-            [request setValue: glSessionHash forHTTPHeaderField: @"User-Hash"];
-        }
+    }
+    if ([sessionType isEqualToString: @"USER"] && data.userId == nil && data.userId == nil) {
+        [request setValue: glSessionId forHTTPHeaderField: @"User-Id"];
+        [request setValue: glSessionHash forHTTPHeaderField: @"User-Hash"];
     }
     
     // Additionally set the user id
