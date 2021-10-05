@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="19162" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES" initialViewController="dKp-Q7-wO0">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="18122" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES" initialViewController="dKp-Q7-wO0">
     <device id="retina4_7" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="19144"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="18093"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -62,43 +62,14 @@
                                     <segue destination="bag-SC-M9j" kind="presentation" id="SG5-2s-HSv"/>
                                 </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="vQU-z8-UoT">
-                                <rect key="frame" x="104.5" y="518" width="166" height="63"/>
-                                <constraints>
-                                    <constraint firstAttribute="width" constant="166" id="T14-Sh-00R"/>
-                                    <constraint firstAttribute="height" constant="63" id="kvl-a4-dPc"/>
-                                </constraints>
-                                <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="plain" title="Login"/>
-                                <connections>
-                                    <action selector="performAuth:" destination="whP-gf-Uak" eventType="touchUpInside" id="mvp-jv-JGS"/>
-                                </connections>
-                            </button>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="I22-Je-9mC">
-                                <rect key="frame" x="104.5" y="30" width="166" height="63"/>
-                                <constraints>
-                                    <constraint firstAttribute="width" constant="166" id="W4b-ra-AIx"/>
-                                    <constraint firstAttribute="height" constant="63" id="cMC-Uz-yPJ"/>
-                                </constraints>
-                                <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="plain" title="Silent bug report"/>
-                                <connections>
-                                    <action selector="performAuth:" destination="whP-gf-Uak" eventType="touchUpInside" id="bQL-Xe-GMu"/>
-                                    <action selector="sendSilentBugReport:" destination="whP-gf-Uak" eventType="touchUpInside" id="iOW-9O-5ax"/>
-                                </connections>
-                            </button>
                         </subviews>
                         <color key="backgroundColor" red="0.02745098248" green="0.050980389119999997" blue="0.13725490870000001" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                         <constraints>
                             <constraint firstItem="W3Y-FC-UwO" firstAttribute="centerY" secondItem="TpU-gO-2f1" secondAttribute="centerY" id="6d6-dx-FaY"/>
-                            <constraint firstItem="vQU-z8-UoT" firstAttribute="centerX" secondItem="TpU-gO-2f1" secondAttribute="centerX" id="9XN-lU-6mZ"/>
                             <constraint firstAttribute="trailingMargin" secondItem="KUF-M9-kXH" secondAttribute="trailing" constant="20" id="JE6-96-CrW"/>
-                            <constraint firstItem="KUF-M9-kXH" firstAttribute="top" secondItem="vQU-z8-UoT" secondAttribute="bottom" constant="45" id="MCb-HP-gnK"/>
                             <constraint firstItem="lwX-gu-1UV" firstAttribute="centerX" secondItem="TpU-gO-2f1" secondAttribute="centerX" id="Z2A-OO-I8o"/>
-                            <constraint firstItem="I22-Je-9mC" firstAttribute="centerX" secondItem="TpU-gO-2f1" secondAttribute="centerX" id="a3b-wO-ibf"/>
                             <constraint firstItem="KUF-M9-kXH" firstAttribute="leading" secondItem="TpU-gO-2f1" secondAttribute="leadingMargin" constant="20" id="kcv-r2-pZR"/>
                             <constraint firstItem="lwX-gu-1UV" firstAttribute="centerY" secondItem="TpU-gO-2f1" secondAttribute="centerY" id="uBG-aX-KYE"/>
-                            <constraint firstItem="I22-Je-9mC" firstAttribute="top" secondItem="uEw-UM-LJ8" secondAttribute="bottom" constant="30" id="utC-Px-0gy"/>
                             <constraint firstItem="W3Y-FC-UwO" firstAttribute="centerX" secondItem="TpU-gO-2f1" secondAttribute="centerX" id="wus-uh-zhE"/>
                             <constraint firstItem="Mvr-aV-6Um" firstAttribute="top" secondItem="KUF-M9-kXH" secondAttribute="bottom" constant="20" id="zAx-qC-ugG"/>
                         </constraints>
@@ -424,8 +395,8 @@
                                             <rect key="frame" x="0.0" y="0.0" width="375" height="43.5"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
-                                                <label opaque="NO" multipleTouchEnabled="YES" contentMode="left" ambiguous="YES" insetsLayoutMarginsFromSafeArea="NO" text="Kässpätzle" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="S8c-M9-hW0">
-                                                    <rect key="frame" x="8" y="0.0" width="359" height="43.5"/>
+                                                <label opaque="NO" multipleTouchEnabled="YES" contentMode="left" insetsLayoutMarginsFromSafeArea="NO" text="Kässpätzle" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" id="S8c-M9-hW0">
+                                                    <rect key="frame" x="15" y="0.0" width="352" height="43.5"/>
                                                     <autoresizingMask key="autoresizingMask"/>
                                                     <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                                     <nil key="textColor"/>

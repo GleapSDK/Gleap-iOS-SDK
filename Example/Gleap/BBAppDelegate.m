@@ -13,18 +13,7 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
-    // Override point for customization after application launch.
-    
-    [Gleap setApiUrl: @"https://api.gleap.dev"];
-    [Gleap setWidgetUrl: @"https://widget.gleap.dev"];
-    
-    GleapUserSession *userSession = [[GleapUserSession alloc] init];
-    userSession.userId = @"1";
-    userSession.userHash = @"db5897fe20d33d8072babc477655eba5240e606cbde86deaa0c17e34eaef6201";
-    userSession.name = @"Franz";
-    userSession.email = @"lukas@boehlerbrothers.com";
-    
-    [Gleap initializeWithToken: @"OcLgYN5vWavsjTrv1vjAjGj22INW0Xdz" andUserSession: userSession];
+    [Gleap initializeWithToken: @"ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV"];
     
     return YES;
 }
