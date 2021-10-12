@@ -62,14 +62,40 @@
                                     <segue destination="bag-SC-M9j" kind="presentation" id="SG5-2s-HSv"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="AKh-Od-jqF">
+                                <rect key="frame" x="137" y="525" width="101" height="30"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="30" id="BKM-aT-1qV"/>
+                                    <constraint firstAttribute="width" constant="101" id="vAg-Sw-209"/>
+                                </constraints>
+                                <state key="normal" title="Login"/>
+                                <connections>
+                                    <action selector="performAuth:" destination="whP-gf-Uak" eventType="touchDown" id="GhL-Ie-WrT"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Vyy-lf-YWL">
+                                <rect key="frame" x="123" y="574" width="129" height="30"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="30" id="IRL-Ow-QXK"/>
+                                    <constraint firstAttribute="width" constant="129" id="JsG-Oc-0rc"/>
+                                </constraints>
+                                <state key="normal" title="Silent bug report"/>
+                                <connections>
+                                    <action selector="sendSilentBugReport:" destination="whP-gf-Uak" eventType="touchDown" id="1Cr-uR-dnD"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <color key="backgroundColor" red="0.02745098248" green="0.050980389119999997" blue="0.13725490870000001" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                         <constraints>
                             <constraint firstItem="W3Y-FC-UwO" firstAttribute="centerY" secondItem="TpU-gO-2f1" secondAttribute="centerY" id="6d6-dx-FaY"/>
                             <constraint firstAttribute="trailingMargin" secondItem="KUF-M9-kXH" secondAttribute="trailing" constant="20" id="JE6-96-CrW"/>
+                            <constraint firstItem="KUF-M9-kXH" firstAttribute="top" secondItem="Vyy-lf-YWL" secondAttribute="bottom" constant="22" id="YWp-me-VBf"/>
                             <constraint firstItem="lwX-gu-1UV" firstAttribute="centerX" secondItem="TpU-gO-2f1" secondAttribute="centerX" id="Z2A-OO-I8o"/>
+                            <constraint firstItem="Vyy-lf-YWL" firstAttribute="top" secondItem="AKh-Od-jqF" secondAttribute="bottom" constant="19" id="ZEM-mh-xdQ"/>
                             <constraint firstItem="KUF-M9-kXH" firstAttribute="leading" secondItem="TpU-gO-2f1" secondAttribute="leadingMargin" constant="20" id="kcv-r2-pZR"/>
+                            <constraint firstItem="Vyy-lf-YWL" firstAttribute="centerX" secondItem="TpU-gO-2f1" secondAttribute="centerX" id="lec-qd-p9T"/>
                             <constraint firstItem="lwX-gu-1UV" firstAttribute="centerY" secondItem="TpU-gO-2f1" secondAttribute="centerY" id="uBG-aX-KYE"/>
+                            <constraint firstItem="AKh-Od-jqF" firstAttribute="centerX" secondItem="TpU-gO-2f1" secondAttribute="centerX" id="ur2-ss-02o"/>
                             <constraint firstItem="W3Y-FC-UwO" firstAttribute="centerX" secondItem="TpU-gO-2f1" secondAttribute="centerX" id="wus-uh-zhE"/>
                             <constraint firstItem="Mvr-aV-6Um" firstAttribute="top" secondItem="KUF-M9-kXH" secondAttribute="bottom" constant="20" id="zAx-qC-ugG"/>
                         </constraints>

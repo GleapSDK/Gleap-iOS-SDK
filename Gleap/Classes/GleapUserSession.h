@@ -12,8 +12,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface GleapUserSession : NSObject
 
-@property (nonatomic, retain) NSString* userId;
-@property (nonatomic, retain) NSString* userHash;
 @property (nonatomic, retain) NSString* name;
 @property (nonatomic, retain) NSString* email;
 

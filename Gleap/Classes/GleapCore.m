@@ -181,7 +181,7 @@
 + (void)initializeWithToken: (NSString *)token andUserSession: (nullable GleapUserSession *)userSession {
     Gleap* instance = [Gleap sharedInstance];
     [instance setSDKToken: token];
-    [[GleapSessionHelper sharedInstance] startSessionWithData: userSession andCompletion:^(bool success) {
+    [[GleapSessionHelper sharedInstance] startSessionWith:^(bool success) {
         [self autoConfigure];
     }];
 }
@@ -247,8 +247,8 @@
  *
  * @param data The updated user data.
  */
-+ (void)identifyUserWith:(nullable GleapUserSession *)data {
-    [GleapSessionHelper.sharedInstance startSessionWithData: data andCompletion:^(bool success) {}];
++ (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserSession *)data {
+    [GleapSessionHelper.sharedInstance identifySessionWith: userId andData: data];
 }
 
 /**

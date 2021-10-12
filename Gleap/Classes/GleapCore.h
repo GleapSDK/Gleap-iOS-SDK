@@ -72,7 +72,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
  *
  * @param data The updated user data.
  */
-+ (void)identifyUserWith:(nullable GleapUserSession *)data;
++ (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserSession *)data;
 
 /**
  * Clears a user session.

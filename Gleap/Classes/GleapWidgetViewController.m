@@ -145,7 +145,7 @@
     [self.webViewContainer addConstraint:[NSLayoutConstraint constraintWithItem:self.webView attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:self.webViewContainer attribute:NSLayoutAttributeHeight multiplier:1.0 constant:0]];
     [self.webViewContainer addConstraint:[NSLayoutConstraint constraintWithItem:self.webView attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:self.webViewContainer attribute:NSLayoutAttributeWidth multiplier:1.0 constant:0]];
     
-    NSURL * url = [NSURL URLWithString: [NSString stringWithFormat: @"%@/appwidget/%@?lang=%@&sessionId=%@&sessionHash=%@", Gleap.sharedInstance.widgetUrl, Gleap.sharedInstance.token, [Gleap.sharedInstance.language stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]], GleapSessionHelper.sharedInstance.currentSession.userId, GleapSessionHelper.sharedInstance.currentSession.userHash]];
+    NSURL * url = [NSURL URLWithString: [NSString stringWithFormat: @"%@/appwidget/%@?lang=%@&gleapId=%@&gleapHash=%@", Gleap.sharedInstance.widgetUrl, Gleap.sharedInstance.token, [Gleap.sharedInstance.language stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]], GleapSessionHelper.sharedInstance.currentSession.gleapId, GleapSessionHelper.sharedInstance.currentSession.gleapHash]];
     NSURLRequest * request = [NSURLRequest requestWithURL: url];
     [self.webView loadRequest: request];
 }

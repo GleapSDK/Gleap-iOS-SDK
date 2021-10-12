@@ -25,12 +25,10 @@
 
 - (IBAction)performAuth:(id)sender {
     GleapUserSession *userSession = [[GleapUserSession alloc] init];
-    userSession.userId = @"1";
-    userSession.userHash = @"db5897fe20d33d8072babc477655eba5240e606cbde86deaa0c17e34eaef6201";
-    userSession.name = @"Franz";
-    userSession.email = @"lukas@boehlerbrothers.com";
+    userSession.name = @"Tasty";
+    userSession.email = @"lukas+tasty@boehlerbrothers.com";
     
-    [Gleap identifyUserWith: userSession];
+    [Gleap identifyUserWith: @"1234" andData: userSession];
 }
 
 - (IBAction)sendSilentBugReport:(id)sender {
