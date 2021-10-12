@@ -346,7 +346,10 @@
         bugReportPriority = @"HIGH";
     }
     
-    [dataToAppend setValue: description forKey: @"description"];
+    [dataToAppend setValue: @{
+        @"description": description
+    } forKey: @"formData"];
+    
     [dataToAppend setValue: bugReportPriority forKey: @"priority"];
     
     [Gleap attachData: dataToAppend];

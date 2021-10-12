@@ -90,7 +90,7 @@
 }
 
 - (void)processOpenIdentityAction {
-    if (self.openIdentityAction == nil) {
+    if (self.openIdentityAction == nil || self.currentSession == nil) {
         return;
     }
     
