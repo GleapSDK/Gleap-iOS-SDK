@@ -178,19 +178,22 @@
     }
 }
 
-+ (void)initializeWithToken: (NSString *)token andUserSession: (nullable GleapUserSession *)userSession {
+/**
+ Sets the API token.
+ */
++ (void)setApiToken: (NSString *)token {
     Gleap* instance = [Gleap sharedInstance];
     [instance setSDKToken: token];
-    [[GleapSessionHelper sharedInstance] startSessionWith:^(bool success) {
-        [self autoConfigure];
-    }];
 }
 
 /*
  Autoconfigure with token
  */
 + (void)initializeWithToken: (NSString *)token {
-    [Gleap initializeWithToken: token andUserSession: nil];
+    [Gleap setApiToken: token];
+    [[GleapSessionHelper sharedInstance] startSessionWith:^(bool success) {
+        [self autoConfigure];
+    }];
 }
 
 + (void)autoConfigure {
@@ -257,6 +260,13 @@
  */
 + (void)clearIdentity {
     [GleapSessionHelper.sharedInstance clearSession];
+}
+
+/*
+ Starts a Gleap session.
+ */
++ (void)startSession {
+    [[GleapSessionHelper sharedInstance] startSessionWith:^(bool success) {}];
 }
 
 /**
@@ -383,8 +393,8 @@
     
     Gleap.sharedInstance.currentlyOpened = YES;
     
-    if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(bugWillBeSent)]) {
-        [Gleap.sharedInstance.delegate bugWillBeSent];
+    if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackWillBeSent)]) {
+        [Gleap.sharedInstance.delegate feedbackWillBeSent];
     }
     
     // Update last screen name
@@ -419,12 +429,12 @@
         // No UI flow
         [Gleap.sharedInstance sendReport:^(bool success) {
             if (success) {
-                if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(bugSent)]) {
-                    [Gleap.sharedInstance.delegate bugSent];
+                if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSent)]) {
+                    [Gleap.sharedInstance.delegate feedbackSent];
                 }
             } else {
-                if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(bugSendingFailed)]) {
-                    [Gleap.sharedInstance.delegate bugSendingFailed];
+                if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSendingFailed)]) {
+                    [Gleap.sharedInstance.delegate feedbackSendingFailed];
                 }
             }
             [Gleap afterBugReportCleanup];
@@ -480,38 +490,43 @@
     NSError* error = nil;
     NSData* data = [NSData dataWithContentsOfFile: filePath options:0 error: &error];
     if (error == nil && data != nil) {
-        NSString * mimeType = @"text/plain";
-        NSString *pathExtension = [filePath pathExtension];
-        NSLog(@"%@", pathExtension);
-        if ([pathExtension isEqualToString: @"json"]) {
-            mimeType = @"application/json";
-        }
-        if ([pathExtension isEqualToString: @"xml"]) {
-            mimeType = @"application/xml";
-        }
-        if ([pathExtension isEqualToString: @"svg"]) {
-            mimeType = @"image/svg+xml";
-        }
-        if ([pathExtension isEqualToString: @"jpg"] || [pathExtension isEqualToString: @"jpeg"]) {
-            mimeType = @"image/jpeg";
-        }
-        if ([pathExtension isEqualToString: @"png"]) {
-            mimeType = @"image/png";
-        }
-        if ([pathExtension isEqualToString: @"mp4"]) {
-            mimeType = @"video/mp4";
-        }
-        
-        [[Gleap sharedInstance].customAttachments addObject: @{
-            @"name": [filePath lastPathComponent],
-            @"data": data,
-            @"type": mimeType,
-        }];
-        
-        return true;
+        return [self addAttachmentWithData: data andName: filePath];
     } else {
         return false;
     }
+}
+
++ (bool)addAttachmentWithData:(NSData *)data andName:(NSString *)name {
+    NSString * mimeType = @"text/plain";
+    NSString *pathExtension = [name pathExtension];
+    NSLog(@"%@", pathExtension);
+    
+    if ([pathExtension isEqualToString: @"json"]) {
+        mimeType = @"application/json";
+    }
+    if ([pathExtension isEqualToString: @"xml"]) {
+        mimeType = @"application/xml";
+    }
+    if ([pathExtension isEqualToString: @"svg"]) {
+        mimeType = @"image/svg+xml";
+    }
+    if ([pathExtension isEqualToString: @"jpg"] || [pathExtension isEqualToString: @"jpeg"]) {
+        mimeType = @"image/jpeg";
+    }
+    if ([pathExtension isEqualToString: @"png"]) {
+        mimeType = @"image/png";
+    }
+    if ([pathExtension isEqualToString: @"mp4"]) {
+        mimeType = @"video/mp4";
+    }
+    
+    [[Gleap sharedInstance].customAttachments addObject: @{
+        @"name": [name lastPathComponent],
+        @"data": data,
+        @"type": mimeType,
+    }];
+    
+    return true;
 }
 
 /**

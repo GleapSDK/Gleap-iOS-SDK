@@ -32,7 +32,8 @@
 }
 
 - (IBAction)sendSilentBugReport:(id)sender {
-    [Gleap sendSilentBugReportWith: @"Testing silence." andPriority: MEDIUM];
+    [Gleap startFeedbackFlow];
+    //[Gleap sendSilentBugReportWith: @"Testing silence." andPriority: MEDIUM];
 }
 
 - (void)viewDidLoad
@@ -65,6 +66,8 @@
     NSString *filePathX = [NSTemporaryDirectory() stringByAppendingPathComponent: @"privatedata.json"];
     [@"PENIS" writeToFile:filePathX atomically:YES encoding:NSUTF8StringEncoding error:nil];
     [Gleap addAttachmentWithPath: filePathX];
+    
+    [Gleap addAttachmentWithData: [@"asdf" dataUsingEncoding:NSASCIIStringEncoding] andName: @"file.txt"];
 }
 
 - (NSString *) getDataFrom:(NSString *)url{

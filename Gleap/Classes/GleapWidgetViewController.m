@@ -244,8 +244,8 @@
         if (success) {
             [self showSuccessMessage];
             
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(bugSent)]) {
-                [Gleap.sharedInstance.delegate bugSent];
+            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSent)]) {
+                [Gleap.sharedInstance.delegate feedbackSent];
             }
         } else {
             [[self navigationController] setNavigationBarHidden: NO animated: NO];
@@ -264,8 +264,8 @@
             [alert addAction:yesButton];
             [self presentViewController:alert animated:YES completion:nil];
             
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(bugSendingFailed)]) {
-                [Gleap.sharedInstance.delegate bugSendingFailed];
+            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSendingFailed)]) {
+                [Gleap.sharedInstance.delegate feedbackSendingFailed];
             }
         }
     }];

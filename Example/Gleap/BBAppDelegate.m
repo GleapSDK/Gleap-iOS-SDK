@@ -14,6 +14,7 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
     [Gleap initializeWithToken: @"ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV"];
+    // [Gleap setApiToken: @"ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV"];
     
     return YES;
 }

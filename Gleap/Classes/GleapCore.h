@@ -18,9 +18,9 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 
 @protocol GleapDelegate <NSObject>
 @optional
-- (void) bugWillBeSent;
-- (void) bugSent;
-- (void) bugSendingFailed;
+- (void) feedbackWillBeSent;
+- (void) feedbackSent;
+- (void) feedbackSendingFailed;
 - (void) customActionCalled: (NSString *)customAction;
 @required
 @end
@@ -44,15 +44,6 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)initializeWithToken: (NSString *)token;
 
 /**
- * Auto-configures the Gleap SDK from the remote config.
- * @author Gleap
- *
- * @param token The SDK key, which can be found on dashboard.bugbattle.io
- * @param userSession The GleapSession for the current user.
- */
-+ (void)initializeWithToken: (NSString *)token andUserSession: (nullable GleapUserSession *)userSession;
-
-/**
  * Manually start the bug reporting workflow. This is used, when you use the activation method "NONE".
  * @author Gleap
  *
@@ -73,6 +64,12 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
  * @param data The updated user data.
  */
 + (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserSession *)data;
+
+/**
+ * Starts a Gleap session.
+ * @author Gleap
+ */
++ (void)startSession;
 
 /**
  * Clears a user session.
@@ -110,6 +107,14 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
  * @author Gleap
  */
 + (void)clearCustomData;
+
+/**
+ * Sets the API token.
+ * @author Gleap
+ *
+ * @param token The custom api url.
+ */
++ (void)setApiToken: (NSString *)token;
 
 /**
  * Sets a custom api url.
@@ -168,6 +173,15 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
  * @param filePath The file to attach to the bug report
  */
 + (bool)addAttachmentWithPath: (NSString *)filePath;
+
+/**
+ * Attaches a file to the bug report
+ * @author Gleap
+ *
+ * @param data The data to attach to the bug report
+ * @param name The filename including the file extension
+ */
++ (bool)addAttachmentWithData: (NSData *)data andName: (NSString *)name;
 
 /**
  * Removes all attachments
