@@ -25,7 +25,7 @@ class DemoViewController: UIViewController {
                 debugPrint(response)
                 
                 
-                // Gleap.sendSilentBugReport(with: "Error?", andPriority: MEDIUM)
+                Gleap.sendSilentBugReport(with: "Error?", andSeverity: MEDIUM)
             }
         }
     }

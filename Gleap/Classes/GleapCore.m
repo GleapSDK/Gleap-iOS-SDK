@@ -6,7 +6,7 @@
 //  Copyright © 2021 Gleap. All rights reserved.
 //
 
-#define SDK_VERSION @"6.0.9"
+#define SDK_VERSION @"6.0.10"
 
 #import "GleapCore.h"
 #import "GleapWidgetViewController.h"
@@ -342,7 +342,7 @@
 /*
  Sends a silent bug report.
  */
-+ (void)sendSilentBugReportWith:(NSString *)description andPriority:(GleapBugSeverity)severity; {
++ (void)sendSilentBugReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity; {
     NSMutableDictionary *dataToAppend = [[NSMutableDictionary alloc] init];
     
     NSString *bugReportPriority = @"LOW";

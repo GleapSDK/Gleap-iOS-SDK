@@ -56,7 +56,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
  * @author Gleap
  *
  */
-+ (void)sendSilentBugReportWith:(NSString *)description andPriority:(GleapBugSeverity)severity;
++ (void)sendSilentBugReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity;
 
 /**
  * Updates a session's identity.
