@@ -94,8 +94,8 @@
             filePath = "../Gleap/Classes/GleapCore.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "711"
-            endingLineNumber = "711"
+            startingLineNumber = "716"
+            endingLineNumber = "716"
             landmarkName = "-sendReportToServer:"
             landmarkType = "7">
          </BreakpointContent>
@@ -110,8 +110,8 @@
             filePath = "../Gleap/Classes/GleapCore.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "725"
-            endingLineNumber = "725"
+            startingLineNumber = "730"
+            endingLineNumber = "730"
             landmarkName = "-sendReportToServer:"
             landmarkType = "7">
          </BreakpointContent>
@@ -184,7 +184,7 @@
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
             uuid = "AEED97FA-29E5-4FB5-80AE-D9C057E2FF21"
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "Gleap/BBViewController.m"

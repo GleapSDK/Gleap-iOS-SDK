@@ -28,8 +28,7 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    [_loadingView setHidden: YES];
-    
+    [_loadingView setHidden: false];
     [self createWebView];
 }
 

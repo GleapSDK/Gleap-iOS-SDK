@@ -6,7 +6,7 @@
 //  Copyright © 2021 Gleap. All rights reserved.
 //
 
-#define SDK_VERSION @"6.0.4"
+#define SDK_VERSION @"6.0.9"
 
 #import "GleapCore.h"
 #import "GleapWidgetViewController.h"
@@ -494,6 +494,11 @@
 }
 
 + (bool)addAttachmentWithData:(NSData *)data andName:(NSString *)name {
+    if ([Gleap sharedInstance].customAttachments.count > 6) {
+        NSLog(@"WARN: Attachment limit of 6 files reached.");
+        return false;
+    }
+    
     NSString * mimeType = @"text/plain";
     NSString *pathExtension = [name pathExtension];
     NSLog(@"%@", pathExtension);
@@ -945,6 +950,11 @@
     NSNumber *sessionDuration = [NSNumber numberWithDouble: [self sessionDuration]];
     NSString *preferredUserLocale = [[[NSBundle mainBundle] preferredLocalizations] firstObject];
     
+    NSString *buildMode = @"DEBUG";
+    #ifdef RELEASE
+    buildMode = @"RELEASE";
+    #endif
+        
     return @{
         @"deviceName": deviceName,
         @"deviceModel": deviceModel,
@@ -959,6 +969,7 @@
         @"preferredUserLocale": preferredUserLocale,
         @"sdkType": [self getApplicationTypeAsString],
         @"sdkVersion": SDK_VERSION,
+        @"buildMode": buildMode
     };
 }
 
@@ -973,7 +984,7 @@
  */
 - (void)openConsoleLog {
     if (isatty(STDERR_FILENO)) {
-        NSLog(@"[Gleap] Console logs are captured only when the debugger is not attached.");
+        NSLog(@"WARN: Console logs are captured only when the debugger is not attached.");
         return;
     }
     
