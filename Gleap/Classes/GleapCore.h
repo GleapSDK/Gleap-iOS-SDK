@@ -8,7 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
-#import "GleapUserSession.h"
+#import "GleapUserProperty.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -22,6 +22,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 - (void) feedbackSent;
 - (void) feedbackSendingFailed;
 - (void) customActionCalled: (NSString *)customAction;
+- (void) configLoaded: (NSDictionary *)config;
 @required
 @end
 
@@ -63,13 +64,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
  *
  * @param data The updated user data.
  */
-+ (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserSession *)data;
-
-/**
- * Starts a Gleap session.
- * @author Gleap
- */
-+ (void)startSession;
++ (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data;
 
 /**
  * Clears a user session.
@@ -221,6 +216,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)attachScreenshot: (UIImage *)screenshot;
 + (UIImage *)getAttachedScreenshot;
 + (void)afterBugReportCleanup;
++ (void)setAutoActivationMethodsDisabled;
 
 - (void)sendReport: (void (^)(bool success))completion;
 - (void)uploadStepImages: (NSArray *)steps andCompletion: (void (^)(bool success, NSArray *fileUrls))completion;
@@ -228,7 +224,6 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 - (NSString *)getTopMostViewControllerName;
 - (NSString *)getJSStringForNSDate:(NSDate *)date;
 - (UIImage *)captureScreen;
-- (void)setActivationMethods:(NSArray *)activationMethods;
 
 @property (nonatomic, retain) NSString* language;
 @property (nonatomic, retain) NSString* token;
@@ -239,6 +234,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 @property (nonatomic, retain) NSMutableDictionary* data;
 @property (nonatomic, assign) bool replaysEnabled;
 @property (nonatomic, assign) bool consoleLogDisabled;
+@property (nonatomic, assign) bool disableAutoActivationMethods;
 @property (nonatomic, assign) GleapApplicationType applicationType;
 @property (nonatomic, weak) id <GleapDelegate> delegate;
 @property (retain, nonatomic) NSString *lastScreenName;

@@ -81,7 +81,7 @@
     [task resume];
 }
 
-- (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserSession *)data {
+- (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserProperty *)data {
     self.openIdentityAction = @{
         @"userId": userId,
         @"data": data
@@ -95,7 +95,7 @@
     }
     
     NSString *userId = [self.openIdentityAction objectForKey: @"userId"];
-    GleapUserSession *data = [self.openIdentityAction objectForKey: @"data"];
+    GleapUserProperty *data = [self.openIdentityAction objectForKey: @"data"];
     self.openIdentityAction = nil;
     
     NSMutableDictionary *sessionRequestData = [[NSMutableDictionary alloc] init];

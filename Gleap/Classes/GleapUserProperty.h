@@ -10,7 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface GleapUserSession : NSObject
+@interface GleapUserProperty : NSObject
 
 @property (nonatomic, retain) NSString* name;
 @property (nonatomic, retain) NSString* email;

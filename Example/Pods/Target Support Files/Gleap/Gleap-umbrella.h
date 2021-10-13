@@ -15,7 +15,7 @@
 #import "GleapHttpTrafficRecorder.h"
 #import "GleapLogHelper.h"
 #import "GleapReplayHelper.h"
-#import "GleapUserSession.h"
+#import "GleapUserProperty.h"
 #import "GleapSession.h"
 #import "GleapSessionHelper.h"
 #import "GleapTouchHelper.h"

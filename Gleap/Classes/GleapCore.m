@@ -13,7 +13,7 @@
 #import "GleapReplayHelper.h"
 #import "GleapHttpTrafficRecorder.h"
 #import "GleapSessionHelper.h"
-#import "GleapUserSession.h"
+#import "GleapUserProperty.h"
 #import "GleapLogHelper.h"
 #import <sys/utsname.h>
 
@@ -75,6 +75,11 @@
     self.customAttachments = [[NSMutableArray alloc] init];
     self.customData = [[NSMutableDictionary alloc] init];
     self.language = [[NSLocale preferredLanguages] firstObject];
+    self.disableAutoActivationMethods = NO;
+}
+
++ (void)setAutoActivationMethodsDisabled {
+    [Gleap sharedInstance].disableAutoActivationMethods = YES;
 }
 
 + (void)afterBugReportCleanup {
@@ -224,30 +229,35 @@
     if ([config objectForKey: @"enableNetworkLogs"] != nil && [[config objectForKey: @"enableNetworkLogs"] boolValue] == YES) {
         [Gleap startNetworkRecording];
     }
+    
     if ([config objectForKey: @"enableReplays"] != nil) {
         [Gleap enableReplays: [[config objectForKey: @"enableReplays"] boolValue]];
     }
-    NSMutableArray * activationMethods = [[NSMutableArray alloc] init];
-    if ([config objectForKey: @"activationMethodShake"] != nil && [[config objectForKey: @"activationMethodShake"] boolValue] == YES) {
-        [activationMethods addObject: @(SHAKE)];
-    }
-    if ([config objectForKey: @"activationMethodScreenshotGesture"] != nil && [[config objectForKey: @"activationMethodScreenshotGesture"] boolValue] == YES) {
-        [activationMethods addObject: @(SCREENSHOT)];
-    }
-    if ([config objectForKey: @"activationMethodThreeFingerDoubleTab"] != nil && [[config objectForKey: @"activationMethodThreeFingerDoubleTab"] boolValue] == YES) {
-        [activationMethods addObject: @(THREE_FINGER_DOUBLE_TAB)];
+    
+    if (!self.disableAutoActivationMethods) {
+        NSMutableArray * activationMethods = [[NSMutableArray alloc] init];
+        if ([config objectForKey: @"activationMethodShake"] != nil && [[config objectForKey: @"activationMethodShake"] boolValue] == YES) {
+            [activationMethods addObject: @(SHAKE)];
+        }
+        if ([config objectForKey: @"activationMethodScreenshotGesture"] != nil && [[config objectForKey: @"activationMethodScreenshotGesture"] boolValue] == YES) {
+            [activationMethods addObject: @(SCREENSHOT)];
+        }
+        if ([config objectForKey: @"activationMethodThreeFingerDoubleTab"] != nil && [[config objectForKey: @"activationMethodThreeFingerDoubleTab"] boolValue] == YES) {
+            [activationMethods addObject: @(THREE_FINGER_DOUBLE_TAB)];
+        }
+        self.activationMethods = activationMethods;
+        
+        if ([self isActivationMethodActive: THREE_FINGER_DOUBLE_TAB]) {
+            [self initializeGestureRecognizer];
+        }
+        
+        if ([self isActivationMethodActive: SCREENSHOT]) {
+            [self initializeScreenshotRecognizer];
+        }
     }
     
-    [self setActivationMethods: activationMethods];
-}
-
-/**
-    Sets and activates the activation methods.
- */
-- (void)setActivationMethods:(NSArray *)activationMethods {
-    if (activationMethods.count > 0) {
-        _activationMethods = activationMethods;
-        [self performActivationMethodInitialization];
+    if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(configLoaded:)]) {
+        [Gleap.sharedInstance.delegate configLoaded: config];
     }
 }
 
@@ -257,7 +267,7 @@
  *
  * @param data The updated user data.
  */
-+ (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserSession *)data {
++ (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data {
     [GleapSessionHelper.sharedInstance identifySessionWith: userId andData: data];
 }
 
@@ -267,13 +277,6 @@
  */
 + (void)clearIdentity {
     [GleapSessionHelper.sharedInstance clearSession];
-}
-
-/*
- Starts a Gleap session.
- */
-+ (void)startSession {
-    [[GleapSessionHelper sharedInstance] startSessionWith:^(bool success) {}];
 }
 
 /**
@@ -287,19 +290,6 @@
         }
     }
     return false;
-}
-
-/**
-    Performs initial checks for activation methods.
- */
-- (void)performActivationMethodInitialization {
-    if ([self isActivationMethodActive: THREE_FINGER_DOUBLE_TAB]) {
-        [self initializeGestureRecognizer];
-    }
-    
-    if ([self isActivationMethodActive: SCREENSHOT]) {
-        [self initializeScreenshotRecognizer];
-    }
 }
 
 - (void)initializeScreenshotRecognizer {

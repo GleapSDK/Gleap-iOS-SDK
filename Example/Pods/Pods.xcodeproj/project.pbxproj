@@ -101,8 +101,8 @@
 		DC627AFC5B585686898B014184AFCABD /* AuthenticationInterceptor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C373B2C6DF256C49CA889333A9401C75 /* AuthenticationInterceptor.swift */; };
 		DF49FF5F26FCB0EC00FF30A3 /* GleapSessionHelper.h in Headers */ = {isa = PBXBuildFile; fileRef = DF49FF5D26FCB0EC00FF30A3 /* GleapSessionHelper.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		DF49FF6026FCB0EC00FF30A3 /* GleapSessionHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = DF49FF5E26FCB0EC00FF30A3 /* GleapSessionHelper.m */; };
-		DF49FF6326FCD0E400FF30A3 /* GleapUserSession.m in Sources */ = {isa = PBXBuildFile; fileRef = DF49FF6126FCD0E400FF30A3 /* GleapUserSession.m */; };
-		DF49FF6426FCD0E400FF30A3 /* GleapUserSession.h in Headers */ = {isa = PBXBuildFile; fileRef = DF49FF6226FCD0E400FF30A3 /* GleapUserSession.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		DF49FF6326FCD0E400FF30A3 /* GleapUserProperty.m in Sources */ = {isa = PBXBuildFile; fileRef = DF49FF6126FCD0E400FF30A3 /* GleapUserProperty.m */; };
+		DF49FF6426FCD0E400FF30A3 /* GleapUserProperty.h in Headers */ = {isa = PBXBuildFile; fileRef = DF49FF6226FCD0E400FF30A3 /* GleapUserProperty.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		DFC6BD414F503BABEB095A3369A069AE /* GleapHttpTrafficRecorder.h in Headers */ = {isa = PBXBuildFile; fileRef = 93B80303A0ABB340E98D51831043A850 /* GleapHttpTrafficRecorder.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		DFFA9C9426FC85EB009C6AFD /* GleapSession.m in Sources */ = {isa = PBXBuildFile; fileRef = DFFA9C9226FC85EB009C6AFD /* GleapSession.m */; };
 		DFFA9C9526FC85EB009C6AFD /* GleapSession.h in Headers */ = {isa = PBXBuildFile; fileRef = DFFA9C9326FC85EB009C6AFD /* GleapSession.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -277,8 +277,8 @@
 		D8CC5FA2FBEDFF13A0AEF58AA9083C15 /* HTTPHeaders.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HTTPHeaders.swift; path = Source/HTTPHeaders.swift; sourceTree = "<group>"; };
 		DF49FF5D26FCB0EC00FF30A3 /* GleapSessionHelper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GleapSessionHelper.h; path = Gleap/Classes/GleapSessionHelper.h; sourceTree = "<group>"; };
 		DF49FF5E26FCB0EC00FF30A3 /* GleapSessionHelper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GleapSessionHelper.m; path = Gleap/Classes/GleapSessionHelper.m; sourceTree = "<group>"; };
-		DF49FF6126FCD0E400FF30A3 /* GleapUserSession.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GleapUserSession.m; path = Gleap/Classes/GleapUserSession.m; sourceTree = "<group>"; };
-		DF49FF6226FCD0E400FF30A3 /* GleapUserSession.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GleapUserSession.h; path = Gleap/Classes/GleapUserSession.h; sourceTree = "<group>"; };
+		DF49FF6126FCD0E400FF30A3 /* GleapUserProperty.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GleapUserProperty.m; path = Gleap/Classes/GleapUserProperty.m; sourceTree = "<group>"; };
+		DF49FF6226FCD0E400FF30A3 /* GleapUserProperty.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GleapUserProperty.h; path = Gleap/Classes/GleapUserProperty.h; sourceTree = "<group>"; };
 		DFFA9C9226FC85EB009C6AFD /* GleapSession.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GleapSession.m; path = Gleap/Classes/GleapSession.m; sourceTree = "<group>"; };
 		DFFA9C9326FC85EB009C6AFD /* GleapSession.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GleapSession.h; path = Gleap/Classes/GleapSession.h; sourceTree = "<group>"; };
 		E097FB128F4EA6D390368FEB486F254D /* URLRequest+Alamofire.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = "URLRequest+Alamofire.swift"; path = "Source/URLRequest+Alamofire.swift"; sourceTree = "<group>"; };
@@ -443,8 +443,8 @@
 				9BFD88F832BA890C25891D390E4A6E1D /* GleapLogHelper.m */,
 				1AEB4E285B544216E9E1101DFEE142BC /* GleapReplayHelper.h */,
 				C140C0AEDEDBE1510C35831EE1B8294C /* GleapReplayHelper.m */,
-				DF49FF6226FCD0E400FF30A3 /* GleapUserSession.h */,
-				DF49FF6126FCD0E400FF30A3 /* GleapUserSession.m */,
+				DF49FF6226FCD0E400FF30A3 /* GleapUserProperty.h */,
+				DF49FF6126FCD0E400FF30A3 /* GleapUserProperty.m */,
 				DFFA9C9326FC85EB009C6AFD /* GleapSession.h */,
 				DFFA9C9226FC85EB009C6AFD /* GleapSession.m */,
 				DF49FF5D26FCB0EC00FF30A3 /* GleapSessionHelper.h */,
@@ -673,7 +673,7 @@
 				2A394DB3A6B93A2EC2E3E0F4B40DF29B /* GleapCore.h in Headers */,
 				DFC6BD414F503BABEB095A3369A069AE /* GleapHttpTrafficRecorder.h in Headers */,
 				88E257691E43075269CAE60D80C32742 /* GleapLogHelper.h in Headers */,
-				DF49FF6426FCD0E400FF30A3 /* GleapUserSession.h in Headers */,
+				DF49FF6426FCD0E400FF30A3 /* GleapUserProperty.h in Headers */,
 				D6313FE1EA7E625768EE2135B82F78C8 /* GleapReplayHelper.h in Headers */,
 				3BFD6038E1180DCA96414066285E549B /* GleapTouchHelper.h in Headers */,
 				31CF10FA05DBDCBAF6727346742B07E1 /* GleapTranslationHelper.h in Headers */,
@@ -983,7 +983,7 @@
 				2B024F99BE3A5AAABAB300B1A26EC652 /* Gleap-dummy.m in Sources */,
 				72721DCDEF91270ECBA54E4AD3BCBED0 /* GleapCore.m in Sources */,
 				2A0EBE7164AF0BBF94E75505C558F6C7 /* GleapHttpTrafficRecorder.m in Sources */,
-				DF49FF6326FCD0E400FF30A3 /* GleapUserSession.m in Sources */,
+				DF49FF6326FCD0E400FF30A3 /* GleapUserProperty.m in Sources */,
 				B7A3A8E6C9C7FDAC1510C46BB034BCCC /* GleapLogHelper.m in Sources */,
 				BC6C9FA274633981C1EE8B58B0D362D9 /* GleapReplayHelper.m in Sources */,
 				DFFA9C9426FC85EB009C6AFD /* GleapSession.m in Sources */,

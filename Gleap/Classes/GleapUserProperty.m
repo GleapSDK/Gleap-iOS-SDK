@@ -5,8 +5,8 @@
 //  Created by Lukas Boehler on 23.09.21.
 //
 
-#import "GleapUserSession.h"
+#import "GleapUserProperty.h"
 
-@implementation GleapUserSession
+@implementation GleapUserProperty
 
 @end

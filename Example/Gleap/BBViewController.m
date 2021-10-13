@@ -24,16 +24,18 @@
 }
 
 - (IBAction)performAuth:(id)sender {
-    GleapUserSession *userSession = [[GleapUserSession alloc] init];
+    GleapUserProperty *userSession = [[GleapUserProperty alloc] init];
     userSession.name = @"Tasty";
     userSession.email = @"lukas+tasty@boehlerbrothers.com";
-    
     [Gleap identifyUserWith: @"1234" andData: userSession];
 }
 
 - (IBAction)sendSilentBugReport:(id)sender {
     [Gleap startFeedbackFlow];
-    //[Gleap sendSilentBugReportWith: @"Testing silence." andPriority: MEDIUM];
+}
+
+- (void)configLoaded:(NSDictionary *)config {
+    NSLog(@"%@", config);
 }
 
 - (void)viewDidLoad
@@ -44,6 +46,9 @@
     self.title = @"Home";
     
     Gleap.sharedInstance.delegate = self;
+    
+    [Gleap initializeWithToken: @"ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV"];
+    // [Gleap setApiToken: @"ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV"];
     
     [Gleap attachCustomData: @{ @"key" : @"value", @"key2" : @"value2"}];
     

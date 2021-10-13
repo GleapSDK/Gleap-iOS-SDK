@@ -8,7 +8,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import "GleapSession.h"
-#import "GleapUserSession.h"
+#import "GleapUserProperty.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -24,7 +24,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)injectSessionInRequest:(NSMutableURLRequest *)request;
 
 - (void)startSessionWith:(void (^)(bool success))completion;
-- (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserSession *)data;
+- (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserProperty *)data;
 - (void)clearSession;
 
 @property (nonatomic, retain, nullable) GleapSession* currentSession;
