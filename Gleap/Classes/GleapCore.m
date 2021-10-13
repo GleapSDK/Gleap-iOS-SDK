@@ -238,9 +238,16 @@
         [activationMethods addObject: @(THREE_FINGER_DOUBLE_TAB)];
     }
     
+    [self setActivationMethods: activationMethods];
+}
+
+/**
+    Sets and activates the activation methods.
+ */
+- (void)setActivationMethods:(NSArray *)activationMethods {
     if (activationMethods.count > 0) {
         _activationMethods = activationMethods;
-        [self performActivationMethodInit];
+        [self performActivationMethodInitialization];
     }
 }
 
@@ -285,7 +292,7 @@
 /**
     Performs initial checks for activation methods.
  */
-- (void)performActivationMethodInit {
+- (void)performActivationMethodInitialization {
     if ([self isActivationMethodActive: THREE_FINGER_DOUBLE_TAB]) {
         [self initializeGestureRecognizer];
     }

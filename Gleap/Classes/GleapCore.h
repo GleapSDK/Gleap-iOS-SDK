@@ -228,6 +228,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 - (NSString *)getTopMostViewControllerName;
 - (NSString *)getJSStringForNSDate:(NSDate *)date;
 - (UIImage *)captureScreen;
+- (void)setActivationMethods:(NSArray *)activationMethods;
 
 @property (nonatomic, retain) NSString* language;
 @property (nonatomic, retain) NSString* token;
