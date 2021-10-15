@@ -15,27 +15,15 @@
 
 @implementation BBViewController
 
-- (void)customActionCalled:(NSString *)customAction {
-    NSLog(@"%@", customAction);
-}
-
-- (void)bugWillBeSent {
-    NSLog(@"SENT BUG");
-}
-
 - (IBAction)performAuth:(id)sender {
     GleapUserProperty *userSession = [[GleapUserProperty alloc] init];
-    userSession.name = @"Tasty";
-    userSession.email = @"lukas+tasty@boehlerbrothers.com";
+    userSession.name = @"Lukas";
+    userSession.email = @"lukas@boehlerbrothers.com";
     [Gleap identifyUserWith: @"1234" andData: userSession];
 }
 
 - (IBAction)sendSilentBugReport:(id)sender {
-    [Gleap startFeedbackFlow];
-}
-
-- (void)configLoaded:(NSDictionary *)config {
-    NSLog(@"%@", config);
+    [Gleap sendSilentBugReportWith: @"Sneaky bug report..." andSeverity: LOW];
 }
 
 - (void)viewDidLoad
@@ -47,18 +35,15 @@
     
     Gleap.sharedInstance.delegate = self;
     
-    [Gleap initializeWithToken: @"ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV"];
-    // [Gleap setApiToken: @"ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV"];
-    
     [Gleap attachCustomData: @{ @"key" : @"value", @"key2" : @"value2"}];
     
     [Gleap removeCustomDataForKey: @"email"];
     
     [Gleap setCustomData: @"lukas@bugbattle.io" forKey: @"email"];
 
-    [Gleap logEvent: @"User signed in"];
+    [Gleap logEvent: @"Demo opened"];
     
-    [Gleap logEvent: @"User signed in" withData: @{
+    [Gleap logEvent: @"Sample event with data" withData: @{
         @"userId": @"1242",
         @"name": @"Isabella",
         @"skillLevel": @"🤩"
@@ -68,11 +53,7 @@
     [@"XOXO" writeToFile:filePath atomically:YES encoding:NSUTF8StringEncoding error:nil];
     [Gleap addAttachmentWithPath: filePath];
     
-    NSString *filePathX = [NSTemporaryDirectory() stringByAppendingPathComponent: @"privatedata.json"];
-    [@"PENIS" writeToFile:filePathX atomically:YES encoding:NSUTF8StringEncoding error:nil];
-    [Gleap addAttachmentWithPath: filePathX];
-    
-    [Gleap addAttachmentWithData: [@"asdf" dataUsingEncoding:NSASCIIStringEncoding] andName: @"file.txt"];
+    [Gleap addAttachmentWithData: [@"Sample data" dataUsingEncoding:NSASCIIStringEncoding] andName: @"file.txt"];
 }
 
 - (NSString *) getDataFrom:(NSString *)url{

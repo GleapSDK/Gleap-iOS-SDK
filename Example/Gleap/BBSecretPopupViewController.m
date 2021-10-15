@@ -7,6 +7,7 @@
 //
 
 #import "BBSecretPopupViewController.h"
+#import <Gleap/Gleap.h>
 
 @interface BBSecretPopupViewController ()
 
@@ -19,6 +20,8 @@
     // Do any additional setup after loading the view.
     
     NSLog(@"Secret Popup opened.");
+    
+    [Gleap logEvent: @"Opened menu selection"];
 }
 
 /*

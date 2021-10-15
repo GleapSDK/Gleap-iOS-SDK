@@ -7,6 +7,7 @@
 //
 
 #import "BBRecipeViewController.h"
+#import <Gleap/Gleap.h>
 
 @interface BBRecipeViewController ()
 
@@ -26,6 +27,8 @@
     NSLog(@"Showing details for 'Superb Steak'.");
     
     self.title = @"Recipe Details";
+    
+    [Gleap logEvent: @"Some yummie steak :)"];
 }
 
 /*

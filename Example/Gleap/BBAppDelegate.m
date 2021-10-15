@@ -13,6 +13,8 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
+    [Gleap initializeWithToken: @"wytzEhhSa1EFfTEqK3HXBWuGRt2PREAE"];
+    
     return YES;
 }
 
