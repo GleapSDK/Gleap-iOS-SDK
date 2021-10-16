@@ -94,8 +94,8 @@
             filePath = "../Gleap/Classes/GleapCore.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "716"
-            endingLineNumber = "716"
+            startingLineNumber = "713"
+            endingLineNumber = "713"
             landmarkName = "-sendReportToServer:"
             landmarkType = "7">
          </BreakpointContent>
@@ -110,8 +110,8 @@
             filePath = "../Gleap/Classes/GleapCore.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "730"
-            endingLineNumber = "730"
+            startingLineNumber = "727"
+            endingLineNumber = "727"
             landmarkName = "-sendReportToServer:"
             landmarkType = "7">
          </BreakpointContent>

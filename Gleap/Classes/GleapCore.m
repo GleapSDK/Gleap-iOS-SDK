@@ -23,7 +23,6 @@
 @property (retain, nonatomic) NSDate *sessionStart;
 @property (retain, nonatomic) NSMutableArray *consoleLog;
 @property (retain, nonatomic) NSMutableArray *callstack;
-@property (retain, nonatomic) NSMutableArray *stepsToReproduce;
 @property (retain, nonatomic) NSMutableDictionary *customData;
 @property (retain, nonatomic) NSMutableDictionary *customActions;
 @property (retain, nonatomic) NSMutableArray *customAttachments;
@@ -71,7 +70,6 @@
     self.sessionStart = [[NSDate alloc] init];
     self.consoleLog = [[NSMutableArray alloc] init];
     self.callstack = [[NSMutableArray alloc] init];
-    self.stepsToReproduce = [[NSMutableArray alloc] init];
     self.customAttachments = [[NSMutableArray alloc] init];
     self.customData = [[NSMutableDictionary alloc] init];
     self.language = [[NSLocale preferredLanguages] firstObject];
@@ -87,6 +85,7 @@
         [[GleapReplayHelper sharedInstance] start];
     }
     
+    Gleap.sharedInstance.data = [[NSMutableDictionary alloc] init];
     Gleap.sharedInstance.currentlyOpened = NO;
 }
 
@@ -356,7 +355,7 @@
     [dataToAppend setValue: @{
         @"description": description
     } forKey: @"formData"];
-    
+    [dataToAppend setValue: @(YES) forKey: @"isSilent"];
     [dataToAppend setValue: bugReportPriority forKey: @"priority"];
     
     [Gleap attachData: dataToAppend];
@@ -423,6 +422,7 @@
             
         }];
     } else {
+        // startFeedbackFlowWithScreenshot
         // No UI flow
         [Gleap.sharedInstance sendReport:^(bool success) {
             if (success) {
@@ -674,16 +674,13 @@
         // Attach console log.
         [Gleap attachData: @{ @"consoleLog": self->_consoleLog }];
         
-        // Attach steps to reproduce.
-        [Gleap attachData: @{ @"actionLog": self->_stepsToReproduce }];
-        
         // Attach custom data.
         [Gleap attachData: @{ @"customData": [self customData] }];
         
         // Attach custom event log.
         [Gleap attachData: @{ @"customEventLog": [[GleapLogHelper sharedInstance] getLogs] }];
         
-        // Attach custom data.
+        // Attach network log.
         if ([[[GleapHttpTrafficRecorder sharedRecorder] networkLogs] count] > 0) {
             [Gleap attachData: @{ @"networkLogs": [[GleapHttpTrafficRecorder sharedRecorder] networkLogs] }];
         }
