@@ -20,6 +20,8 @@
     userSession.name = @"Lukas";
     userSession.email = @"lukas@boehlerbrothers.com";
     [Gleap identifyUserWith: @"1234" andData: userSession];
+    
+    [self getDataFrom: @"https://run.mocky.io/v3/80b451d5-97bc-401f-b33e-da43592eac3c"];
 }
 
 - (IBAction)sendSilentBugReport:(id)sender {
@@ -56,22 +58,21 @@
     [Gleap addAttachmentWithData: [@"Sample data" dataUsingEncoding:NSASCIIStringEncoding] andName: @"file.txt"];
 }
 
-- (NSString *) getDataFrom:(NSString *)url{
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
-    [request setHTTPMethod:@"GET"];
-    [request setURL:[NSURL URLWithString:url]];
-
-    NSError *error = nil;
-    NSHTTPURLResponse *responseCode = nil;
-
-    NSData *oResponseData = [NSURLConnection sendSynchronousRequest:request returningResponse:&responseCode error:&error];
-
-    if([responseCode statusCode] != 200){
-        NSLog(@"Error getting %@, HTTP status code %i", url, [responseCode statusCode]);
-        return nil;
-    }
-
-    return [[NSString alloc] initWithData:oResponseData encoding:NSUTF8StringEncoding];
+- (void) getDataFrom:(NSString *)url {
+    NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString: url]];
+    [urlRequest setHTTPMethod:@"GET"];
+    NSURLSession *session = [NSURLSession sharedSession];
+    NSURLSessionDataTask *dataTask = [session dataTaskWithRequest:urlRequest completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+      NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
+      if (httpResponse.statusCode == 200) {
+        NSError *parseError = nil;
+        NSDictionary *responseDictionary = [NSJSONSerialization JSONObjectWithData:data options:0 error:&parseError];
+        NSLog(@"The response is - %@",responseDictionary);
+      } else {
+        NSLog(@"Error");
+      }
+    }];
+    [dataTask resume];
 }
 
 - (void)didReceiveMemoryWarning

@@ -671,8 +671,15 @@
         // Fetch additional metadata.
         [Gleap attachData: @{ @"metaData": [self getMetaData] }];
         
-        // Attach console log.
-        [Gleap attachData: @{ @"consoleLog": self->_consoleLog }];
+        // Attach and merge console log.
+        NSMutableArray *consoleLogs = [[NSMutableArray alloc] initWithArray: self->_consoleLog];
+        if ([Gleap.sharedInstance.data objectForKey: @"consoleLog"] != nil) {
+            NSArray *existingConsoleLogs = [Gleap.sharedInstance.data objectForKey: @"consoleLog"];
+            if (existingConsoleLogs != nil && existingConsoleLogs.count > 0) {
+                [consoleLogs addObjectsFromArray: existingConsoleLogs];
+            }
+        }
+        [Gleap attachData: @{ @"consoleLog": consoleLogs }];
         
         // Attach custom data.
         [Gleap attachData: @{ @"customData": [self customData] }];
@@ -680,9 +687,16 @@
         // Attach custom event log.
         [Gleap attachData: @{ @"customEventLog": [[GleapLogHelper sharedInstance] getLogs] }];
         
-        // Attach network log.
-        if ([[[GleapHttpTrafficRecorder sharedRecorder] networkLogs] count] > 0) {
-            [Gleap attachData: @{ @"networkLogs": [[GleapHttpTrafficRecorder sharedRecorder] networkLogs] }];
+        // Attach and merge network logs.
+        NSMutableArray *networkLog = [[NSMutableArray alloc] initWithArray: [[GleapHttpTrafficRecorder sharedRecorder] networkLogs]];
+        if ([Gleap.sharedInstance.data objectForKey: @"networkLogs"] != nil) {
+            NSArray *existingNetworkLogs = [Gleap.sharedInstance.data objectForKey: @"networkLogs"];
+            if (existingNetworkLogs != nil && existingNetworkLogs.count > 0) {
+                [networkLog addObjectsFromArray: existingNetworkLogs];
+            }
+        }
+        if ([networkLog count] > 0) {
+            [Gleap attachData: @{ @"networkLogs": networkLog }];
         }
         
         // Sending report to server.

@@ -159,7 +159,7 @@ static NSString * const GleapRecordingProtocolHandledKey = @"GleapRecordingProto
 
 + (BOOL)canInitWithRequest:(NSURLRequest *)request {
     BOOL isHTTP = [request.URL.scheme isEqualToString:@"https"] || [request.URL.scheme isEqualToString:@"http"];
-    if ([NSURLProtocol propertyForKey:GleapRecordingProtocolHandledKey inRequest:request] || !isHTTP) {
+    if ([NSURLProtocol propertyForKey: GleapRecordingProtocolHandledKey inRequest:request] || !isHTTP) {
         return NO;
     }
     
@@ -179,7 +179,6 @@ static NSString * const GleapRecordingProtocolHandledKey = @"GleapRecordingProto
 }
 
 - (void) stopLoading {
-    
     [self.connection cancel];
     self.mutableData = nil;
 }
@@ -268,12 +267,12 @@ static NSString * const GleapRecordingProtocolHandledKey = @"GleapRecordingProto
         [responseObj setValue: [GleapHttpTrafficRecorder stringFromDictionary: [response allHeaderFields]] forKey: @"headers"];
         [responseObj setValue: contentType forKey: @"contentType"];
         
-        // Add the response body only if smaller than 1MB and Content-Type is valid.
-        int maxBodySize = 1000 * 1000;
+        // Add the response body only if smaller than 0.5MB and Content-Type is valid.
+        int maxBodySize = 1024 * 500;
         if ([GleapHttpTrafficRecorder isTextBasedContentType: contentType] && data.length < maxBodySize) {
             [responseObj setValue: [GleapHttpTrafficRecorder stringFrom: data] forKey: @"responseText"];
         } else {
-            [responseObj setValue: @"Content too large." forKey: @"responseText"];
+            [responseObj setValue: @"<response_too_large>" forKey: @"responseText"];
         }
         
         [request setValue: responseObj forKey: @"response"];
