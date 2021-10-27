@@ -63,6 +63,7 @@
     self.logoUrl = @"";
     self.apiUrl = @"https://api.gleap.io";
     self.widgetUrl = @"https://widget.gleap.io";
+    self.replayInterval = 5;
     self.activationMethods = [[NSArray alloc] init];
     self.applicationType = NATIVE;
     self.screenshot = nil;
@@ -82,7 +83,7 @@
 
 + (void)afterBugReportCleanup {
     if ([Gleap sharedInstance].replaysEnabled) {
-        [[GleapReplayHelper sharedInstance] start];
+        [[GleapReplayHelper sharedInstance] startWithInterval: [Gleap sharedInstance].replayInterval];
     }
     
     Gleap.sharedInstance.data = [[NSMutableDictionary alloc] init];
@@ -102,7 +103,7 @@
     
     if ([Gleap sharedInstance].replaysEnabled) {
         // Starts the replay helper.
-        [[GleapReplayHelper sharedInstance] start];
+        [[GleapReplayHelper sharedInstance] startWithInterval: [Gleap sharedInstance].replayInterval];
     } else {
         [[GleapReplayHelper sharedInstance] stop];
     }
@@ -227,6 +228,13 @@
 - (void)configureGleapWithConfig: (NSDictionary *)config {
     if ([config objectForKey: @"enableNetworkLogs"] != nil && [[config objectForKey: @"enableNetworkLogs"] boolValue] == YES) {
         [Gleap startNetworkRecording];
+    }
+    
+    if ([config objectForKey: @"replaysInterval"] != nil) {
+        int interval = [[config objectForKey: @"replaysInterval"] intValue];
+        if (interval > 0) {
+            self.replayInterval = interval;
+        }
     }
     
     if ([config objectForKey: @"enableReplays"] != nil) {
@@ -635,12 +643,13 @@
  Optionally upload replays steps (if any exist)
  */
 - (void)optionallyUploadReplaySteps: (void (^)(bool success))completion {
+    NSNumber *replayInterval = [NSNumber numberWithInt: self.replayInterval * 1000];
     if (self.replaysEnabled) {
         [[Gleap sharedInstance] uploadStepImages: [GleapReplayHelper sharedInstance].replaySteps andCompletion:^(bool success, NSArray * _Nonnull fileUrls) {
             if (success) {
                 // Attach replay
                 [Gleap attachData: @{ @"replay": @{
-                                                  @"interval": @1000,
+                                                  @"interval": replayInterval,
                                                   @"frames": fileUrls
                 } }];
             }

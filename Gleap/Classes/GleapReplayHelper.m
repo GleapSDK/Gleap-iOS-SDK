@@ -37,13 +37,16 @@
     self.running = false;
 }
 
-- (void)start {
+- (void)startWithInterval:(int)interval {
     if (self.running) {
+        if (self.replayTimer != nil) {
+            [self.replayTimer invalidate];
+        }
         return;
     }
     self.running = true;
     dispatch_async(dispatch_get_main_queue(), ^{
-        self.replayTimer = [NSTimer scheduledTimerWithTimeInterval: 1
+        self.replayTimer = [NSTimer scheduledTimerWithTimeInterval: interval
                                              target: self
                                            selector: @selector(addReplayStep)
                                            userInfo: nil
