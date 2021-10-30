@@ -135,6 +135,13 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)disableConsoleLog;
 
 /**
+ * Disables the debug console logging. This must be called BEFORE initializing the SDK.
+ * @author Gleap
+ *
+ */
++ (void)disableDebugConsoleLog;
+
+/**
  * Set's the current userinterface language.
  * @author Gleap
  *
@@ -235,6 +242,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 @property (nonatomic, assign) int replayInterval;
 @property (nonatomic, assign) bool replaysEnabled;
 @property (nonatomic, assign) bool consoleLogDisabled;
+@property (nonatomic, assign) bool debugConsoleLogDisabled;
 @property (nonatomic, assign) bool disableAutoActivationMethods;
 @property (nonatomic, assign) GleapApplicationType applicationType;
 @property (nonatomic, weak) id <GleapDelegate> delegate;
