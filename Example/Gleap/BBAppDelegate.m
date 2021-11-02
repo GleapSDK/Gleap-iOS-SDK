@@ -14,8 +14,8 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
     [Gleap enableDebugConsoleLog];
-    [Gleap setApiUrl: @"http://localhost:9000"];
-    [Gleap setWidgetUrl: @"http://localhost:9002"];
+    //[Gleap setApiUrl: @"http://localhost:9000"];
+    //[Gleap setWidgetUrl: @"http://localhost:9002"];
     [Gleap initializeWithToken: @"ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV"];
     
     return YES;

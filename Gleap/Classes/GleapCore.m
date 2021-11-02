@@ -232,7 +232,7 @@
             }
         }
         
-        NSLog(@"Gleap: Auto-configuration failed. Please check your API key and internet connection.");
+        NSLog(@"WARN: Gleap auto-configuration failed. Please check your API key and internet connection.");
     }] resume];
 }
 
@@ -636,27 +636,31 @@
  Optionally upload attachments (if any exist)
  */
 - (void)optionallyUploadAttachments: (void (^)(bool success))completion {
-    if (self.customAttachments.count > 0) {
-        [self uploadFiles: self.customAttachments forEndpoint: @"attachments" andCompletion:^(bool success, NSArray *fileUrls) {
-            if (success) {
-                // Attach attachments
-                NSMutableArray *attachmentsArray = [[NSMutableArray alloc] init];
-                
-                for (int i = 0; i < self.customAttachments.count; i++) {
-                    NSMutableDictionary *currentAttachment = [[self.customAttachments objectAtIndex: i] mutableCopy];
-                    NSString *currentAttachmentURL = [fileUrls objectAtIndex: i];
-                    [currentAttachment setObject: currentAttachmentURL forKey: @"url"];
-                    [currentAttachment removeObjectForKey: @"data"];
-                    [attachmentsArray addObject: currentAttachment];
+    if ([self.excludeData objectForKey: @"attachments"] != nil && [[self.excludeData objectForKey: @"attachments"] boolValue] == YES) {
+        completion(YES);
+    } else {
+        if (self.customAttachments.count > 0) {
+            [self uploadFiles: self.customAttachments forEndpoint: @"attachments" andCompletion:^(bool success, NSArray *fileUrls) {
+                if (success) {
+                    // Attach attachments
+                    NSMutableArray *attachmentsArray = [[NSMutableArray alloc] init];
+                    
+                    for (int i = 0; i < self.customAttachments.count; i++) {
+                        NSMutableDictionary *currentAttachment = [[self.customAttachments objectAtIndex: i] mutableCopy];
+                        NSString *currentAttachmentURL = [fileUrls objectAtIndex: i];
+                        [currentAttachment setObject: currentAttachmentURL forKey: @"url"];
+                        [currentAttachment removeObjectForKey: @"data"];
+                        [attachmentsArray addObject: currentAttachment];
+                    }
+                    
+                    [Gleap attachData: @{ @"attachments": attachmentsArray }];
                 }
                 
-                [Gleap attachData: @{ @"attachments": attachmentsArray }];
-            }
-            
-            completion(success);
-        }];
-    } else {
-        completion(YES);
+                completion(success);
+            }];
+        } else {
+            completion(YES);
+        }
     }
 }
 
@@ -747,6 +751,8 @@
         [Gleap attachData: @{ @"outbound": Gleap.sharedInstance.action.outbound }];
     }
     
+    [self excludeExcludedData];
+    
     // Sending report to server.
     return [self sendReportToServer:^(bool success) {
         completion(success);
@@ -754,9 +760,15 @@
 }
 
 - (void)excludeExcludedData {
+    if (self.excludeData == nil) {
+        return;
+    }
+    
     for (int i = 0; i < self.excludeData.allKeys.count; i++) {
         NSString *key = [self.excludeData.allKeys objectAtIndex: i];
-        [Gleap.sharedInstance.data removeObjectForKey: key];
+        if ([[self.excludeData objectForKey: key] boolValue] == YES) {
+            [Gleap.sharedInstance.data removeObjectForKey: key];
+        }
     }
 }
 
@@ -897,7 +909,7 @@
         if (success) {
             NSMutableArray *replayArray = [[NSMutableArray alloc] init];
             
-            for (int i = 0; i < steps.count; i++) {
+            for (int i = 0; i < fileUrls.count; i++) {
                 NSMutableDictionary *currentStep = [[steps objectAtIndex: i] mutableCopy];
                 NSString *currentImageUrl = [fileUrls objectAtIndex: i];
                 [currentStep setObject: currentImageUrl forKey: @"url"];

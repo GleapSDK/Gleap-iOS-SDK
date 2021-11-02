@@ -16,7 +16,7 @@
 @implementation BBViewController
 
 - (IBAction)performAuth:(id)sender {
-    return [Gleap startFeedbackFlow: @"bugreporting"];
+    //return [Gleap startFeedbackFlow: @"bugreporting"];
     
     
     GleapUserProperty *userSession = [[GleapUserProperty alloc] init];

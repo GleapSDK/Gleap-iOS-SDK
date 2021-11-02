@@ -77,6 +77,8 @@
         NSDictionary *excludeData = [message.body objectForKey: @"excludeData"];
         if (excludeData != nil) {
             Gleap.sharedInstance.excludeData = excludeData;
+        } else {
+            Gleap.sharedInstance.excludeData = [[NSDictionary alloc] init];
         }
         
         NSMutableDictionary *dataToAppend = [[NSMutableDictionary alloc] init];
