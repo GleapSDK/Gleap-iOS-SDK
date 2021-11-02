@@ -14,6 +14,7 @@ class BBSessionManager: Alamofire.Session {
     static let sharedManager: BBSessionManager = {
         let configuration = URLSessionConfiguration.default
         Gleap.startNetworkRecording(for:  configuration)
+        
         let manager = BBSessionManager(configuration: configuration)
         return manager
     }()

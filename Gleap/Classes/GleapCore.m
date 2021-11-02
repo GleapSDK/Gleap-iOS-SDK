@@ -62,10 +62,11 @@
     self.lastScreenName = @"";
     self.token = @"";
     self.logoUrl = @"";
+    self.startFlow = @"";
     self.apiUrl = @"https://api.gleap.io";
     self.widgetUrl = @"https://widget.gleap.io";
     self.replayInterval = 5;
-    self.debugConsoleLogDisabled = NO;
+    self.debugConsoleLogDisabled = YES;
     self.consoleLogDisabled = NO;
     self.activationMethods = [[NSArray alloc] init];
     self.applicationType = NATIVE;
@@ -77,6 +78,7 @@
     self.customAttachments = [[NSMutableArray alloc] init];
     self.customData = [[NSMutableDictionary alloc] init];
     self.language = [[NSLocale preferredLanguages] firstObject];
+    self.excludeData = [[NSDictionary alloc] init];
     self.disableAutoActivationMethods = NO;
 }
 
@@ -91,6 +93,8 @@
     
     Gleap.sharedInstance.data = [[NSMutableDictionary alloc] init];
     Gleap.sharedInstance.currentlyOpened = NO;
+    Gleap.sharedInstance.startFlow = @"";
+    Gleap.sharedInstance.action = nil;
 }
 
 + (void)setLanguage: (NSString *)language {
@@ -101,8 +105,8 @@
     [Gleap sharedInstance].consoleLogDisabled = YES;
 }
 
-+ (void)disableDebugConsoleLog {
-    [Gleap sharedInstance].debugConsoleLogDisabled = YES;
++ (void)enableDebugConsoleLog {
+    [Gleap sharedInstance].debugConsoleLogDisabled = NO;
 }
 
 + (void)enableReplays: (BOOL)enable {
@@ -345,12 +349,21 @@
     return [NSBundle bundleForClass: [Gleap class]];
 }
 
++ (void)open {
+    [self startFeedbackFlow];
+}
+
 /*
  Starts the bug reporting flow, when a SDK key has been assigned.
  */
 + (void)startFeedbackFlow {
     UIImage * screenshot = [Gleap.sharedInstance captureScreen];
     [self startFeedbackFlowWithScreenshot: screenshot];
+}
+
++ (void)startFeedbackFlow:(NSString *)feedbackFlow; {
+    Gleap.sharedInstance.startFlow = feedbackFlow;
+    [self startFeedbackFlow];
 }
 
 /*
@@ -611,7 +624,9 @@
     [self optionallyUploadReplaySteps:^(bool success) {
         [self optionallyUploadAttachments:^(bool success) {
             [self uploadScreenshotAndSendBugReport:^(bool success) {
-                completion(success);
+                [self prepareScreenshotDataAndSend:^(bool success) {
+                    completion(success);
+                }];
             }];
         }];
     }];
@@ -649,21 +664,25 @@
  Optionally upload replays steps (if any exist)
  */
 - (void)optionallyUploadReplaySteps: (void (^)(bool success))completion {
-    NSNumber *replayInterval = [NSNumber numberWithInt: self.replayInterval * 1000];
-    if (self.replaysEnabled) {
-        [[Gleap sharedInstance] uploadStepImages: [GleapReplayHelper sharedInstance].replaySteps andCompletion:^(bool success, NSArray * _Nonnull fileUrls) {
-            if (success) {
-                // Attach replay
-                [Gleap attachData: @{ @"replay": @{
-                                                  @"interval": replayInterval,
-                                                  @"frames": fileUrls
-                } }];
-            }
-            
-                completion(success);
-        }];
-    } else {
+    if ([self.excludeData objectForKey: @"replays"] != nil && [[self.excludeData objectForKey: @"replays"] boolValue] == YES) {
         completion(YES);
+    } else {
+        NSNumber *replayInterval = [NSNumber numberWithInt: self.replayInterval * 1000];
+        if (self.replaysEnabled) {
+            [[Gleap sharedInstance] uploadStepImages: [GleapReplayHelper sharedInstance].replaySteps andCompletion:^(bool success, NSArray * _Nonnull fileUrls) {
+                if (success) {
+                    // Attach replay
+                    [Gleap attachData: @{ @"replay": @{
+                                                      @"interval": replayInterval,
+                                                      @"frames": fileUrls
+                    } }];
+                }
+                
+                completion(success);
+            }];
+        } else {
+            completion(YES);
+        }
     }
 }
 
@@ -672,53 +691,73 @@
 }
 
 - (void)uploadScreenshotAndSendBugReport: (void (^)(bool success))completion {
-    // Process with image upload
-    [self uploadImage: self.screenshot andCompletion:^(bool success, NSString *fileUrl) {
-        if (!success) {
-            return completion(false);
-        }
-        
-        // Set screenshot url.
-        NSMutableDictionary *dataToAppend = [[NSMutableDictionary alloc] init];
-        [dataToAppend setValue: fileUrl forKey: @"screenshotUrl"];
-        [Gleap attachData: dataToAppend];
-        
-        // Fetch additional metadata.
-        [Gleap attachData: @{ @"metaData": [self getMetaData] }];
-        
-        // Attach and merge console log.
-        NSMutableArray *consoleLogs = [[NSMutableArray alloc] initWithArray: self->_consoleLog];
-        if ([Gleap.sharedInstance.data objectForKey: @"consoleLog"] != nil) {
-            NSArray *existingConsoleLogs = [Gleap.sharedInstance.data objectForKey: @"consoleLog"];
-            if (existingConsoleLogs != nil && existingConsoleLogs.count > 0) {
-                [consoleLogs addObjectsFromArray: existingConsoleLogs];
+    if ([self.excludeData objectForKey: @"replays"] != nil && [[self.excludeData objectForKey: @"replays"] boolValue] == YES) {
+        completion(YES);
+    } else {
+        // Process with image upload
+        [self uploadImage: self.screenshot andCompletion:^(bool success, NSString *fileUrl) {
+            if (!success) {
+                return completion(false);
             }
-        }
-        [Gleap attachData: @{ @"consoleLog": consoleLogs }];
-        
-        // Attach custom data.
-        [Gleap attachData: @{ @"customData": [self customData] }];
-        
-        // Attach custom event log.
-        [Gleap attachData: @{ @"customEventLog": [[GleapLogHelper sharedInstance] getLogs] }];
-        
-        // Attach and merge network logs.
-        NSMutableArray *networkLog = [[NSMutableArray alloc] initWithArray: [[GleapHttpTrafficRecorder sharedRecorder] networkLogs]];
-        if ([Gleap.sharedInstance.data objectForKey: @"networkLogs"] != nil) {
-            NSArray *existingNetworkLogs = [Gleap.sharedInstance.data objectForKey: @"networkLogs"];
-            if (existingNetworkLogs != nil && existingNetworkLogs.count > 0) {
-                [networkLog addObjectsFromArray: existingNetworkLogs];
-            }
-        }
-        if ([networkLog count] > 0) {
-            [Gleap attachData: @{ @"networkLogs": networkLog }];
-        }
-        
-        // Sending report to server.
-        [self sendReportToServer:^(bool success) {
-            completion(success);
+            
+            // Set screenshot url.
+            NSMutableDictionary *dataToAppend = [[NSMutableDictionary alloc] init];
+            [dataToAppend setValue: fileUrl forKey: @"screenshotUrl"];
+            [Gleap attachData: dataToAppend];
+            
+            return completion(YES);
         }];
+    }
+}
+
+- (void)prepareScreenshotDataAndSend: (void (^)(bool success))completion {
+    // Fetch additional metadata.
+    [Gleap attachData: @{ @"metaData": [self getMetaData] }];
+    
+    // Attach and merge console log.
+    NSMutableArray *consoleLogs = [[NSMutableArray alloc] initWithArray: self->_consoleLog];
+    if ([Gleap.sharedInstance.data objectForKey: @"consoleLog"] != nil) {
+        NSArray *existingConsoleLogs = [Gleap.sharedInstance.data objectForKey: @"consoleLog"];
+        if (existingConsoleLogs != nil && existingConsoleLogs.count > 0) {
+            [consoleLogs addObjectsFromArray: existingConsoleLogs];
+        }
+    }
+    [Gleap attachData: @{ @"consoleLog": consoleLogs }];
+    
+    // Attach custom data.
+    [Gleap attachData: @{ @"customData": [self customData] }];
+    
+    // Attach custom event log.
+    [Gleap attachData: @{ @"customEventLog": [[GleapLogHelper sharedInstance] getLogs] }];
+    
+    // Attach and merge network logs.
+    NSMutableArray *networkLog = [[NSMutableArray alloc] initWithArray: [[GleapHttpTrafficRecorder sharedRecorder] networkLogs]];
+    if ([Gleap.sharedInstance.data objectForKey: @"networkLogs"] != nil) {
+        NSArray *existingNetworkLogs = [Gleap.sharedInstance.data objectForKey: @"networkLogs"];
+        if (existingNetworkLogs != nil && existingNetworkLogs.count > 0) {
+            [networkLog addObjectsFromArray: existingNetworkLogs];
+        }
+    }
+    if ([networkLog count] > 0) {
+        [Gleap attachData: @{ @"networkLogs": networkLog }];
+    }
+    
+    // Add outbound
+    if (Gleap.sharedInstance.action != nil) {
+        [Gleap attachData: @{ @"outbound": Gleap.sharedInstance.action.outbound }];
+    }
+    
+    // Sending report to server.
+    return [self sendReportToServer:^(bool success) {
+        completion(success);
     }];
+}
+
+- (void)excludeExcludedData {
+    for (int i = 0; i < self.excludeData.allKeys.count; i++) {
+        NSString *key = [self.excludeData.allKeys objectAtIndex: i];
+        [Gleap.sharedInstance.data removeObjectForKey: key];
+    }
 }
 
 /*
@@ -1035,6 +1074,16 @@
         #endif
     }
     @catch(id anException) {}
+}
+
+- (void)performAction:(GleapAction *)action {
+    if (self.action != nil) {
+        NSLog(@"WARN: already performing action.");
+        return;
+    }
+    
+    self.action = action;
+    [Gleap startFeedbackFlow: action.actionType];
 }
 
 /*

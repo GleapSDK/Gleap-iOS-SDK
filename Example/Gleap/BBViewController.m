@@ -16,6 +16,9 @@
 @implementation BBViewController
 
 - (IBAction)performAuth:(id)sender {
+    return [Gleap startFeedbackFlow: @"bugreporting"];
+    
+    
     GleapUserProperty *userSession = [[GleapUserProperty alloc] init];
     userSession.name = @"Lukas";
     userSession.email = @"lukas@boehlerbrothers.com";
@@ -25,7 +28,8 @@
 }
 
 - (IBAction)sendSilentBugReport:(id)sender {
-    [Gleap sendSilentBugReportWith: @"Sneaky bug report..." andSeverity: LOW];
+    [Gleap open];
+    //[Gleap sendSilentBugReportWith: @"Sneaky bug report..." andSeverity: LOW];
 }
 
 - (void)viewDidLoad

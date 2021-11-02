@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import "GleapUserProperty.h"
+#import "GleapAction.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -45,11 +46,25 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)initializeWithToken: (NSString *)token;
 
 /**
- * Manually start the bug reporting workflow. This is used, when you use the activation method "NONE".
+ * Manually shows the feedback menu or default feedback flow. This is used, when you use the activation method "NONE".
+ * @author Gleap
+ *
+ */
++ (void)open;
+
+/**
+ * Manually shows the feedback menu or default feedback flow. This is used, when you use the activation method "NONE".
  * @author Gleap
  *
  */
 + (void)startFeedbackFlow;
+
+/**
+ * Manually start the bug reporting workflow. This is used, when you use the activation method "NONE".
+ * @author Gleap
+ *
+ */
++ (void)startFeedbackFlow:(NSString *)feedbackFlow;
 
 /**
  * Sends a silent bug report.
@@ -135,11 +150,11 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)disableConsoleLog;
 
 /**
- * Disables the debug console logging. This must be called BEFORE initializing the SDK.
+ * Enables the debug console logging. This must be called BEFORE initializing the SDK.
  * @author Gleap
  *
  */
-+ (void)disableDebugConsoleLog;
++ (void)enableDebugConsoleLog;
 
 /**
  * Set's the current userinterface language.
@@ -224,7 +239,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (UIImage *)getAttachedScreenshot;
 + (void)afterBugReportCleanup;
 + (void)setAutoActivationMethodsDisabled;
-
+- (void)performAction:(GleapAction *)action;
 - (void)sendReport: (void (^)(bool success))completion;
 - (void)uploadStepImages: (NSArray *)steps andCompletion: (void (^)(bool success, NSArray *fileUrls))completion;
 - (UIViewController *)getTopMostViewController;
@@ -232,12 +247,15 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 - (NSString *)getJSStringForNSDate:(NSDate *)date;
 - (UIImage *)captureScreen;
 
+@property (nonatomic, retain) NSDictionary* excludeData;
+@property (nonatomic, retain) NSString* startFlow;
 @property (nonatomic, retain) NSString* language;
 @property (nonatomic, retain) NSString* token;
 @property (nonatomic, retain) NSString* apiUrl;
 @property (nonatomic, retain) NSString* widgetUrl;
 @property (nonatomic, retain) NSArray *activationMethods;
 @property (nonatomic, retain) NSString *logoUrl;
+@property (nonatomic, retain, nullable) GleapAction *action;
 @property (nonatomic, retain) NSMutableDictionary* data;
 @property (nonatomic, assign) int replayInterval;
 @property (nonatomic, assign) bool replaysEnabled;

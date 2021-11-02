@@ -18,6 +18,7 @@
 #import "GleapUserProperty.h"
 #import "GleapSession.h"
 #import "GleapSessionHelper.h"
+#import "GleapAction.h"
 #import "GleapTouchHelper.h"
 #import "GleapTranslationHelper.h"
 #import "GleapWidgetViewController.h"

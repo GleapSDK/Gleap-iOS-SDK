@@ -104,6 +104,8 @@
 		DF49FF6326FCD0E400FF30A3 /* GleapUserProperty.m in Sources */ = {isa = PBXBuildFile; fileRef = DF49FF6126FCD0E400FF30A3 /* GleapUserProperty.m */; };
 		DF49FF6426FCD0E400FF30A3 /* GleapUserProperty.h in Headers */ = {isa = PBXBuildFile; fileRef = DF49FF6226FCD0E400FF30A3 /* GleapUserProperty.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		DFC6BD414F503BABEB095A3369A069AE /* GleapHttpTrafficRecorder.h in Headers */ = {isa = PBXBuildFile; fileRef = 93B80303A0ABB340E98D51831043A850 /* GleapHttpTrafficRecorder.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		DFE8BA11273144D0005B6CEE /* GleapAction.h in Headers */ = {isa = PBXBuildFile; fileRef = DFE8BA0F273144CF005B6CEE /* GleapAction.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		DFE8BA12273144D0005B6CEE /* GleapAction.m in Sources */ = {isa = PBXBuildFile; fileRef = DFE8BA10273144CF005B6CEE /* GleapAction.m */; };
 		DFFA9C9426FC85EB009C6AFD /* GleapSession.m in Sources */ = {isa = PBXBuildFile; fileRef = DFFA9C9226FC85EB009C6AFD /* GleapSession.m */; };
 		DFFA9C9526FC85EB009C6AFD /* GleapSession.h in Headers */ = {isa = PBXBuildFile; fileRef = DFFA9C9326FC85EB009C6AFD /* GleapSession.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		E8EB9F2CFC54AFE86B618DB528647311 /* UIActivityIndicatorView+AFNetworking.h in Headers */ = {isa = PBXBuildFile; fileRef = F0F03467D94D01F3069B0442A74C2F92 /* UIActivityIndicatorView+AFNetworking.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -279,6 +281,8 @@
 		DF49FF5E26FCB0EC00FF30A3 /* GleapSessionHelper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GleapSessionHelper.m; path = Gleap/Classes/GleapSessionHelper.m; sourceTree = "<group>"; };
 		DF49FF6126FCD0E400FF30A3 /* GleapUserProperty.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GleapUserProperty.m; path = Gleap/Classes/GleapUserProperty.m; sourceTree = "<group>"; };
 		DF49FF6226FCD0E400FF30A3 /* GleapUserProperty.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GleapUserProperty.h; path = Gleap/Classes/GleapUserProperty.h; sourceTree = "<group>"; };
+		DFE8BA0F273144CF005B6CEE /* GleapAction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GleapAction.h; path = Gleap/Classes/GleapAction.h; sourceTree = "<group>"; };
+		DFE8BA10273144CF005B6CEE /* GleapAction.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GleapAction.m; path = Gleap/Classes/GleapAction.m; sourceTree = "<group>"; };
 		DFFA9C9226FC85EB009C6AFD /* GleapSession.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GleapSession.m; path = Gleap/Classes/GleapSession.m; sourceTree = "<group>"; };
 		DFFA9C9326FC85EB009C6AFD /* GleapSession.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GleapSession.h; path = Gleap/Classes/GleapSession.h; sourceTree = "<group>"; };
 		E097FB128F4EA6D390368FEB486F254D /* URLRequest+Alamofire.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = "URLRequest+Alamofire.swift"; path = "Source/URLRequest+Alamofire.swift"; sourceTree = "<group>"; };
@@ -445,6 +449,8 @@
 				C140C0AEDEDBE1510C35831EE1B8294C /* GleapReplayHelper.m */,
 				DF49FF6226FCD0E400FF30A3 /* GleapUserProperty.h */,
 				DF49FF6126FCD0E400FF30A3 /* GleapUserProperty.m */,
+				DFE8BA0F273144CF005B6CEE /* GleapAction.h */,
+				DFE8BA10273144CF005B6CEE /* GleapAction.m */,
 				DFFA9C9326FC85EB009C6AFD /* GleapSession.h */,
 				DFFA9C9226FC85EB009C6AFD /* GleapSession.m */,
 				DF49FF5D26FCB0EC00FF30A3 /* GleapSessionHelper.h */,
@@ -671,6 +677,7 @@
 				1DA00835ECA69D1BDA5F4723200F6B20 /* Gleap.h in Headers */,
 				DFFA9C9526FC85EB009C6AFD /* GleapSession.h in Headers */,
 				2A394DB3A6B93A2EC2E3E0F4B40DF29B /* GleapCore.h in Headers */,
+				DFE8BA11273144D0005B6CEE /* GleapAction.h in Headers */,
 				DFC6BD414F503BABEB095A3369A069AE /* GleapHttpTrafficRecorder.h in Headers */,
 				88E257691E43075269CAE60D80C32742 /* GleapLogHelper.h in Headers */,
 				DF49FF6426FCD0E400FF30A3 /* GleapUserProperty.h in Headers */,
@@ -985,6 +992,7 @@
 				2A0EBE7164AF0BBF94E75505C558F6C7 /* GleapHttpTrafficRecorder.m in Sources */,
 				DF49FF6326FCD0E400FF30A3 /* GleapUserProperty.m in Sources */,
 				B7A3A8E6C9C7FDAC1510C46BB034BCCC /* GleapLogHelper.m in Sources */,
+				DFE8BA12273144D0005B6CEE /* GleapAction.m in Sources */,
 				BC6C9FA274633981C1EE8B58B0D362D9 /* GleapReplayHelper.m in Sources */,
 				DFFA9C9426FC85EB009C6AFD /* GleapSession.m in Sources */,
 				813EF9E35656335C8BA87D8F37D367FB /* GleapTouchHelper.m in Sources */,

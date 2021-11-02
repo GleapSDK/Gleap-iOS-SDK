@@ -176,6 +176,17 @@
     // Process any open identity actions.
     [self processOpenIdentityAction];
     
+    NSDictionary *action = [data objectForKey: @"action"];
+    if (action != nil) {
+        if ([action objectForKey: @"actionType"] != nil && [action objectForKey: @"outbound"] != nil) {
+            GleapAction *gleapAction = [[GleapAction alloc] init];
+            gleapAction.actionType = [action objectForKey: @"actionType"];
+            gleapAction.outbound = [action objectForKey: @"outbound"];
+            
+            [Gleap.sharedInstance performAction: gleapAction];
+        }
+    }
+    
     return completion(true);
 }
 
