@@ -1,21 +1,21 @@
 {
   "name": "Gleap",
-  "version": "5.0.2",
-  "summary": "In-App Bug Reporting and Testing for Apps. Learn more at https://www.bugbattle.io",
-  "homepage": "https://www.bugbattle.io",
+  "version": "6.1.0",
+  "summary": "In-App Bug Reporting and Testing for Apps. Learn more at https://gleap.io",
+  "homepage": "https://gleap.io",
   "license": {
     "type": "Commercial",
     "file": "LICENSE.md"
   },
   "authors": {
-    "Gleap": "hello@bugbattle.io"
+    "Gleap": "hello@gleap.io"
   },
   "platforms": {
     "ios": "9.0"
   },
   "source": {
-    "git": "https://github.com/Gleap/iOS-SDK.git",
-    "tag": "5.0.2"
+    "git": "https://github.com/GleapSDK/iOS-SDK",
+    "tag": "6.1.0"
   },
   "source_files": "Gleap/Classes/**/*",
   "public_header_files": "Gleap/Classes/**/*.h",

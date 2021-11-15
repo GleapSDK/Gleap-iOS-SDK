@@ -26,6 +26,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, retain) NSMutableArray* replaySteps;
 @property (nonatomic, retain) NSTimer* replayTimer;
+@property (nonatomic, retain) NSString* lastPageName;
 @property (nonatomic, assign) bool running;
 
 @end

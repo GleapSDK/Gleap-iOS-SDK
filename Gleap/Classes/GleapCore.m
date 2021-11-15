@@ -208,6 +208,7 @@
 + (void)initializeWithToken: (NSString *)token {
     [Gleap setApiToken: token];
     [[GleapSessionHelper sharedInstance] startSessionWith:^(bool success) {
+        [[GleapLogHelper sharedInstance] start];
         [self autoConfigure];
     }];
 }

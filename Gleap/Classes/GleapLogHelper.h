@@ -20,12 +20,15 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (instancetype)sharedInstance;
 
+- (void)start;
 - (void)logEvent: (NSString *)name;
 - (void)logEvent: (NSString *)name withData: (NSDictionary *)data;
 - (void)clear;
 - (NSArray *)getLogs;
 
 @property (nonatomic, retain) NSMutableArray* log;
+@property (nonatomic, retain) NSMutableArray* streamedLog;
+@property (nonatomic, retain) NSTimer* eventStreamTimer;
 
 @end
 

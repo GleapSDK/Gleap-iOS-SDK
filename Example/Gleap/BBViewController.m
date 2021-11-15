@@ -28,8 +28,17 @@
 }
 
 - (IBAction)sendSilentBugReport:(id)sender {
-    [Gleap open];
+    //[Gleap open];
     //[Gleap sendSilentBugReportWith: @"Sneaky bug report..." andSeverity: LOW];
+    
+    [Gleap logEvent: @"signedUp"];
+    
+    
+    [Gleap logEvent: @"dataa" withData: @{
+        @"userId": @"1242",
+        @"name": @"Isabella",
+        @"skillLevel": @"🤩"
+    }];
 }
 
 - (void)viewDidLoad
