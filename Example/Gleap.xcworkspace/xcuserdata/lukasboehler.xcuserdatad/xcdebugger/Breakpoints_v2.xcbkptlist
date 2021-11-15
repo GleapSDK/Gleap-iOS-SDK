@@ -78,8 +78,8 @@
             filePath = "../Gleap/Classes/GleapCore.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "751"
-            endingLineNumber = "751"
+            startingLineNumber = "752"
+            endingLineNumber = "752"
             landmarkName = "-prepareScreenshotDataAndSend:"
             landmarkType = "7">
          </BreakpointContent>
@@ -94,8 +94,8 @@
             filePath = "../Gleap/Classes/GleapCore.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "758"
-            endingLineNumber = "758"
+            startingLineNumber = "759"
+            endingLineNumber = "759"
             landmarkName = "-prepareScreenshotDataAndSend:"
             landmarkType = "7">
             <Locations>
