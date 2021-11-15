@@ -28,6 +28,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, retain) NSMutableArray* log;
 @property (nonatomic, retain) NSMutableArray* streamedLog;
+@property (nonatomic, retain) NSString* lastPageName;
+@property (nonatomic, retain) NSTimer* pageNameTimer;
 @property (nonatomic, retain) NSTimer* eventStreamTimer;
 
 @end

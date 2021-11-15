@@ -74,15 +74,6 @@
         UIImage *screenshot = [[Gleap sharedInstance] captureScreen];
         NSString *currentViewControllerName = [[Gleap sharedInstance] getTopMostViewControllerName];
         
-        // Track page views.
-        if (currentViewControllerName != nil && ![currentViewControllerName isEqualToString: self.lastPageName]) {
-            self.lastPageName = currentViewControllerName;
-            
-            [Gleap logEvent: @"pageView" withData: @{
-                @"page": currentViewControllerName
-            }];
-        }
-        
         [self.replaySteps addObject: @{
             @"screenname": currentViewControllerName,
             @"image": screenshot,

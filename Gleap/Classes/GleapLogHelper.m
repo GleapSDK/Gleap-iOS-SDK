@@ -80,12 +80,35 @@
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
+        self.pageNameTimer = [NSTimer scheduledTimerWithTimeInterval: 1
+                                                              target: self
+                                                            selector: @selector(lastPageNameUpdate)
+                                                            userInfo: nil
+                                                             repeats: YES];
+        
         self.eventStreamTimer = [NSTimer scheduledTimerWithTimeInterval: 2
                                              target: self
                                            selector: @selector(sendEventStreamToServer)
                                            userInfo: nil
                                             repeats: YES];
     });
+}
+
+// Track page views.
+- (void)lastPageNameUpdate {
+    NSString *currentViewControllerName = [[Gleap sharedInstance] getTopMostViewControllerName];
+    if (
+        currentViewControllerName != nil
+        && ![currentViewControllerName isEqualToString: self.lastPageName]
+        && Gleap.sharedInstance.applicationType == NATIVE
+        && !Gleap.sharedInstance.currentlyOpened
+    ) {
+        self.lastPageName = currentViewControllerName;
+        
+        [Gleap logEvent: @"pageView" withData: @{
+            @"page": currentViewControllerName
+        }];
+    }
 }
 
 /*
