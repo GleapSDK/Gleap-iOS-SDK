@@ -6,7 +6,7 @@
 //  Copyright © 2021 Gleap. All rights reserved.
 //
 
-#define SDK_VERSION @"6.0.13"
+#define SDK_VERSION @"6.2.1"
 
 #import "GleapCore.h"
 #import "GleapWidgetViewController.h"
@@ -1013,6 +1013,50 @@
     return applicationType;
 }
 
+- (NSString *)getPhoneChargingState {
+    UIDevice *currentDevice = [UIDevice currentDevice];
+    [currentDevice setBatteryMonitoringEnabled:YES];
+    switch ([currentDevice batteryState]) {
+        case UIDeviceBatteryStateCharging:
+            return @"Charging";
+        case UIDeviceBatteryStateFull:
+            return @"Full";
+        case UIDeviceBatteryStateUnplugged:
+            return @"Unplugged";
+        case UIDeviceBatteryStateUnknown:
+            return @"Unknown";
+    }
+    
+    return @"Unknown";
+}
+
+- (NSDictionary *)getDiskInfo {
+    NSString* totalSpace = @"Unknown";
+    NSString* totalFreeSpace = @"Unknown";
+    NSError *error = nil;
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSDictionary *dictionary = [[NSFileManager defaultManager] attributesOfFileSystemForPath:[paths lastObject] error: &error];
+    if (dictionary) {
+        NSNumber *fileSystemSizeInBytes = [dictionary objectForKey: NSFileSystemSize];
+        NSNumber *freeFileSystemSizeInBytes = [dictionary objectForKey:NSFileSystemFreeSize];
+        totalSpace = [NSString stringWithFormat: @"%llu", ([fileSystemSizeInBytes unsignedLongLongValue]/1000ll/1000ll/1000ll)];
+        totalFreeSpace = [NSString stringWithFormat: @"%llu", ([freeFileSystemSizeInBytes unsignedLongLongValue]/1000ll/1000ll/1000ll)];
+        
+        if (@available(iOS 11.0, *)) {
+            NSURL *homePathURL = [[NSURL alloc] initFileURLWithPath: NSHomeDirectory()];
+            id resourceResults = [homePathURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:nil];
+            if (resourceResults[NSURLVolumeAvailableCapacityForImportantUsageKey] != nil) {
+                totalFreeSpace = [NSString stringWithFormat: @"%lld", ([resourceResults[NSURLVolumeAvailableCapacityForImportantUsageKey] longLongValue] / 1024ll / 1024ll / 1024ll)];
+            }
+        }
+    }
+    
+    return @{
+        @"totalSpace": totalSpace,
+        @"totalFreeSpace": totalFreeSpace,
+    };
+}
+
 /*
  Returns all meta data as an NSDictionary.
  */
@@ -1028,7 +1072,13 @@
     NSString *buildVersionNumber = [NSBundle.mainBundle.infoDictionary objectForKey: @"CFBundleVersion"];
     NSNumber *sessionDuration = [NSNumber numberWithDouble: [self sessionDuration]];
     NSString *preferredUserLocale = [[[NSBundle mainBundle] preferredLocalizations] firstObject];
-    
+    NSString *batteryLevel = @"Unknown";
+    NSString * phoneChargingState = [self getPhoneChargingState];
+    if (![phoneChargingState isEqualToString: @"Unknown"]) {
+        batteryLevel = [NSString stringWithFormat:@"%.f", (float)[currentDevice batteryLevel] * 100];
+    }
+    NSString *lowPowerModeEnabled = [[NSProcessInfo processInfo] isLowPowerModeEnabled] ? @"true": @"false";
+    NSDictionary *diskInfo = [self getDiskInfo];
     NSString *buildMode = @"DEBUG";
     #ifdef RELEASE
     buildMode = @"RELEASE";
@@ -1048,7 +1098,12 @@
         @"preferredUserLocale": preferredUserLocale,
         @"sdkType": [self getApplicationTypeAsString],
         @"sdkVersion": SDK_VERSION,
-        @"buildMode": buildMode
+        @"buildMode": buildMode,
+        @"batteryLevel": batteryLevel,
+        @"phoneChargingStatus": phoneChargingState,
+        @"batterySaveMode": lowPowerModeEnabled,
+        @"totalDiskSpace": [diskInfo objectForKey: @"totalSpace"],
+        @"totalFreeDiskSpace": [diskInfo objectForKey: @"totalFreeSpace"]
     };
 }
 
