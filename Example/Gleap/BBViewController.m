@@ -18,7 +18,7 @@
 - (IBAction)performAuth:(id)sender {
     //return [Gleap startFeedbackFlow: @"bugreporting"];
     
-    [self getDataFrom: @"https://run.mocky.io/v3/5c33e05c-3fa9-450d-ac16-000107a6ef15"];
+    [self getDataFrom: @"https://designer.mocky.io/static/media/chi-hang-leong-hehYcAGhbmY-unsplash.6914f9ac.jpg"];
 }
 
 - (IBAction)sendSilentBugReport:(id)sender {
@@ -67,7 +67,7 @@
 
 - (void) getDataFrom:(NSString *)url {
     NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString: url]];
-    [urlRequest setHTTPMethod:@"POST"];
+    [urlRequest setHTTPMethod:@"GET"];
     [urlRequest setValue: @"GEHEIM" forHTTPHeaderField: @"notsogeheim"];
     [urlRequest setValue: @"GEHEIM" forHTTPHeaderField: @"token"];
     [urlRequest setValue: @"GEHEIM" forHTTPHeaderField: @"token2"];
