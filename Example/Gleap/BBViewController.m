@@ -18,13 +18,7 @@
 - (IBAction)performAuth:(id)sender {
     //return [Gleap startFeedbackFlow: @"bugreporting"];
     
-    
-    GleapUserProperty *userSession = [[GleapUserProperty alloc] init];
-    userSession.name = @"Lukas";
-    userSession.email = @"lukas@boehlerbrothers.com";
-    [Gleap identifyUserWith: @"1234" andData: userSession];
-    
-    [self getDataFrom: @"https://run.mocky.io/v3/80b451d5-97bc-401f-b33e-da43592eac3c"];
+    [self getDataFrom: @"https://run.mocky.io/v3/5c33e05c-3fa9-450d-ac16-000107a6ef15"];
 }
 
 - (IBAction)sendSilentBugReport:(id)sender {
@@ -73,7 +67,10 @@
 
 - (void) getDataFrom:(NSString *)url {
     NSMutableURLRequest *urlRequest = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString: url]];
-    [urlRequest setHTTPMethod:@"GET"];
+    [urlRequest setHTTPMethod:@"POST"];
+    [urlRequest setValue: @"GEHEIM" forHTTPHeaderField: @"notsogeheim"];
+    [urlRequest setValue: @"GEHEIM" forHTTPHeaderField: @"token"];
+    [urlRequest setValue: @"GEHEIM" forHTTPHeaderField: @"token2"];
     NSURLSession *session = [NSURLSession sharedSession];
     NSURLSessionDataTask *dataTask = [session dataTaskWithRequest:urlRequest completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
       NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;

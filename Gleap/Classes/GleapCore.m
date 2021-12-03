@@ -71,6 +71,7 @@
     self.activationMethods = [[NSArray alloc] init];
     self.applicationType = NATIVE;
     self.screenshot = nil;
+    self.networkLogPropsToIgnore = [[NSArray alloc] init];
     self.data = [[NSMutableDictionary alloc] init];
     self.sessionStart = [[NSDate alloc] init];
     self.consoleLog = [[NSMutableArray alloc] init];
@@ -252,6 +253,11 @@
     
     if ([config objectForKey: @"enableReplays"] != nil) {
         [Gleap enableReplays: [[config objectForKey: @"enableReplays"] boolValue]];
+    }
+    
+    
+    if ([config objectForKey: @"networkLogPropsToIgnore"] != nil && [[config objectForKey: @"networkLogPropsToIgnore"] isKindOfClass:[NSArray class]]) {
+        self.networkLogPropsToIgnore = [config objectForKey: @"networkLogPropsToIgnore"];
     }
     
     if (!self.disableAutoActivationMethods) {
@@ -737,15 +743,15 @@
     [Gleap attachData: @{ @"customEventLog": [[GleapLogHelper sharedInstance] getLogs] }];
     
     // Attach and merge network logs.
-    NSMutableArray *networkLog = [[NSMutableArray alloc] initWithArray: [[GleapHttpTrafficRecorder sharedRecorder] networkLogs]];
+    NSMutableArray *networkLogs = [[NSMutableArray alloc] initWithArray: [[GleapHttpTrafficRecorder sharedRecorder] networkLogs]];
     if ([Gleap.sharedInstance.data objectForKey: @"networkLogs"] != nil) {
         NSArray *existingNetworkLogs = [Gleap.sharedInstance.data objectForKey: @"networkLogs"];
         if (existingNetworkLogs != nil && existingNetworkLogs.count > 0) {
-            [networkLog addObjectsFromArray: existingNetworkLogs];
+            [networkLogs addObjectsFromArray: existingNetworkLogs];
         }
     }
-    if ([networkLog count] > 0) {
-        [Gleap attachData: @{ @"networkLogs": networkLog }];
+    if ([networkLogs count] > 0) {
+        [Gleap attachData: @{ @"networkLogs": [self filterNetworkLogs: networkLogs] }];
     }
     
     // Add outbound
@@ -759,6 +765,60 @@
     return [self sendReportToServer:^(bool success) {
         completion(success);
     }];
+}
+
+- (NSArray *)filterNetworkLogs:(NSArray *)networkLogs {
+    if (self.networkLogPropsToIgnore == nil || [self.networkLogPropsToIgnore count] <= 0) {
+        return networkLogs;
+    }
+    
+    NSMutableArray* processedNetworkLogs = [[NSMutableArray alloc] init];
+    
+    // Filter networklog properties.
+    for (int i = 0; i < [networkLogs count]; i++) {
+        NSMutableDictionary * log =  [[NSMutableDictionary alloc] initWithDictionary: [networkLogs objectAtIndex: i]];
+        
+        if ([log objectForKey: @"request"] != nil) {
+            NSMutableDictionary *request = [[NSMutableDictionary alloc] initWithDictionary: [log objectForKey: @"request"]];
+            if (request != nil && [request objectForKey: @"headers"]) {
+                
+                if ([request objectForKey: @"headers"] != nil) {
+                    NSMutableDictionary *mutableHeaders = [[NSMutableDictionary alloc] initWithDictionary: [request objectForKey: @"headers"]];
+                    [mutableHeaders removeObjectsForKeys: self.networkLogPropsToIgnore];
+                    [request setObject: mutableHeaders forKey: @"headers"];
+                }
+                [log setObject: request forKey: @"request"];
+            }
+        }
+        
+        if ([log objectForKey: @"response"] != nil) {
+            NSMutableDictionary *response = [[NSMutableDictionary alloc] initWithDictionary: [log objectForKey: @"response"]];
+            if (response != nil && [response objectForKey: @"responseText"] != nil) {
+                NSError *jsonError;
+                NSMutableDictionary *jsonObject = [NSJSONSerialization JSONObjectWithData:[[response objectForKey: @"responseText"] dataUsingEncoding:NSUTF8StringEncoding]  options: NSJSONReadingMutableContainers error:&jsonError];
+                if (jsonError == nil && jsonObject != nil) {
+                    [jsonObject removeObjectsForKeys: self.networkLogPropsToIgnore];
+                    
+                    NSError *jsonDataError;
+                    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonObject
+                                                                       options:0
+                                                                         error:&jsonDataError];
+                    if (jsonData != nil) {
+                        NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                        if (jsonString != nil) {
+                            [response setObject: jsonString forKey: @"responseText"];
+                        }
+                    }
+                }
+                
+                [log setObject: response forKey: @"response"];
+            }
+        }
+        
+        [processedNetworkLogs addObject: log];
+    }
+    
+    return [processedNetworkLogs copy];
 }
 
 - (void)excludeExcludedData {

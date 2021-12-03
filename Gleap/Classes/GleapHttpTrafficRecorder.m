@@ -259,12 +259,12 @@ static NSString * const GleapRecordingProtocolHandledKey = @"GleapRecordingProto
         
         NSMutableDictionary *requestObj = [[NSMutableDictionary alloc] init];
         [requestObj setValue: [GleapHttpTrafficRecorder stringFrom: [urlRequest HTTPBody]] forKey: @"payload"];
-        [requestObj setValue: [GleapHttpTrafficRecorder stringFromDictionary: [urlRequest allHTTPHeaderFields]] forKey: @"headers"];
+        [requestObj setValue: [urlRequest allHTTPHeaderFields] forKey: @"headers"];
         [request setValue: requestObj forKey: @"request"];
         
         NSMutableDictionary *responseObj = [[NSMutableDictionary alloc] init];
         [responseObj setValue: [NSNumber numberWithInteger: [response statusCode]] forKey: @"status"];
-        [responseObj setValue: [GleapHttpTrafficRecorder stringFromDictionary: [response allHeaderFields]] forKey: @"headers"];
+        [responseObj setValue: [response allHeaderFields] forKey: @"headers"];
         [responseObj setValue: contentType forKey: @"contentType"];
         
         // Add the response body only if smaller than 0.5MB and Content-Type is valid.

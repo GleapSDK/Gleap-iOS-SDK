@@ -265,6 +265,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 @property (nonatomic, assign) GleapApplicationType applicationType;
 @property (nonatomic, weak) id <GleapDelegate> delegate;
 @property (retain, nonatomic) NSString *lastScreenName;
+@property (retain, nonatomic) NSArray *networkLogPropsToIgnore;
 @property (nonatomic, assign) bool currentlyOpened;
 
 @end
