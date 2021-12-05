@@ -10,6 +10,25 @@ You have two ways to set up the Gleap SDK for iOS. The easiest way ist to instal
 
 Checkout our [documentation](https://docs.gleap.io/ios) for full reference.
 
+
+## Installation with Swift Package Manager
+
+The [Swift Package Manager](https://www.swift.org/package-manager/) is a tool for automating the distribution of Swift code and is integrated into the swift compiler. It is in early development, but Gleap does support its use on supported platforms.
+
+To get started, open your Xcode project and select File > Add packages...
+
+Now you need to paste the following Package URL to the search bar in the top right corner. Hit enter to confirm.
+
+**Package URL:**
+```
+https://github.com/GleapSDK/Gleap-iOS-SDK
+```
+
+Now confirm with add package. The Gleap SDK is almost installed successfully.
+Let's carry on with the initialization 🎉
+
+![Gleap iOS SDK for Swift Package Manager](https://raw.githubusercontent.com/GleapSDK/Gleap-iOS-SDK/main/Resources/GleapSwiftPackageManager.png)
+
 ## Installation with CocoaPods
 
 Open a terminal window and navigate to the location of the Xcode project for your app.
