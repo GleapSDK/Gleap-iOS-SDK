@@ -2,13 +2,13 @@
 
 ![Gleap iOS SDK Intro](https://raw.githubusercontent.com/GleapSDK/iOS-SDK/main/imgs/gleapheader.png)
 
-The Gleap SDK for iOS is the easiest way to integrate Gleap into your apps!
+The [Gleap SDK for iOS](https://www.gleap.io) is the easiest way to integrate Gleap into your apps!
 
 You have two ways to set up the Gleap SDK for iOS. The easiest way ist to install and link the SDK with CocoaPods. If you haven't heard about [CocoaPods](https://cocoapods.org) yet, we strongly encourage you to check out their getting started here (it's super easy to get started & worth using 😍)
 
 ## Docs & Examples
 
-Checkout our [documentation](https://docs.gleap.io/ios-sdk/customizations) for full reference.
+Checkout our [documentation](https://docs.gleap.io/ios) for full reference.
 
 ## Installation with CocoaPods
 

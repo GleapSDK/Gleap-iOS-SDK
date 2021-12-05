@@ -17,9 +17,8 @@ Pod::Spec.new do |s|
   s.platform     = :ios, '9.0'
   s.source       = { :git => "https://github.com/GleapSDK/iOS-SDK", :tag => s.version.to_s }
   
-  s.source_files = 'Gleap/Classes/**/*'
-  s.public_header_files = 'Gleap/Classes/**/*.h'
-  s.resources = ['Gleap/Assets/**/*.storyboard', 'Gleap/Assets/**/*.png']
+  s.source_files = 'Sources/**/*.{h,m,c}'
+  s.public_header_files = 'Sources/**/*.h'
   
   s.frameworks   = 'UIKit', 'Foundation'
 end
