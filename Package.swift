@@ -16,18 +16,13 @@ let package = Package(
     ],
     targets: [
         .target(
-           name: "Gleap-ObjC",
+           name: "Gleap",
            dependencies: [],
            path: "Sources/ObjCSources/",
            publicHeadersPath: ".",
            cSettings: [
               .headerSearchPath("Internal"),
            ]
-        ),
-        .target(
-           name: "Gleap",
-           dependencies: ["Gleap-ObjC"],
-           path: "Sources/SwiftSources/"
         ),
         .testTarget(
             name: "GleapTests",

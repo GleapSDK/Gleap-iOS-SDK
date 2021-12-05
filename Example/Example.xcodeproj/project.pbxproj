@@ -9,10 +9,10 @@
 /* Begin PBXBuildFile section */
 		DF0FF1A5275CBAD80070507E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF0FF1A4275CBAD80070507E /* AppDelegate.swift */; };
 		DF0FF1A7275CBAD80070507E /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF0FF1A6275CBAD80070507E /* SceneDelegate.swift */; };
-		DF0FF1A9275CBAD80070507E /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF0FF1A8275CBAD80070507E /* ViewController.swift */; };
 		DF0FF1AC275CBAD80070507E /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DF0FF1AA275CBAD80070507E /* Main.storyboard */; };
 		DF0FF1AE275CBAD90070507E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DF0FF1AD275CBAD90070507E /* Assets.xcassets */; };
 		DF0FF1B1275CBAD90070507E /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DF0FF1AF275CBAD90070507E /* LaunchScreen.storyboard */; };
+		DF159EA1275D1E37001AA981 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = DF159EA0275D1E37001AA981 /* ViewController.m */; };
 		DF640766275CC77D00BF9C7A /* Gleap in Frameworks */ = {isa = PBXBuildFile; productRef = DF640765275CC77D00BF9C7A /* Gleap */; };
 /* End PBXBuildFile section */
 
@@ -20,12 +20,14 @@
 		DF0FF1A1275CBAD80070507E /* Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Example.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DF0FF1A4275CBAD80070507E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		DF0FF1A6275CBAD80070507E /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		DF0FF1A8275CBAD80070507E /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		DF0FF1AB275CBAD80070507E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		DF0FF1AD275CBAD90070507E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DF0FF1B0275CBAD90070507E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		DF0FF1B2275CBAD90070507E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		DF0FF1B9275CBAE20070507E /* iOS-SDK-cross */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "iOS-SDK-cross"; path = ..; sourceTree = "<group>"; };
+		DF159E9E275D1E37001AA981 /* Example-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Example-Bridging-Header.h"; sourceTree = "<group>"; };
+		DF159E9F275D1E37001AA981 /* ViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
+		DF159EA0275D1E37001AA981 /* ViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ViewController.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,11 +65,13 @@
 			children = (
 				DF0FF1A4275CBAD80070507E /* AppDelegate.swift */,
 				DF0FF1A6275CBAD80070507E /* SceneDelegate.swift */,
-				DF0FF1A8275CBAD80070507E /* ViewController.swift */,
+				DF159E9F275D1E37001AA981 /* ViewController.h */,
+				DF159EA0275D1E37001AA981 /* ViewController.m */,
 				DF0FF1AA275CBAD80070507E /* Main.storyboard */,
 				DF0FF1AD275CBAD90070507E /* Assets.xcassets */,
 				DF0FF1AF275CBAD90070507E /* LaunchScreen.storyboard */,
 				DF0FF1B2275CBAD90070507E /* Info.plist */,
+				DF159E9E275D1E37001AA981 /* Example-Bridging-Header.h */,
 			);
 			path = Example;
 			sourceTree = "<group>";
@@ -122,6 +126,7 @@
 				TargetAttributes = {
 					DF0FF1A0275CBAD80070507E = {
 						CreatedOnToolsVersion = 13.1;
+						LastSwiftMigration = 1310;
 					};
 				};
 			};
@@ -161,8 +166,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DF0FF1A9275CBAD80070507E /* ViewController.swift in Sources */,
 				DF0FF1A5275CBAD80070507E /* AppDelegate.swift in Sources */,
+				DF159EA1275D1E37001AA981 /* ViewController.m in Sources */,
 				DF0FF1A7275CBAD80070507E /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -310,6 +315,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 7UGU2CH934;
@@ -328,6 +334,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = io.gleap.Example;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Example/Example-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -338,6 +346,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 7UGU2CH934;
@@ -356,6 +365,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = io.gleap.Example;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Example/Example-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

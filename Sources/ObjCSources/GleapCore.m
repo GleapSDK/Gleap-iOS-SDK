@@ -6,7 +6,7 @@
 //  Copyright © 2021 Gleap. All rights reserved.
 //
 
-#define SDK_VERSION @"6.3.1"
+#define SDK_VERSION @"6.3.2"
 
 #import "GleapCore.h"
 #import "GleapWidgetViewController.h"

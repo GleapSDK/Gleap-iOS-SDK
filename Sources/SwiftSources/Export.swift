@@ -6,7 +6,4 @@
 //
 import Foundation
 
-#if canImport(Gleap_ObjC)
 @_exported import Gleap_ObjC
-
-#endif
