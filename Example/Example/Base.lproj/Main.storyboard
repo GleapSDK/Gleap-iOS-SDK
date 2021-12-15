@@ -8,10 +8,10 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
-        <!--View Controller-->
+        <!--Demo View Controller-->
         <scene sceneID="tne-QT-ifu">
             <objects>
-                <viewController id="BYZ-38-t0r" customClass="ViewController" sceneMemberID="viewController">
+                <viewController id="BYZ-38-t0r" customClass="DemoViewController" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -23,11 +23,25 @@
                                     <constraint firstAttribute="width" constant="240" id="bs5-T5-Scx"/>
                                 </constraints>
                             </imageView>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="iN2-2K-C42">
+                                <rect key="frame" x="149.5" y="44" width="115" height="31"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="115" id="Bhq-U8-BD4"/>
+                                    <constraint firstAttribute="height" constant="31" id="VCD-DF-X0K"/>
+                                </constraints>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" title="Button"/>
+                                <connections>
+                                    <action selector="doIt:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Opf-rj-ttt"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemYellowColor"/>
                         <constraints>
                             <constraint firstItem="xob-OO-vdL" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="HlC-q3-wSc"/>
+                            <constraint firstItem="iN2-2K-C42" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="jC0-oc-m9b"/>
+                            <constraint firstItem="iN2-2K-C42" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" id="kek-84-22N"/>
                             <constraint firstItem="xob-OO-vdL" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="tqo-q7-Vvh"/>
                         </constraints>
                     </view>

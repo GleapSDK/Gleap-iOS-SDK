@@ -779,12 +779,34 @@
         if ([log objectForKey: @"request"] != nil) {
             NSMutableDictionary *request = [[NSMutableDictionary alloc] initWithDictionary: [log objectForKey: @"request"]];
             if (request != nil && [request objectForKey: @"headers"]) {
-                
                 if ([request objectForKey: @"headers"] != nil) {
                     NSMutableDictionary *mutableHeaders = [[NSMutableDictionary alloc] initWithDictionary: [request objectForKey: @"headers"]];
                     [mutableHeaders removeObjectsForKeys: self.networkLogPropsToIgnore];
                     [request setObject: mutableHeaders forKey: @"headers"];
                 }
+            }
+            
+            if (request != nil && [request objectForKey: @"payload"]) {
+                if ([request objectForKey: @"payload"] != nil) {
+                    NSError *jsonError;
+                    NSMutableDictionary *jsonObject = [NSJSONSerialization JSONObjectWithData:[[request objectForKey: @"payload"] dataUsingEncoding:NSUTF8StringEncoding]  options: NSJSONReadingMutableContainers error:&jsonError];
+                    if (jsonError == nil && jsonObject != nil) {
+                        [jsonObject removeObjectsForKeys: self.networkLogPropsToIgnore];
+                        
+                        NSError *jsonDataError;
+                        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonObject
+                                                                           options:0
+                                                                             error:&jsonDataError];
+                        if (jsonData != nil) {
+                            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                            if (jsonString != nil) {
+                                [request setObject: jsonString forKey: @"payload"];
+                            }
+                        }
+                    }
+                }
+            }
+            if (request != nil) {
                 [log setObject: request forKey: @"request"];
             }
         }
