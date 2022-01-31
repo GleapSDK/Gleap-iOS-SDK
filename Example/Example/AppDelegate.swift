@@ -9,12 +9,17 @@ import UIKit
 import Gleap
 
 @main
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
-        Gleap.initialize(withToken: "wytzEhhSa1EFfTEqK3HXBWuGRt2PREAE")
+        Gleap.initialize(withToken: "Y0ASDsS3Se1PJG1aYNIblrFMMX4zGgig")
+        Gleap.sharedInstance().delegate = self
         
         return true
+    }
+    
+    func customActionCalled(_ customAction: String) {
+        NSLog(customAction)
     }
 
     // MARK: UISceneSession Lifecycle

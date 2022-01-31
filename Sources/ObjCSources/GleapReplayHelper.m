@@ -35,9 +35,30 @@
 - (void)initHelper {
     self.replaySteps = [[NSMutableArray alloc] init];
     self.running = false;
+    self.timerInterval = 5;
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appWillResignActive:) name: UIApplicationWillResignActiveNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appWillEnterForeground:) name:UIApplicationWillEnterForegroundNotification object:nil];
+}
+
+- (void)appWillResignActive:(NSNotification*)notification {
+    if (self.replayTimer) {
+        [self.replayTimer invalidate];
+    }
+}
+
+- (void)appWillEnterForeground:(NSNotification*)notification {
+    if (self.running) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+            if ([UIApplication sharedApplication].applicationState == UIApplicationStateActive) {
+                [self startWithInterval: self.timerInterval];
+            }
+        });
+    }
 }
 
 - (void)startWithInterval:(int)interval {
+    self.timerInterval = interval;
     if (self.running) {
         if (self.replayTimer != nil) {
             [self.replayTimer invalidate];
@@ -71,15 +92,17 @@
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
-        UIImage *screenshot = [[Gleap sharedInstance] captureScreen];
-        NSString *currentViewControllerName = [[Gleap sharedInstance] getTopMostViewControllerName];
-        
-        [self.replaySteps addObject: @{
-            @"screenname": currentViewControllerName,
-            @"image": screenshot,
-            @"interactions": [GleapTouchHelper getAndClearTouchEvents],
-            @"date": [[Gleap sharedInstance] getJSStringForNSDate: [[NSDate alloc] init]]
-        }];
+        if ([UIApplication sharedApplication].applicationState == UIApplicationStateActive) {
+            UIImage *screenshot = [[Gleap sharedInstance] captureScreen];
+            NSString *currentViewControllerName = [[Gleap sharedInstance] getTopMostViewControllerName];
+            
+            [self.replaySteps addObject: @{
+                @"screenname": currentViewControllerName,
+                @"image": screenshot,
+                @"interactions": [GleapTouchHelper getAndClearTouchEvents],
+                @"date": [[Gleap sharedInstance] getJSStringForNSDate: [[NSDate alloc] init]]
+            }];
+        }
     });
 }
 

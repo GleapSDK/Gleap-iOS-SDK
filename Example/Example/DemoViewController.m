@@ -6,6 +6,7 @@
 //
 
 #import "DemoViewController.h"
+@import Gleap;
 
 @interface DemoViewController ()
 
@@ -19,31 +20,10 @@
 }
 
 - (IBAction)doIt:(id)sender {
-    NSError *error;
-    NSString *urlString = @"https://run.mocky.io/v3/9290950e-5219-4cec-ab01-4b15dfbad6fe";
-    NSURL *url = [NSURL URLWithString:urlString];
-
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
-
-    [request setHTTPMethod:@"POST"];
-
-    [request setURL:url];
-
-    [request addValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-
-    NSData *postData = [@"{ \"secure\": \"asdf\", \"secure2\": \"xoxo\" }" dataUsingEncoding:NSUTF8StringEncoding];
-
-    [request setValue: @"asdf" forHTTPHeaderField: @"secure"];
-    
-    [request setHTTPBody:postData];
-
-    NSData *finalDataToDisplay = [NSURLConnection sendSynchronousRequest:request returningResponse:nil error:&error];
-
-    NSMutableDictionary *abc = [NSJSONSerialization JSONObjectWithData: finalDataToDisplay
-                                                               options: NSJSONReadingMutableContainers
-
-                                                                error: &error];
-    NSLog(@"%@",abc);
+    GleapUserProperty *userProps = [[GleapUserProperty alloc] init];
+    userProps.email = @"lukas@gleap.co";
+    userProps.name = @"Luki";
+    [Gleap identifyUserWith: @"123" andData: userProps];
 }
 
 /*
