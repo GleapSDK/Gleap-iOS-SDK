@@ -6,7 +6,7 @@
 //  Copyright © 2021 Gleap. All rights reserved.
 //
 
-#define SDK_VERSION @"6.3.4"
+#define SDK_VERSION @"6.4.0"
 
 #import "GleapCore.h"
 #import "GleapWidgetViewController.h"
@@ -66,6 +66,7 @@
     self.apiUrl = @"https://api.gleap.io";
     self.widgetUrl = @"https://widget.gleap.io";
     self.replayInterval = 5;
+    self.initialized = NO;
     self.debugConsoleLogDisabled = YES;
     self.consoleLogDisabled = NO;
     self.activationMethods = [[NSArray alloc] init];
@@ -207,6 +208,11 @@
  Autoconfigure with token
  */
 + (void)initializeWithToken: (NSString *)token {
+    if ([Gleap sharedInstance].initialized) {
+        NSLog(@"[GLEAP_SDK] Gleap has already been initialized.");
+    }
+    
+    [Gleap sharedInstance].initialized = YES;
     [Gleap setApiToken: token];
     [[GleapSessionHelper sharedInstance] startSessionWith:^(bool success) {
         [Gleap logEvent: @"sessionStarted"];
@@ -235,7 +241,7 @@
             }
         }
         
-        NSLog(@"WARN: Gleap auto-configuration failed. Please check your API key and internet connection.");
+        NSLog(@"[GLEAP_SDK] Gleap auto-configuration failed. Please check your API key and internet connection.");
     }] resume];
 }
 
@@ -409,17 +415,17 @@
 
 + (void)startFeedbackFlowWithScreenshot:(UIImage *)screenshot andUI:(BOOL)ui {
     if (GleapSessionHelper.sharedInstance.currentSession == nil) {
-        NSLog(@"WARN: Gleap session not ready.");
+        NSLog(@"[GLEAP_SDK] Gleap session not ready.");
         return;
     }
     
     if (Gleap.sharedInstance.currentlyOpened) {
-        NSLog(@"WARN: Gleap is already opened.");
+        NSLog(@"[GLEAP_SDK] Gleap is already opened.");
         return;
     }
     
     if (Gleap.sharedInstance.token.length == 0) {
-        NSLog(@"WARN: Please provide a valid Gleap project TOKEN!");
+        NSLog(@"[GLEAP_SDK] Please provide a valid Gleap project TOKEN!");
         return;
     }
     
@@ -529,7 +535,7 @@
 
 + (bool)addAttachmentWithData:(NSData *)data andName:(NSString *)name {
     if ([Gleap sharedInstance].customAttachments.count > 6) {
-        NSLog(@"WARN: Attachment limit of 6 files reached.");
+        NSLog(@"[GLEAP_SDK] Attachment limit of 6 files reached.");
         return false;
     }
     
@@ -1227,7 +1233,7 @@
 
 - (void)performAction:(GleapAction *)action {
     if (self.action != nil) {
-        NSLog(@"WARN: already performing action.");
+        NSLog(@"[GLEAP_SDK] Already performing action.");
         return;
     }
     

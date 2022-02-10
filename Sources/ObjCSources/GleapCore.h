@@ -258,6 +258,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 @property (nonatomic, retain, nullable) GleapAction *action;
 @property (nonatomic, retain) NSMutableDictionary* data;
 @property (nonatomic, assign) int replayInterval;
+@property (nonatomic, assign) int initialized;
 @property (nonatomic, assign) bool replaysEnabled;
 @property (nonatomic, assign) bool consoleLogDisabled;
 @property (nonatomic, assign) bool debugConsoleLogDisabled;
