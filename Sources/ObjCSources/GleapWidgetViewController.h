@@ -15,6 +15,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)setScreenshot:(UIImage *)image;
 
+@property (nonatomic, retain, nullable) NSTimer* timeoutTimer;
+
 @end
 
 NS_ASSUME_NONNULL_END

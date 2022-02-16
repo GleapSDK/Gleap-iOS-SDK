@@ -67,7 +67,15 @@
     return nil;
 }
 
+- (void)invalidateTimeout {
+    if (self.timeoutTimer) {
+        [self.timeoutTimer invalidate];
+        self.timeoutTimer = nil;
+    }
+}
+
 - (void)closeReporting:(id)sender {
+    [self invalidateTimeout];
     [self dismissViewControllerAnimated: YES completion:^{
         [self onDismissCleanup];
     }];
@@ -95,6 +103,7 @@
     }
     
     if ([message.name isEqualToString: @"sessionReady"]) {
+        [self invalidateTimeout];
         [self->_loadingView setHidden: YES];
     }
     
@@ -177,6 +186,12 @@
     self.webView.translatesAutoresizingMaskIntoConstraints = NO;
     [self pinEdgesFrom: self.webView to: self.view];
     
+    self.timeoutTimer = [NSTimer scheduledTimerWithTimeInterval: 15
+                                         target: self
+                                       selector: @selector(requestTimedOut:)
+                                       userInfo: nil
+                                        repeats: NO];
+    
     NSURL * url = [NSURL URLWithString: [NSString stringWithFormat: @"%@/appwidget/%@?lang=%@&gleapId=%@&gleapHash=%@&startFlow=%@", Gleap.sharedInstance.widgetUrl, Gleap.sharedInstance.token, [Gleap.sharedInstance.language stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]], GleapSessionHelper.sharedInstance.currentSession.gleapId, GleapSessionHelper.sharedInstance.currentSession.gleapHash, Gleap.sharedInstance.startFlow]];
     NSURLRequest * request = [NSURLRequest requestWithURL: url];
     [self.webView loadRequest: request];
@@ -232,6 +247,10 @@
     [self loadingFailed: error];
 }
 
+- (void)requestTimedOut:(id)sender {
+    [self closeReporting: nil];
+}
+
 - (void)loadingFailed:(NSError *)error {
     UIAlertController *alertController = [UIAlertController alertControllerWithTitle: error.localizedDescription
                                                                              message: nil
@@ -239,9 +258,7 @@
     [alertController addAction:[UIAlertAction actionWithTitle:@"OK"
                                                         style:UIAlertActionStyleCancel
                                                       handler:^(UIAlertAction *action) {
-        [self dismissViewControllerAnimated: YES completion:^{
-            
-        }];
+        [self closeReporting: nil];
     }]];
     [self presentViewController:alertController animated:YES completion:^{}];
 }
