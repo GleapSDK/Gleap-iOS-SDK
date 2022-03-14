@@ -34,6 +34,18 @@
                                     <segue destination="2wY-OI-ygZ" kind="presentation" modalPresentationStyle="fullScreen" id="fuI-Dm-3C9"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="jn6-c6-Bdj">
+                                <rect key="frame" x="173.5" y="102" width="67" height="31"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="67" id="VzY-p9-zbh"/>
+                                    <constraint firstAttribute="height" constant="31" id="i7h-xF-B53"/>
+                                </constraints>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" title="Button"/>
+                                <connections>
+                                    <action selector="doIt:" destination="BYZ-38-t0r" eventType="touchUpInside" id="mYf-jI-sEK"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -42,6 +54,8 @@
                             <constraint firstItem="xob-OO-vdL" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="RlF-ys-96l"/>
                             <constraint firstItem="xob-OO-vdL" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="baW-Jj-9xE"/>
                             <constraint firstItem="lH0-Wr-nTS" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="kbw-sv-zEz"/>
+                            <constraint firstItem="jn6-c6-Bdj" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="xBK-oJ-pnp"/>
+                            <constraint firstItem="jn6-c6-Bdj" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="58" id="xoJ-CN-edN"/>
                         </constraints>
                     </view>
                 </viewController>

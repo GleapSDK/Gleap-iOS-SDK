@@ -24,7 +24,6 @@
     userProps.email = @"lukas@gleap.co";
     userProps.name = @"Luki";
     [Gleap identifyUserWith: @"123" andData: userProps];
-    
     [Gleap setActivationMethods: @[]];
 }
 
