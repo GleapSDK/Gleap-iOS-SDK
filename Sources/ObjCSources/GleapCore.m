@@ -28,7 +28,6 @@
 @property (retain, nonatomic) NSMutableArray *customAttachments;
 @property (retain, nonatomic) NSPipe *inputPipe;
 @property (retain, nonatomic) NSPipe *outputPipe;
-@property (nonatomic, retain) UITapGestureRecognizer *tapGestureRecognizer;
 
 @end
 
