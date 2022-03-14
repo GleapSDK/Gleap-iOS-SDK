@@ -12,8 +12,18 @@ import Gleap
 class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
-        Gleap.initialize(withToken: "Y0ASDsS3Se1PJG1aYNIblrFMMX4zGgig")
+        Gleap.enableDebugConsoleLog()
+        Gleap.initialize(withToken: "ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV")
         Gleap.sharedInstance().delegate = self
+        let userData = GleapUserProperty()
+        userData.email = "max@gleap.io"
+        userData.name = "Max"
+        Gleap.identifyUser(with: "1928382", andData: userData)
+        
+        Gleap.attachCustomData(["value": "Unicorn", "type": "Demo", "ExtraInfo": ["Age": "28", "City": "San Francisco"]])
+        
+        print("App started.")
+        print("User logged in.")
         
         return true
     }

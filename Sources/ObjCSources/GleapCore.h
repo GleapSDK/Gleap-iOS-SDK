@@ -13,7 +13,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-typedef enum activationMethodTypes { NONE, SHAKE, THREE_FINGER_DOUBLE_TAB, SCREENSHOT } GleapActivationMethod;
+typedef enum activationMethodTypes { NONE, SHAKE, SCREENSHOT } GleapActivationMethod;
 typedef enum bugSeverityTypes { LOW, MEDIUM, HIGH } GleapBugSeverity;
 typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationType;
 
@@ -233,6 +233,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)enableReplays: (BOOL)enable;
 + (void)setApplicationType: (GleapApplicationType)applicationType;
 + (void)attachData: (NSDictionary *)data;
++ (void)setActivationMethods: (NSArray *)activationMethods;
 + (NSBundle *)frameworkBundle;
 + (void)shakeInvocation;
 + (void)attachScreenshot: (UIImage *)screenshot;
@@ -246,6 +247,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 - (NSString *)getTopMostViewControllerName;
 - (NSString *)getJSStringForNSDate:(NSDate *)date;
 - (UIImage *)captureScreen;
+- (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod;
 
 @property (nonatomic, retain) NSDictionary* excludeData;
 @property (nonatomic, retain) NSString* startFlow;

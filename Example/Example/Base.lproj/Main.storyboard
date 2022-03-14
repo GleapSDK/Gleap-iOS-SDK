@@ -4,7 +4,6 @@
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="19519"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
-        <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -16,45 +15,72 @@
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="GleapLogo" translatesAutoresizingMaskIntoConstraints="NO" id="xob-OO-vdL">
-                                <rect key="frame" x="87" y="414.5" width="240" height="67"/>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Logo" translatesAutoresizingMaskIntoConstraints="NO" id="xob-OO-vdL">
+                                <rect key="frame" x="158" y="394" width="98" height="108"/>
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="67" id="UxU-Iw-gKG"/>
-                                    <constraint firstAttribute="width" constant="240" id="bs5-T5-Scx"/>
+                                    <constraint firstAttribute="height" constant="108" id="YMz-ZW-1P1"/>
+                                    <constraint firstAttribute="width" constant="98" id="kUI-Yb-XzH"/>
                                 </constraints>
                             </imageView>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="iN2-2K-C42">
-                                <rect key="frame" x="149.5" y="44" width="115" height="31"/>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="lH0-Wr-nTS">
+                                <rect key="frame" x="91" y="351" width="232" height="194"/>
                                 <constraints>
-                                    <constraint firstAttribute="width" constant="115" id="Bhq-U8-BD4"/>
-                                    <constraint firstAttribute="height" constant="31" id="VCD-DF-X0K"/>
+                                    <constraint firstAttribute="width" constant="232" id="0Xf-q3-seX"/>
+                                    <constraint firstAttribute="height" constant="194" id="voG-aA-AQr"/>
                                 </constraints>
                                 <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="plain" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" title=""/>
                                 <connections>
-                                    <action selector="doIt:" destination="BYZ-38-t0r" eventType="touchUpInside" id="Opf-rj-ttt"/>
+                                    <segue destination="2wY-OI-ygZ" kind="presentation" modalPresentationStyle="fullScreen" id="fuI-Dm-3C9"/>
                                 </connections>
                             </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
-                        <color key="backgroundColor" systemColor="systemYellowColor"/>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
-                            <constraint firstItem="xob-OO-vdL" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="HlC-q3-wSc"/>
-                            <constraint firstItem="iN2-2K-C42" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="jC0-oc-m9b"/>
-                            <constraint firstItem="iN2-2K-C42" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" id="kek-84-22N"/>
-                            <constraint firstItem="xob-OO-vdL" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="tqo-q7-Vvh"/>
+                            <constraint firstItem="lH0-Wr-nTS" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="GJh-UQ-zd4"/>
+                            <constraint firstItem="xob-OO-vdL" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="RlF-ys-96l"/>
+                            <constraint firstItem="xob-OO-vdL" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="baW-Jj-9xE"/>
+                            <constraint firstItem="lH0-Wr-nTS" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="kbw-sv-zEz"/>
                         </constraints>
                     </view>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="11.594202898550726" y="76.339285714285708"/>
+            <point key="canvasLocation" x="121.73913043478262" y="79.6875"/>
+        </scene>
+        <!--Demo View Controller-->
+        <scene sceneID="YUe-fI-2S5">
+            <objects>
+                <viewController id="2wY-OI-ygZ" customClass="DemoViewController" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Xy1-7i-YVC">
+                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="ErrorMockup" translatesAutoresizingMaskIntoConstraints="NO" id="Tho-0w-ND6">
+                                <rect key="frame" x="0.0" y="-19" width="414" height="915"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="915" id="n43-Po-7Of"/>
+                                </constraints>
+                            </imageView>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="Zca-vq-hGg"/>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <constraints>
+                            <constraint firstItem="Tho-0w-ND6" firstAttribute="leading" secondItem="Zca-vq-hGg" secondAttribute="leading" id="6LY-CR-hSY"/>
+                            <constraint firstItem="Tho-0w-ND6" firstAttribute="trailing" secondItem="Zca-vq-hGg" secondAttribute="trailing" id="GGl-Ap-s9w"/>
+                            <constraint firstAttribute="bottom" secondItem="Tho-0w-ND6" secondAttribute="bottom" id="lyB-Oo-jZf"/>
+                        </constraints>
+                    </view>
+                    <navigationItem key="navigationItem" id="xJU-Bg-9zf"/>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="asx-GK-5vI" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="805.79710144927537" y="79.6875"/>
         </scene>
     </scenes>
     <resources>
-        <image name="GleapLogo" width="170.66667175292969" height="42.333332061767578"/>
-        <systemColor name="systemYellowColor">
-            <color red="1" green="0.80000000000000004" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-        </systemColor>
+        <image name="ErrorMockup" width="285.33334350585938" height="636"/>
+        <image name="Logo" width="674" height="682"/>
     </resources>
 </document>

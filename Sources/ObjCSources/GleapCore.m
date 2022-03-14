@@ -6,7 +6,7 @@
 //  Copyright © 2021 Gleap. All rights reserved.
 //
 
-#define SDK_VERSION @"6.4.0"
+#define SDK_VERSION @"6.4.2"
 
 #import "GleapCore.h"
 #import "GleapWidgetViewController.h"
@@ -82,6 +82,10 @@
     self.language = [[NSLocale preferredLanguages] firstObject];
     self.excludeData = [[NSDictionary alloc] init];
     self.disableAutoActivationMethods = NO;
+}
+
++ (void)setActivationMethods: (NSArray *)activationMethods {
+    [Gleap sharedInstance].activationMethods = activationMethods;
 }
 
 + (void)setAutoActivationMethodsDisabled {
@@ -219,6 +223,7 @@
         [[GleapLogHelper sharedInstance] start];
         [self autoConfigure];
     }];
+    [[Gleap sharedInstance] initializeScreenshotRecognizer];
 }
 
 + (void)autoConfigure {
@@ -274,18 +279,7 @@
         if ([config objectForKey: @"activationMethodScreenshotGesture"] != nil && [[config objectForKey: @"activationMethodScreenshotGesture"] boolValue] == YES) {
             [activationMethods addObject: @(SCREENSHOT)];
         }
-        if ([config objectForKey: @"activationMethodThreeFingerDoubleTab"] != nil && [[config objectForKey: @"activationMethodThreeFingerDoubleTab"] boolValue] == YES) {
-            [activationMethods addObject: @(THREE_FINGER_DOUBLE_TAB)];
-        }
         self.activationMethods = activationMethods;
-        
-        if ([self isActivationMethodActive: THREE_FINGER_DOUBLE_TAB]) {
-            [self initializeGestureRecognizer];
-        }
-        
-        if ([self isActivationMethodActive: SCREENSHOT]) {
-            [self initializeScreenshotRecognizer];
-        }
     }
     
     if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(configLoaded:)]) {
@@ -325,27 +319,17 @@
 }
 
 - (void)initializeScreenshotRecognizer {
-    NSOperationQueue *mainQueue = [NSOperationQueue mainQueue];
-    [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationUserDidTakeScreenshotNotification
-                                                      object:nil
-                                                       queue:mainQueue
-                                                  usingBlock:^(NSNotification *note) {
-                                                    [Gleap startFeedbackFlow];
-                                                  }];
-}
-
-- (void)initializeGestureRecognizer {
-    UITapGestureRecognizer *tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget: self action: @selector(handleTapGestureActivation:)];
-    tapGestureRecognizer.numberOfTapsRequired = 2;
-    tapGestureRecognizer.numberOfTouchesRequired = 3;
-    tapGestureRecognizer.cancelsTouchesInView = false;
-    
-    [[[[UIApplication sharedApplication] delegate] window] addGestureRecognizer: tapGestureRecognizer];
-}
-
-- (void)handleTapGestureActivation: (UITapGestureRecognizer *)recognizer
-{
-    [Gleap startFeedbackFlow];
+    @try {
+        NSOperationQueue *mainQueue = [NSOperationQueue mainQueue];
+        [[NSNotificationCenter defaultCenter] addObserverForName:UIApplicationUserDidTakeScreenshotNotification
+                                                          object:nil
+                                                           queue:mainQueue
+                                                      usingBlock:^(NSNotification *note) {
+            if ([self isActivationMethodActive: SCREENSHOT]) {
+                [Gleap startFeedbackFlow];
+            }
+        }];
+    } @catch(id anException) {}
 }
 
 + (void)setApiUrl: (NSString *)apiUrl {
