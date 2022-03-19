@@ -270,7 +270,7 @@
         self.networkLogPropsToIgnore = [config objectForKey: @"networkLogPropsToIgnore"];
     }
     
-    if (!self.disableAutoActivationMethods) {
+    if (!self.disableAutoActivationMethods && self.activationMethods.count == 0) {
         NSMutableArray * activationMethods = [[NSMutableArray alloc] init];
         if ([config objectForKey: @"activationMethodShake"] != nil && [[config objectForKey: @"activationMethodShake"] boolValue] == YES) {
             [activationMethods addObject: @(SHAKE)];
