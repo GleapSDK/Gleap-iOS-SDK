@@ -20,7 +20,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 @protocol GleapDelegate <NSObject>
 @optional
 - (void) feedbackWillBeSent;
-- (void) feedbackSent;
+- (void) feedbackSent: (NSDictionary *)data;
 - (void) feedbackSendingFailed;
 - (void) customActionCalled: (NSString *)customAction;
 - (void) configLoaded: (NSDictionary *)config;
@@ -240,6 +240,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (UIImage *)getAttachedScreenshot;
 + (void)afterBugReportCleanup;
 + (void)setAutoActivationMethodsDisabled;
+- (NSDictionary *)getFormData;
 - (void)performAction:(GleapAction *)action;
 - (void)sendReport: (void (^)(bool success))completion;
 - (void)uploadStepImages: (NSArray *)steps andCompletion: (void (^)(bool success, NSArray *fileUrls))completion;

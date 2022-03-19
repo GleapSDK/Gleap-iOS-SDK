@@ -339,6 +339,18 @@
     Gleap.sharedInstance.widgetUrl = widgetUrl;
 }
 
+- (NSDictionary *)getFormData {
+    @try {
+        return @{
+            @"formData": [self.data objectForKey: @"formData"],
+            @"type": [self.data objectForKey: @"type"]
+        };
+    }
+    @catch (NSException *exception) {
+        return @{};
+    }
+}
+
 /*
  Get's the framework's NSBundle.
  */
@@ -445,12 +457,11 @@
             
         }];
     } else {
-        // startFeedbackFlowWithScreenshot
         // No UI flow
         [Gleap.sharedInstance sendReport:^(bool success) {
             if (success) {
-                if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSent)]) {
-                    [Gleap.sharedInstance.delegate feedbackSent];
+                if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSent:)]) {
+                    [Gleap.sharedInstance.delegate feedbackSent: [Gleap.sharedInstance getFormData]];
                 }
             } else {
                 if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSendingFailed)]) {

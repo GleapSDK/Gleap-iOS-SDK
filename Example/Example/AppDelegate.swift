@@ -28,6 +28,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         return true
     }
     
+    func feedbackSent(_ data: [AnyHashable : Any]) {
+        dump(data)
+    }
+    
     func customActionCalled(_ customAction: String) {
         NSLog(customAction)
     }

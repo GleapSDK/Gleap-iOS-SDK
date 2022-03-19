@@ -300,8 +300,8 @@
         if (success) {
             [self showSuccessMessage];
             
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSent)]) {
-                [Gleap.sharedInstance.delegate feedbackSent];
+            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSent:)]) {
+                [Gleap.sharedInstance.delegate feedbackSent: [Gleap.sharedInstance getFormData]];
             }
         } else {
             [[self navigationController] setNavigationBarHidden: NO animated: NO];
