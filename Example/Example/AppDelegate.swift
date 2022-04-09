@@ -13,7 +13,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         Gleap.enableDebugConsoleLog()
-        Gleap.initialize(withToken: "HgJqsnj9cdCBP8u8YSWD8wL9MYWjb5CD")
+        Gleap.initialize(withToken: "g4yw8blWFi0d50TubfV4iyN6HGG5Z2c1")
         Gleap.sharedInstance().delegate = self
         let userData = GleapUserProperty()
         userData.email = "max@gleap.io"

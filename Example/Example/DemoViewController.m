@@ -33,6 +33,8 @@
           NSString *myString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
           NSLog(@"Data received: %@", myString);
     }] resume];
+    
+    [Gleap sendSilentBugReportWith: @"asdfasdfas" andSeverity: LOW andType: @"CRASH"];
 }
 
 /*

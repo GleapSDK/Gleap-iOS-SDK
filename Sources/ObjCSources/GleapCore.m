@@ -379,6 +379,13 @@
  Sends a silent bug report.
  */
 + (void)sendSilentBugReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity; {
+    [self sendSilentBugReportWith: description andSeverity: severity andType: @"BUG"];
+}
+
+/*
+ Sends a silent bug report with type
+ */
++ (void)sendSilentBugReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity andType:(NSString *)type {
     NSMutableDictionary *dataToAppend = [[NSMutableDictionary alloc] init];
     
     NSString *bugReportPriority = @"LOW";
@@ -394,6 +401,7 @@
     } forKey: @"formData"];
     [dataToAppend setValue: @(YES) forKey: @"isSilent"];
     [dataToAppend setValue: bugReportPriority forKey: @"priority"];
+    [dataToAppend setValue: type forKey: @"type"];
     
     [Gleap attachData: dataToAppend];
     
