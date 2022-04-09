@@ -815,9 +815,11 @@
             NSMutableDictionary *response = [[NSMutableDictionary alloc] initWithDictionary: [log objectForKey: @"response"]];
             if (response != nil && [response objectForKey: @"responseText"] != nil) {
                 NSError *jsonError;
-                NSMutableDictionary *jsonObject = [NSJSONSerialization JSONObjectWithData:[[response objectForKey: @"responseText"] dataUsingEncoding:NSUTF8StringEncoding]  options: NSJSONReadingMutableContainers error:&jsonError];
+                id jsonObject = [NSJSONSerialization JSONObjectWithData:[[response objectForKey: @"responseText"] dataUsingEncoding:NSUTF8StringEncoding]  options: NSJSONReadingMutableContainers error:&jsonError];
                 if (jsonError == nil && jsonObject != nil) {
-                    [jsonObject removeObjectsForKeys: self.networkLogPropsToIgnore];
+                    if ([jsonObject isKindOfClass:[NSDictionary class]]) {
+                        [jsonObject removeObjectsForKeys: self.networkLogPropsToIgnore];
+                    }
                     
                     NSError *jsonDataError;
                     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonObject
