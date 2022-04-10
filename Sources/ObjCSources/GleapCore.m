@@ -1169,9 +1169,9 @@
     }
     NSString *lowPowerModeEnabled = [[NSProcessInfo processInfo] isLowPowerModeEnabled] ? @"true": @"false";
     NSDictionary *diskInfo = [self getDiskInfo];
-    NSString *buildMode = @"DEBUG";
-    #ifdef RELEASE
-    buildMode = @"RELEASE";
+    NSString *buildMode = @"RELEASE";
+    #ifdef DEBUG
+    buildMode = @"DEBUG";
     #endif
         
     return @{
