@@ -73,12 +73,13 @@
         self.timeoutTimer = nil;
     }
 }
+- (void)viewWillDisappear:(BOOL)animated {
+    [self invalidateTimeout];
+    [Gleap afterBugReportCleanup];
+}
 
 - (void)closeReporting:(id)sender {
-    [self invalidateTimeout];
-    [self dismissViewControllerAnimated: YES completion:^{
-        [self onDismissCleanup];
-    }];
+    [self dismissViewControllerAnimated: YES completion:^{}];
 }
 
 - (void)userContentController:(WKUserContentController*)userContentController didReceiveScriptMessage:(WKScriptMessage*)message
@@ -93,7 +94,6 @@
     if ([message.name isEqualToString: @"openExternalURL"]) {
         UIViewController *presentingViewController = self.presentingViewController;
         [self dismissViewControllerAnimated: YES completion:^{
-            [self onDismissCleanup];
             [self openURLExternally: [NSURL URLWithString: [message.body objectForKey: @"url"]] fromViewController: presentingViewController];
         }];
     }
@@ -313,9 +313,7 @@
                                         actionWithTitle: [GleapTranslationHelper localizedString: @"ok"]
                                         style:UIAlertActionStyleDefault
                                         handler:^(UIAlertAction * action) {
-                                            [self dismissViewControllerAnimated: true completion:^{
-                                                [self onDismissCleanup];
-                                            }];
+                                            [self dismissViewControllerAnimated: true completion:^{}];
                                         }];
             [alert addAction:yesButton];
             [self presentViewController:alert animated:YES completion:nil];
@@ -329,10 +327,6 @@
 
 - (void)setScreenshot:(UIImage *)image {
     self.screenshotImage = image;
-}
-
-- (void)onDismissCleanup {
-    [Gleap afterBugReportCleanup];
 }
 
 - (void)pinEdgesFrom:(UIView *)subView to:(UIView *)parent {
