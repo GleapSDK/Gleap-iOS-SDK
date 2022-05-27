@@ -34,7 +34,7 @@
           NSLog(@"Data received: %@", myString);
     }] resume];
     
-    [Gleap sendSilentBugReportWith: @"asdfasdfas" andSeverity: LOW andType: @"CRASH"];
+    [Gleap sendSilentCrashReportWith: @"asdfasdfas" andSeverity: LOW];
 }
 
 /*

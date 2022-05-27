@@ -52,5 +52,6 @@
  *  A Boolean value which indicates whether the recording is recording traffic.
  */
 @property(nonatomic, readonly, assign) BOOL isRecording;
+@property (retain, nonatomic) NSArray *networkLogPropsToIgnore;
 
 @end

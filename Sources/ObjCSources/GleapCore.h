@@ -67,18 +67,11 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)startFeedbackFlow:(NSString *)feedbackFlow;
 
 /**
- * Sends a silent bug report.
+ * Sends a silent crash report.
  * @author Gleap
  *
  */
-+ (void)sendSilentBugReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity;
-
-/**
- * Sends a silent bug report with type.
- * @author Gleap
- *
- */
-+ (void)sendSilentBugReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity andType:(NSString *)type;
++ (void)sendSilentCrashReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity;
 
 /**
  * Updates a session's identity.
@@ -239,44 +232,26 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 // Helper
 + (void)enableReplays: (BOOL)enable;
 + (void)setApplicationType: (GleapApplicationType)applicationType;
-+ (void)attachData: (NSDictionary *)data;
 + (void)setActivationMethods: (NSArray *)activationMethods;
-+ (NSBundle *)frameworkBundle;
 + (void)shakeInvocation;
 + (void)attachScreenshot: (UIImage *)screenshot;
 + (UIImage *)getAttachedScreenshot;
 + (void)afterBugReportCleanup;
 + (void)setAutoActivationMethodsDisabled;
-- (NSDictionary *)getFormData;
 - (void)performAction:(GleapAction *)action;
-- (void)sendReport: (void (^)(bool success))completion;
-- (void)uploadStepImages: (NSArray *)steps andCompletion: (void (^)(bool success, NSArray *fileUrls))completion;
-- (UIViewController *)getTopMostViewController;
-- (NSString *)getTopMostViewControllerName;
-- (NSString *)getJSStringForNSDate:(NSDate *)date;
-- (UIImage *)captureScreen;
 - (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod;
 
-@property (nonatomic, retain) NSDictionary* excludeData;
 @property (nonatomic, retain) NSString* startFlow;
 @property (nonatomic, retain) NSString* language;
 @property (nonatomic, retain) NSString* token;
 @property (nonatomic, retain) NSString* apiUrl;
 @property (nonatomic, retain) NSString* widgetUrl;
-@property (nonatomic, retain) NSArray *activationMethods;
-@property (nonatomic, retain) NSString *logoUrl;
 @property (nonatomic, retain, nullable) GleapAction *action;
-@property (nonatomic, retain) NSMutableDictionary* data;
 @property (nonatomic, assign) int replayInterval;
 @property (nonatomic, assign) int initialized;
 @property (nonatomic, assign) bool replaysEnabled;
-@property (nonatomic, assign) bool consoleLogDisabled;
-@property (nonatomic, assign) bool debugConsoleLogDisabled;
-@property (nonatomic, assign) bool disableAutoActivationMethods;
 @property (nonatomic, assign) GleapApplicationType applicationType;
 @property (nonatomic, weak) id <GleapDelegate> delegate;
-@property (retain, nonatomic) NSString *lastScreenName;
-@property (retain, nonatomic) NSArray *networkLogPropsToIgnore;
 @property (nonatomic, assign) bool currentlyOpened;
 
 @end

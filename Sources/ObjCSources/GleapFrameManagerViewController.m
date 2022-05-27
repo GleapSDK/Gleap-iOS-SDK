@@ -6,15 +6,16 @@
 //  Copyright © 2019 Gleap. All rights reserved.
 //
 
-#import "GleapWidgetViewController.h"
+#import "GleapFrameManagerViewController.h"
 #import "GleapCore.h"
 #import "GleapReplayHelper.h"
 #import "GleapSessionHelper.h"
 #import "GleapTranslationHelper.h"
+#import "GleapConfigHelper.h"
 #import <SafariServices/SafariServices.h>
 #import <math.h>
 
-@interface GleapWidgetViewController ()
+@interface GleapFrameManagerViewController ()
 @property (retain, nonatomic) WKWebView *webView;
 @property (retain, nonatomic) UIView *loadingView;
 @property (retain, nonatomic) UIActivityIndicatorView *loadingActivityView;
@@ -22,7 +23,7 @@
 
 @end
 
-@implementation GleapWidgetViewController
+@implementation GleapFrameManagerViewController
 
 - (instancetype)init
 {
@@ -82,9 +83,69 @@
     [self dismissViewControllerAnimated: YES completion:^{}];
 }
 
+- (void)sendSessionUpdate {
+    NSDictionary *currentSession = @{};
+    if (GleapSessionHelper.sharedInstance.currentSession != nil) {
+        currentSession = [GleapSessionHelper.sharedInstance.currentSession toDictionary];
+    }
+    
+    [self sendMessageWithData: @{
+        @"name": @"session-update",
+        @"data": @{
+            @"sessionData": currentSession,
+            @"apiUrl": Gleap.sharedInstance.apiUrl,
+            @"sdkKey": Gleap.sharedInstance.token
+        }
+    }];
+}
+
+- (void)sendConfigUpdate {
+    if (GleapConfigHelper.sharedInstance.config == nil || GleapConfigHelper.sharedInstance.projectActions == nil) {
+        return;
+    }
+    
+    [self sendMessageWithData: @{
+        @"name": @"config-update",
+        @"data": @{
+            @"config": GleapConfigHelper.sharedInstance.config,
+            @"actions": GleapConfigHelper.sharedInstance.projectActions,
+            @"overrideLanguage": Gleap.sharedInstance.language
+        }
+    }];
+}
+
+- (void)sendMessageWithData:(NSDictionary *)data {
+    NSLog(@"%@", data);
+    
+    NSError *error;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject: data
+                                                       options: 0
+                                                         error:&error];
+    if (! jsonData) {
+        NSLog(@"Got an error: %@", error);
+    } else {
+        NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+        [self.webView evaluateJavaScript: [NSString stringWithFormat: @"sendMessage(%@)", jsonString] completionHandler: nil];
+    }
+}
+
 - (void)userContentController:(WKUserContentController*)userContentController didReceiveScriptMessage:(WKScriptMessage*)message
 {
-    if ([message.name isEqualToString: @"customActionCalled"]) {
+    if ([message.name isEqualToString: @"gleapCallback"]) {
+        NSLog(@"%@", message.body);
+        
+        NSString *name = [message.body objectForKey: @"name"];
+        
+        if ([name isEqualToString: @"ping"]) {
+            [self invalidateTimeout];
+            [self->_loadingView setHidden: YES];
+            
+            [self sendConfigUpdate];
+            [self sendSessionUpdate];
+        }
+    }
+    
+    /*if ([message.name isEqualToString: @"customActionCalled"]) {
         if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(customActionCalled:)]) {
             [Gleap.sharedInstance.delegate customActionCalled: [message.body objectForKey: @"name"]];
         }
@@ -142,7 +203,7 @@
         @catch(id exception) {}
         
         [self sendBugReport];
-    }
+    }*/
 }
 
 - (void)webView:(WKWebView *)webView runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))completionHandler
@@ -167,12 +228,7 @@
 - (void)createWebView {
     WKWebViewConfiguration *webConfig = [[WKWebViewConfiguration alloc] init];
     WKUserContentController* userController = [[WKUserContentController alloc] init];
-    [userController addScriptMessageHandler: self name: @"requestScreenshot"];
-    [userController addScriptMessageHandler: self name: @"sendFeedback"];
-    [userController addScriptMessageHandler: self name: @"customActionCalled"];
-    [userController addScriptMessageHandler: self name: @"openExternalURL"];
-    [userController addScriptMessageHandler: self name: @"closeGleap"];
-    [userController addScriptMessageHandler: self name: @"sessionReady"];
+    [userController addScriptMessageHandler: self name: @"gleapCallback"];
     webConfig.userContentController = userController;
     
     self.webView = [[WKWebView alloc] initWithFrame:self.view.frame configuration: webConfig];
@@ -191,9 +247,7 @@
                                        selector: @selector(requestTimedOut:)
                                        userInfo: nil
                                         repeats: NO];
-    
-    NSURL * url = [NSURL URLWithString: [NSString stringWithFormat: @"%@/appwidget/%@?lang=%@&gleapId=%@&gleapHash=%@&startFlow=%@", Gleap.sharedInstance.widgetUrl, Gleap.sharedInstance.token, [Gleap.sharedInstance.language stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]], GleapSessionHelper.sharedInstance.currentSession.gleapId, GleapSessionHelper.sharedInstance.currentSession.gleapHash, Gleap.sharedInstance.startFlow]];
-    NSURLRequest * request = [NSURLRequest requestWithURL: url];
+    NSURLRequest * request = [NSURLRequest requestWithURL: [NSURL URLWithString: @"https://frame.gleap.io/app.html"]];
     [self.webView loadRequest: request];
 }
 

@@ -8,6 +8,7 @@
 #import "GleapLogHelper.h"
 #import "GleapSessionHelper.h"
 #import "GleapCore.h"
+#import "GleapUIHelper.h"
 
 @implementation GleapLogHelper
 
@@ -96,7 +97,7 @@
 
 // Track page views.
 - (void)lastPageNameUpdate {
-    NSString *currentViewControllerName = [[Gleap sharedInstance] getTopMostViewControllerName];
+    NSString *currentViewControllerName = [GleapUIHelper getTopMostViewControllerName];
     if (
         currentViewControllerName != nil
         && ![currentViewControllerName isEqualToString: self.lastPageName]
@@ -183,7 +184,7 @@
 }
 
 - (NSString *)getCurrentJSDate {
-    return [[Gleap sharedInstance] getJSStringForNSDate: [[NSDate alloc] init]];
+    return [GleapUIHelper getJSStringForNSDate: [[NSDate alloc] init]];
 }
 
 

@@ -9,4 +9,19 @@
 
 @implementation GleapSession
 
+static id ObjectOrNull(id object)
+{
+  return object ?: [NSNull null];
+}
+
+- (NSDictionary *)toDictionary {
+    return @{
+        @"gleapId": ObjectOrNull(self.gleapId),
+        @"gleapHash": ObjectOrNull(self.gleapHash),
+        @"userId": ObjectOrNull(self.userId),
+        @"name": ObjectOrNull(self.name),
+        @"email": ObjectOrNull(self.email)
+    };
+}
+
 @end

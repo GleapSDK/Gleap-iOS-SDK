@@ -8,6 +8,8 @@
 #import "GleapReplayHelper.h"
 #import "GleapCore.h"
 #import "GleapTouchHelper.h"
+#import "GleapScreenCaptureHelper.h"
+#import "GleapUIHelper.h"
 
 @implementation GleapReplayHelper
 
@@ -93,14 +95,14 @@
     
     dispatch_async(dispatch_get_main_queue(), ^{
         if ([UIApplication sharedApplication].applicationState == UIApplicationStateActive) {
-            UIImage *screenshot = [[Gleap sharedInstance] captureScreen];
-            NSString *currentViewControllerName = [[Gleap sharedInstance] getTopMostViewControllerName];
+            UIImage *screenshot = [GleapScreenCaptureHelper captureScreen];
+            NSString *currentViewControllerName = [GleapUIHelper getTopMostViewControllerName];
             
             [self.replaySteps addObject: @{
                 @"screenname": currentViewControllerName,
                 @"image": screenshot,
                 @"interactions": [GleapTouchHelper getAndClearTouchEvents],
-                @"date": [[Gleap sharedInstance] getJSStringForNSDate: [[NSDate alloc] init]]
+                @"date": [GleapUIHelper getJSStringForNSDate: [[NSDate alloc] init]]
             }];
         }
     });

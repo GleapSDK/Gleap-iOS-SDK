@@ -11,9 +11,11 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface GleapWidgetViewController : UIViewController <WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate>
+@interface GleapFrameManagerViewController : UIViewController <WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate>
 
 - (void)setScreenshot:(UIImage *)image;
+- (void)sendSessionUpdate;
+- (void)sendConfigUpdate;
 
 @property (nonatomic, retain, nullable) NSTimer* timeoutTimer;
 
