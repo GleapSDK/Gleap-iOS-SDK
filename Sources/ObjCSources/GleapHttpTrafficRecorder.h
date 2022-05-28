@@ -48,6 +48,8 @@
  */
 - (void)setMaxRequests:(int)maxRequests;
 
+- (NSArray *)filterNetworkLogs:(NSArray *)networkLogs;
+
 /**
  *  A Boolean value which indicates whether the recording is recording traffic.
  */

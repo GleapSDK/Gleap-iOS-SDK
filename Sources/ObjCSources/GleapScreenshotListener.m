@@ -36,8 +36,8 @@
                                                           object:nil
                                                            queue:mainQueue
                                                       usingBlock:^(NSNotification *note) {
-            if ([[GleapActivationMethodHelper sharedInstance] isActivationMethodActive: SCREENSHOT]) {
-                [Gleap startFeedbackFlow];
+            if ([GleapActivationMethodHelper isActivationMethodActive: SCREENSHOT]) {
+                [Gleap open];
             }
         }];
     } @catch(id anException) {}

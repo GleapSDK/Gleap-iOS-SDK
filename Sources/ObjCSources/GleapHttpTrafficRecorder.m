@@ -8,6 +8,7 @@
 #import "GleapHttpTrafficRecorder.h"
 #import "GleapCore.h"
 #import "GleapUIHelper.h"
+#import "GleapWidgetManager.h"
 
 NSString * const GleapHTTPTrafficRecordingProgressRequestKey   = @"REQUEST_KEY";
 NSString * const GleapHTTPTrafficRecordingProgressResponseKey  = @"RESPONSE_KEY";
@@ -364,6 +365,11 @@ static NSString * const GleapRecordingProtocolHandledKey = @"GleapRecordingProto
         NSMutableDictionary *responseObj = [[NSMutableDictionary alloc] init];
         [responseObj setValue: [error localizedDescription] forKey: @"errorText"];
         [request setValue: responseObj forKey: @"response"];
+    }
+    
+    // Don't process the network logs when the widget is opened.
+    if ([[GleapWidgetManager sharedInstance] isOpened]) {
+        return;
     }
     
     GleapHttpTrafficRecorder *recorder = [GleapHttpTrafficRecorder sharedRecorder];

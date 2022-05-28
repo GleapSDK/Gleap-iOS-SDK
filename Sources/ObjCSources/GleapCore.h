@@ -19,7 +19,9 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 
 @protocol GleapDelegate <NSObject>
 @optional
-- (void) feedbackWillBeSent;
+- (void) feedbackFlowStarted: (NSDictionary *)feedbackAction;
+- (void) feedbackFlowClosed;
+- (void) feedbackWillBeSent: (NSDictionary *)formData;
 - (void) feedbackSent: (NSDictionary *)data;
 - (void) feedbackSendingFailed;
 - (void) customActionCalled: (NSString *)customAction;
@@ -53,25 +55,18 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)open;
 
 /**
- * Manually shows the feedback menu or default feedback flow. This is used, when you use the activation method "NONE".
+ * Manually start the bug reporting workflow.
  * @author Gleap
  *
  */
-+ (void)startFeedbackFlow;
-
-/**
- * Manually start the bug reporting workflow. This is used, when you use the activation method "NONE".
- * @author Gleap
- *
- */
-+ (void)startFeedbackFlow:(NSString *)feedbackFlow;
++ (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options;
 
 /**
  * Sends a silent crash report.
  * @author Gleap
  *
  */
-+ (void)sendSilentCrashReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity;
++ (void)sendSilentCrashReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity andDataExclusion:(NSDictionary * _Nullable)excludeData andCompletion: (void (^)(bool success))completion;
 
 /**
  * Updates a session's identity.
@@ -207,6 +202,12 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)removeAllAttachments;
 
 /**
+ * Returns the widget state
+ * @author Gleap
+ */
++ (BOOL)isOpened;
+
+/**
  * Starts network recording.
  * @author Gleap
  *
@@ -230,29 +231,19 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)stopNetworkRecording;
 
 // Helper
-+ (void)enableReplays: (BOOL)enable;
 + (void)setApplicationType: (GleapApplicationType)applicationType;
 + (void)setActivationMethods: (NSArray *)activationMethods;
 + (void)shakeInvocation;
-+ (void)attachScreenshot: (UIImage *)screenshot;
-+ (UIImage *)getAttachedScreenshot;
-+ (void)afterBugReportCleanup;
 + (void)setAutoActivationMethodsDisabled;
 - (void)performAction:(GleapAction *)action;
 - (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod;
 
-@property (nonatomic, retain) NSString* startFlow;
-@property (nonatomic, retain) NSString* language;
 @property (nonatomic, retain) NSString* token;
 @property (nonatomic, retain) NSString* apiUrl;
 @property (nonatomic, retain) NSString* widgetUrl;
-@property (nonatomic, retain, nullable) GleapAction *action;
-@property (nonatomic, assign) int replayInterval;
 @property (nonatomic, assign) int initialized;
-@property (nonatomic, assign) bool replaysEnabled;
 @property (nonatomic, assign) GleapApplicationType applicationType;
 @property (nonatomic, weak) id <GleapDelegate> delegate;
-@property (nonatomic, assign) bool currentlyOpened;
 
 @end
 

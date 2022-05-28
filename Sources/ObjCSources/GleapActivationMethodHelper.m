@@ -31,16 +31,16 @@
     return self;
 }
 
-- (BOOL)useAutoActivationMethods {
-    return !self.disableAutoActivationMethods && self.activationMethods.count == 0;
++ (BOOL)useAutoActivationMethods {
+    return ![GleapActivationMethodHelper sharedInstance].disableAutoActivationMethods && [GleapActivationMethodHelper sharedInstance].activationMethods.count == 0;
 }
 
 /**
  Check if activation method exists
  */
-- (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod {
-    for (int i = 0; i < self.activationMethods.count; i++) {
-        GleapActivationMethod currentActivationMethod = [[self.activationMethods objectAtIndex: i] intValue];
++ (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod {
+    for (int i = 0; i < [GleapActivationMethodHelper sharedInstance].activationMethods.count; i++) {
+        GleapActivationMethod currentActivationMethod = [[[GleapActivationMethodHelper sharedInstance].activationMethods objectAtIndex: i] intValue];
         if (currentActivationMethod == activationMethod) {
             return true;
         }
@@ -48,12 +48,12 @@
     return false;
 }
 
-- (void)setActivationMethods: (NSArray *)activationMethods {
-    self.activationMethods = activationMethods;
++ (void)setActivationMethods: (NSArray *)activationMethods {
+    [GleapActivationMethodHelper sharedInstance].activationMethods = activationMethods;
 }
 
-- (void)setAutoActivationMethodsDisabled {
-    self.disableAutoActivationMethods = YES;
++ (void)setAutoActivationMethodsDisabled {
+    [GleapActivationMethodHelper sharedInstance].disableAutoActivationMethods = YES;
 }
 
 @end

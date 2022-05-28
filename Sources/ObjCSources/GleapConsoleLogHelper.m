@@ -8,6 +8,7 @@
 #import "GleapConsoleLogHelper.h"
 #import "GleapCore.h"
 #import "GleapUIHelper.h"
+#import "GleapWidgetManager.h"
 
 @implementation GleapConsoleLogHelper
 
@@ -87,6 +88,11 @@
     // Write data to output pipe
     if (_outputPipe != nil) {
         [[_outputPipe fileHandleForWriting] writeData: data];
+    }
+    
+    // Don't process the logs when the widget is opened.
+    if ([[GleapWidgetManager sharedInstance] isOpened]) {
+        return;
     }
     
     NSString *consoleLogLines = [[NSString alloc] initWithData: data encoding: NSUTF8StringEncoding];

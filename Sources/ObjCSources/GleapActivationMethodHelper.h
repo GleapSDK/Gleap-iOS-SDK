@@ -13,11 +13,10 @@ NS_ASSUME_NONNULL_BEGIN
 @interface GleapActivationMethodHelper : NSObject
 
 + (instancetype)sharedInstance;
-
-- (void)setActivationMethods: (NSArray *)activationMethods;
-- (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod;
-- (void)setAutoActivationMethodsDisabled;
-- (BOOL)useAutoActivationMethods;
++ (void)setActivationMethods: (NSArray *)activationMethods;
++ (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod;
++ (void)setAutoActivationMethodsDisabled;
++ (BOOL)useAutoActivationMethods;
 
 @property (nonatomic, retain) NSArray *activationMethods;
 @property (nonatomic, assign) bool disableAutoActivationMethods;

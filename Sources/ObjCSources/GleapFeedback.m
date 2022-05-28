@@ -12,12 +12,27 @@
 #import "GleapAttachmentHelper.h"
 #import "GleapUploadManager.h"
 #import "GleapLogHelper.h"
+#import "GleapReplayHelper.h"
+#import "GleapHttpTrafficRecorder.h"
+#import "GleapCore.h"
+#import "GleapSessionHelper.h"
 
 @implementation GleapFeedback
 
-- (void)init {
-    self.excludeData = [[NSDictionary alloc] init];
-    self.data = [[NSMutableDictionary alloc] init];
+- (id)init {
+    self = [super init];
+    if (self) {
+        self.excludeData = [[NSDictionary alloc] init];
+        self.data = [[NSMutableDictionary alloc] init];
+    }
+    return self;
+}
+
+/**
+    Appends data to the bug report.
+ */
+- (void)appendData:(NSDictionary *)data {
+    [self.data addEntriesFromDictionary: data];
 }
 
 /*
@@ -26,8 +41,20 @@
 - (void)send: (void (^)(bool success))completion {
     [self optionallyUploadReplaySteps:^(bool success) {
         [self optionallyUploadAttachments:^(bool success) {
-            [self uploadScreenshotAndSendBugReport:^(bool success) {
-                [self prepareScreenshotDataAndSend:^(bool success) {
+            [self optionallyUploadScreenshot:^(bool success) {
+                [self prepareDataAndSend:^(bool success) {
+                    // Handle Gleap delegate.
+                    if (success) {
+                        if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSent:)]) {
+                            [Gleap.sharedInstance.delegate feedbackSent: [self getFormData]];
+                        }
+                    } else {
+                        if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSendingFailed)]) {
+                            [Gleap.sharedInstance.delegate feedbackSendingFailed];
+                        }
+                    }
+                    
+                    // Notify completion.
                     completion(success);
                 }];
             }];
@@ -75,9 +102,10 @@
     if ([self.excludeData objectForKey: @"replays"] != nil && [[self.excludeData objectForKey: @"replays"] boolValue] == YES) {
         completion(YES);
     } else {
-        NSNumber *replayInterval = [NSNumber numberWithInt: self.replayInterval * 1000];
-        if (self.replaysEnabled) {
-            [[Gleap sharedInstance] uploadStepImages: [GleapReplayHelper sharedInstance].replaySteps andCompletion:^(bool success, NSArray * _Nonnull fileUrls) {
+        NSArray *replaySteps = [GleapReplayHelper sharedInstance].replaySteps;
+        if (replaySteps != nil && replaySteps.count > 0) {
+            NSNumber *replayInterval = [NSNumber numberWithInt: GleapReplayHelper.sharedInstance.timerInterval * 1000];
+            [GleapUploadManager uploadStepImages: replaySteps andCompletion:^(bool success, NSArray * _Nonnull fileUrls) {
                 if (success) {
                     // Attach replay
                     [self attachData: @{ @"replay": @{
@@ -94,8 +122,8 @@
     }
 }
 
-- (void)uploadScreenshotAndSendBugReport: (void (^)(bool success))completion {
-    if ([self.excludeData objectForKey: @"replays"] != nil && [[self.excludeData objectForKey: @"replays"] boolValue] == YES) {
+- (void)optionallyUploadScreenshot: (void (^)(bool success))completion {
+    if (self.screenshot == nil || ([self.excludeData objectForKey: @"screenshot"] != nil && [[self.excludeData objectForKey: @"screenshot"] boolValue] == YES)) {
         completion(YES);
     } else {
         // Process with image upload
@@ -114,14 +142,14 @@
     }
 }
 
-- (void)prepareScreenshotDataAndSend: (void (^)(bool success))completion {
+- (void)prepareDataAndSend: (void (^)(bool success))completion {
     // Fetch additional metadata.
     [self attachData: @{ @"metaData": [[GleapMetaDataHelper sharedInstance] getMetaData] }];
     
     // Attach and merge console log.
     NSMutableArray *consoleLogs = [[NSMutableArray alloc] initWithArray: [[GleapConsoleLogHelper sharedInstance] getConsoleLogs]];
-    if ([Gleap.sharedInstance.data objectForKey: @"consoleLog"] != nil) {
-        NSArray *existingConsoleLogs = [Gleap.sharedInstance.data objectForKey: @"consoleLog"];
+    if ([self.data objectForKey: @"consoleLog"] != nil) {
+        NSArray *existingConsoleLogs = [self.data objectForKey: @"consoleLog"];
         if (existingConsoleLogs != nil && existingConsoleLogs.count > 0) {
             [consoleLogs addObjectsFromArray: existingConsoleLogs];
         }
@@ -136,19 +164,19 @@
     
     // Attach and merge network logs.
     NSMutableArray *networkLogs = [[NSMutableArray alloc] initWithArray: [[GleapHttpTrafficRecorder sharedRecorder] networkLogs]];
-    if ([Gleap.sharedInstance.data objectForKey: @"networkLogs"] != nil) {
+    if ([self.data objectForKey: @"networkLogs"] != nil) {
         NSArray *existingNetworkLogs = [self.data objectForKey: @"networkLogs"];
         if (existingNetworkLogs != nil && existingNetworkLogs.count > 0) {
             [networkLogs addObjectsFromArray: existingNetworkLogs];
         }
     }
     if ([networkLogs count] > 0) {
-        [self attachData: @{ @"networkLogs": [self filterNetworkLogs: networkLogs] }];
+        [self attachData: @{ @"networkLogs": [[GleapHttpTrafficRecorder sharedRecorder] filterNetworkLogs: networkLogs] }];
     }
     
     // Add outbound
-    if (Gleap.sharedInstance.action != nil) {
-        [self attachData: @{ @"outbound": Gleap.sharedInstance.action.outbound }];
+    if (self.action != nil) {
+        [self attachData: @{ @"outbound": self.action.outbound }];
     }
     
     [self excludeExcludedData];
@@ -176,7 +204,7 @@
  Sends a bugreport to our backend.
  */
 - (void)sendReportToServer: (void (^)(bool success))completion {
-    if (_token == NULL || [_token isEqualToString: @""]) {
+    if (Gleap.sharedInstance.token == NULL || [Gleap.sharedInstance.token isEqualToString: @""]) {
         return completion(false);
     }
     
@@ -190,7 +218,7 @@
     
     NSMutableURLRequest *request = [NSMutableURLRequest new];
     request.HTTPMethod = @"POST";
-    [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/bugs", _apiUrl]]];
+    [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/bugs", Gleap.sharedInstance.apiUrl]]];
     [GleapSessionHelper injectSessionInRequest: request];
     [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
     [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];

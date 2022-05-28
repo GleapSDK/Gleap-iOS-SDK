@@ -9,6 +9,7 @@
 #import "GleapSessionHelper.h"
 #import "GleapCore.h"
 #import "GleapUIHelper.h"
+#import "GleapWidgetManager.h"
 
 @implementation GleapLogHelper
 
@@ -102,7 +103,7 @@
         currentViewControllerName != nil
         && ![currentViewControllerName isEqualToString: self.lastPageName]
         && Gleap.sharedInstance.applicationType == NATIVE
-        && !Gleap.sharedInstance.currentlyOpened
+        && ![[GleapWidgetManager sharedInstance] isOpened]
     ) {
         self.lastPageName = currentViewControllerName;
         

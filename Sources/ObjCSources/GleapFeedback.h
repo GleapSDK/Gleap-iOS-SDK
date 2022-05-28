@@ -6,6 +6,8 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
+#import "GleapAction.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -13,9 +15,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)send: (void (^)(bool success))completion;
 - (NSDictionary *)getFormData;
+- (void)appendData:(NSDictionary *)data;
 
 @property (nonatomic, retain) NSDictionary* excludeData;
 @property (nonatomic, retain) NSMutableDictionary* data;
+@property (nonatomic, retain) UIImage *screenshot;
+@property (nonatomic, retain, nullable) GleapAction *action;
 
 @end
 

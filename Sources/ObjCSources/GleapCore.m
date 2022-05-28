@@ -22,11 +22,11 @@
 #import "GleapUIHelper.h"
 #import "GleapCustomDataHelper.h"
 #import "GleapAttachmentHelper.h"
+#import "GleapTranslationHelper.h"
+#import "GleapWidgetManager.h"
+#import "GleapFeedback.h"
 
 @interface Gleap ()
-
-@property (strong, nonatomic) UIImage *screenshot;
-@property (retain, nonatomic) NSMutableDictionary *customActions;
 
 @end
 
@@ -58,14 +58,10 @@
  */
 - (void)initHelper {
     self.token = @"";
-    self.startFlow = @"";
     self.apiUrl = @"https://api.gleap.io";
     self.widgetUrl = @"https://widget.gleap.io";
-    self.replayInterval = 5;
     self.initialized = NO;
     self.applicationType = NATIVE;
-    self.screenshot = nil;
-    self.language = [[NSLocale preferredLanguages] firstObject];
     
     [[GleapMetaDataHelper sharedInstance] startSession];
 }
@@ -75,21 +71,11 @@
 }
 
 + (void)setAutoActivationMethodsDisabled {
-    [[GleapActivationMethodHelper sharedInstance] setAutoActivationMethodsDisabled];
-}
-
-+ (void)afterBugReportCleanup {
-    if ([Gleap sharedInstance].replaysEnabled) {
-        [[GleapReplayHelper sharedInstance] startWithInterval: [Gleap sharedInstance].replayInterval];
-    }
-    
-    Gleap.sharedInstance.currentlyOpened = NO;
-    Gleap.sharedInstance.startFlow = @"";
-    Gleap.sharedInstance.action = nil;
+    [GleapActivationMethodHelper setAutoActivationMethodsDisabled];
 }
 
 + (void)setLanguage: (NSString *)language {
-    [Gleap sharedInstance].language = language;
+    [GleapTranslationHelper setLanguage: language];
 }
 
 + (void)disableConsoleLog {
@@ -98,17 +84,6 @@
 
 + (void)enableDebugConsoleLog {
     GleapConsoleLogHelper.sharedInstance.debugConsoleLogDisabled = NO;
-}
-
-+ (void)enableReplays: (BOOL)enable {
-    [Gleap sharedInstance].replaysEnabled = enable;
-    
-    if ([Gleap sharedInstance].replaysEnabled) {
-        // Starts the replay helper.
-        [[GleapReplayHelper sharedInstance] startWithInterval: [Gleap sharedInstance].replayInterval];
-    } else {
-        [[GleapReplayHelper sharedInstance] stop];
-    }
 }
 
 + (void)startNetworkRecording {
@@ -132,13 +107,7 @@
 }
 
 - (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod {
-    [[GleapActivationMethodHelper sharedInstance] isActivationMethodActive: activationMethod];
-}
-
-- (void)setSDKToken:(NSString *)token {
-    self.token = token;
-    
-    [[GleapConsoleLogHelper sharedInstance] start];
+    [GleapActivationMethodHelper isActivationMethodActive: activationMethod];
 }
 
 /**
@@ -146,7 +115,7 @@
  */
 + (void)setApiToken: (NSString *)token {
     Gleap* instance = [Gleap sharedInstance];
-    [instance setSDKToken: token];
+    instance.token = token;
 }
 
 /*
@@ -160,11 +129,14 @@
     [Gleap sharedInstance].initialized = YES;
     [Gleap setApiToken: token];
     
+    [[GleapConsoleLogHelper sharedInstance] start];
     [[GleapScreenshotListener sharedInstance] start];
     [[GleapSessionHelper sharedInstance] startSessionWith:^(bool success) {
         [Gleap logEvent: @"sessionStarted"];
-        [[GleapLogHelper sharedInstance] start];
         [[GleapConfigHelper sharedInstance] run];
+        
+        // TODO: After config?
+        [[GleapLogHelper sharedInstance] start];
     }];
 }
 
@@ -194,28 +166,45 @@
     Gleap.sharedInstance.widgetUrl = widgetUrl;
 }
 
-+ (void)open {
-    [self startFeedbackFlow];
++ (BOOL)isOpened {
+    return [[GleapWidgetManager sharedInstance] isOpened];
 }
 
-/*
++ (void)open {
+    [self startFeedbackFlow: nil withOptions: nil];
+}
+
+/**
  Starts the bug reporting flow, when a SDK key has been assigned.
  */
-+ (void)startFeedbackFlow {
-    UIImage * screenshot = [GleapScreenCaptureHelper captureScreen];
-    [self startFeedbackFlowWithScreenshot: screenshot andUI: true];
-}
-
-+ (void)startFeedbackFlow:(NSString *)feedbackFlow; {
-    Gleap.sharedInstance.startFlow = feedbackFlow;
-    [self startFeedbackFlow];
++ (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options {
+    if (GleapSessionHelper.sharedInstance.currentSession == nil) {
+        NSLog(@"[GLEAP_SDK] Gleap session not ready.");
+        return;
+    }
+    
+    if (Gleap.sharedInstance.token == nil || Gleap.sharedInstance.token.length == 0) {
+        NSLog(@"[GLEAP_SDK] Please provide a valid Gleap project TOKEN!");
+        return;
+    }
+    
+    [[GleapWidgetManager sharedInstance] showWidget];
+    
+    // Start a feedback flow.
+    if (feedbackFlow != nil) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": @"start-feedbackflow",
+            @"data": @{
+                @"flow": feedbackFlow
+            }
+        }];
+    }
 }
 
 /*
  Sends a silent bug report with type
  */
-+ (void)sendSilentCrashReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity {
-    NSMutableDictionary *dataToAppend = [[NSMutableDictionary alloc] init];
++ (void)sendSilentCrashReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity andDataExclusion:(NSDictionary * _Nullable)excludeData andCompletion: (void (^)(bool success))completion {
     
     NSString *bugReportPriority = @"LOW";
     if (severity == MEDIUM) {
@@ -225,90 +214,42 @@
         bugReportPriority = @"HIGH";
     }
     
-    [dataToAppend setValue: @{
-        @"description": description
-    } forKey: @"formData"];
-    [dataToAppend setValue: @(YES) forKey: @"isSilent"];
-    [dataToAppend setValue: bugReportPriority forKey: @"priority"];
-    [dataToAppend setValue: @"CRASH" forKey: @"type"];
+    GleapFeedback *feedback = [[GleapFeedback alloc] init];
+    [feedback appendData: @{
+        @"formData": @{
+            @"description": description
+        },
+        @"isSilent": @(YES),
+        @"type": @"CRASH",
+        @"priority": bugReportPriority,
+    }];
     
-    // [Gleap attachData: dataToAppend];
+    // Attach current screenshot.
+    feedback.screenshot = [GleapScreenCaptureHelper captureScreen];
     
-    UIImage * screenshot = [GleapScreenCaptureHelper captureScreen];
-    [self startFeedbackFlowWithScreenshot: screenshot andUI: false];
-}
-
-+ (void)startFeedbackFlowWithScreenshot:(UIImage *)screenshot andUI:(BOOL)ui {
-    if (GleapSessionHelper.sharedInstance.currentSession == nil) {
-        NSLog(@"[GLEAP_SDK] Gleap session not ready.");
-        return;
-    }
-    
-    if (Gleap.sharedInstance.currentlyOpened) {
-        NSLog(@"[GLEAP_SDK] Gleap is already opened.");
-        return;
-    }
-    
-    if (Gleap.sharedInstance.token.length == 0) {
-        NSLog(@"[GLEAP_SDK] Please provide a valid Gleap project TOKEN!");
-        return;
-    }
-    
-    Gleap.sharedInstance.currentlyOpened = YES;
-    
-    if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackWillBeSent)]) {
-        [Gleap.sharedInstance.delegate feedbackWillBeSent];
-    }
-    
-    // Update last screen name
-    [GleapMetaDataHelper.sharedInstance updateLastScreenName];
-    
-    // Stop replays
-    [[GleapReplayHelper sharedInstance] stop];
-    [Gleap attachScreenshot: screenshot];
-    
-    if (ui) {
-        GleapFrameManagerViewController *gleapWidget = [[GleapFrameManagerViewController alloc] init];
-        [gleapWidget setScreenshot: screenshot];
-        
-        UINavigationController * navController = [[UINavigationController alloc] initWithRootViewController: gleapWidget];
-        navController.navigationBar.barStyle = UIBarStyleBlack;
-        [navController.navigationBar setTranslucent: NO];
-        [navController.navigationBar setBarTintColor: [UIColor whiteColor]];
-        [navController.navigationBar setTitleTextAttributes:
-           @{NSForegroundColorAttributeName:[UIColor blackColor]}];
-        navController.navigationBar.hidden = YES;
-        navController.modalPresentationStyle = UIModalPresentationCustom;
-        navController.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
-        
-        // Show on top of all viewcontrollers.
-        UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
-        [topMostViewController presentViewController: navController animated: YES completion:^{
-            
-        }];
+    // Attach exclude data.
+    if (excludeData != nil) {
+        feedback.excludeData = excludeData;
     } else {
-        // No UI flow
-        /*[Gleap.sharedInstance sendReport:^(bool success) {
-            if (success) {
-                if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSent:)]) {
-                    [Gleap.sharedInstance.delegate feedbackSent: [Gleap.sharedInstance getFormData]];
-                }
-            } else {
-                if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSendingFailed)]) {
-                    [Gleap.sharedInstance.delegate feedbackSendingFailed];
-                }
-            }
-            [Gleap afterBugReportCleanup];
-        }];*/
+        feedback.excludeData = @{
+            @"screenshot": @(YES),
+            @"replays": @(YES),
+            @"attachments": @(YES)
+        };
     }
+    
+    // Send crash report.
+    [feedback send:^(bool success) {
+        completion(success);
+    }];
 }
 
 /*
  Invoked when a shake gesture is beeing performed.
  */
 + (void)shakeInvocation {
-    if ([[GleapActivationMethodHelper sharedInstance] isActivationMethodActive: SHAKE]) {
-        [Gleap startFeedbackFlow];
+    if ([GleapActivationMethodHelper isActivationMethodActive: SHAKE]) {
+        [Gleap open];
     }
 }
 
@@ -358,20 +299,6 @@
     [GleapAttachmentHelper removeAllAttachments];
 }
 
-/*
- Attaches a screenshot.
- */
-+ (void)attachScreenshot: (UIImage *)screenshot {
-    [Gleap sharedInstance].screenshot = screenshot;
-}
-
-/*
- Returns the attacked screenshot.
- */
-+ (UIImage *)getAttachedScreenshot {
-    return [Gleap sharedInstance].screenshot;
-}
-
 /**
  Sets the application type.
  */
@@ -380,13 +307,10 @@
 }
 
 - (void)performAction:(GleapAction *)action {
-    if (self.action != nil) {
-        NSLog(@"[GLEAP_SDK] Already performing action.");
-        return;
-    }
-    
-    self.action = action;
-    [Gleap startFeedbackFlow: action.actionType];
+    [Gleap startFeedbackFlow: action.actionType withOptions: @{
+        @"actionOutboundId": action.outbound,
+        @"hideBackButton": @YES
+    }];
 }
 
 @end

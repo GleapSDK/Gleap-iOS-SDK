@@ -6,12 +6,36 @@
 //
 
 #import "GleapTranslationHelper.h"
-#import "GleapCore.h"
 
 @implementation GleapTranslationHelper
 
+/*
+ Returns a shared instance (singleton).
+ */
++ (instancetype)sharedInstance
+{
+    static GleapTranslationHelper *sharedInstance = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        sharedInstance = [[GleapTranslationHelper alloc] init];
+    });
+    return sharedInstance;
+}
+
+- (id)init {
+    self = [super init];
+    if (self) {
+        self.language = [[NSLocale preferredLanguages] firstObject];
+    }
+    return self;
+}
+
++ (void)setLanguage: (NSString *)language {
+    [GleapTranslationHelper sharedInstance].language = language;
+}
+
 + (NSDictionary *)getTranslation {
-    NSString *lang = [[Gleap sharedInstance].language lowercaseString];
+    NSString *lang = [[GleapTranslationHelper sharedInstance].language lowercaseString];
     if (lang.length > 2) {
         lang = [lang substringToIndex: 2];
     }

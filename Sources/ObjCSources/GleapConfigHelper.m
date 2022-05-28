@@ -9,6 +9,7 @@
 #import "GleapCore.h"
 #import "GleapActivationMethodHelper.h"
 #import "GleapHttpTrafficRecorder.h"
+#import "GleapReplayHelper.h"
 
 @implementation GleapConfigHelper
 
@@ -65,28 +66,31 @@
     self.config = config;
     self.projectActions = projectActions;
     
-    if ([config objectForKey: @"enableNetworkLogs"] != nil && [[config objectForKey: @"enableNetworkLogs"] boolValue] == YES) {
-        [Gleap startNetworkRecording];
-    }
-    
-    if ([config objectForKey: @"replaysInterval"] != nil) {
-        int interval = [[config objectForKey: @"replaysInterval"] intValue];
-        if (interval > 0) {
-            Gleap.sharedInstance.replayInterval = interval;
-        }
-    }
-    
-    if ([config objectForKey: @"enableReplays"] != nil) {
-        [Gleap enableReplays: [[config objectForKey: @"enableReplays"] boolValue]];
-    }
-    
-    
+    // Network config
     if ([config objectForKey: @"networkLogPropsToIgnore"] != nil && [[config objectForKey: @"networkLogPropsToIgnore"] isKindOfClass:[NSArray class]]) {
         GleapHttpTrafficRecorder.sharedRecorder.networkLogPropsToIgnore = [config objectForKey: @"networkLogPropsToIgnore"];
     }
     
-    // TODO: 
-    if ([[GleapActivationMethodHelper sharedInstance] useAutoActivationMethods]) {
+    if ([config objectForKey: @"enableNetworkLogs"] != nil && [[config objectForKey: @"enableNetworkLogs"] boolValue] == YES) {
+        [Gleap startNetworkRecording];
+    }
+    
+    // Replay config
+    if ([config objectForKey: @"replaysInterval"] != nil) {
+        int interval = [[config objectForKey: @"replaysInterval"] intValue];
+        if (interval > 0) {
+            [GleapReplayHelper sharedInstance].timerInterval = interval;
+        }
+    }
+    
+    if ([config objectForKey: @"enableReplays"] != nil && [[config objectForKey: @"enableReplays"] boolValue]) {
+        [[GleapReplayHelper sharedInstance] start];
+    } else {
+        [[GleapReplayHelper sharedInstance] stop];
+    }
+    
+    // Activation methods.
+    if ([GleapActivationMethodHelper useAutoActivationMethods]) {
         NSMutableArray * activationMethods = [[NSMutableArray alloc] init];
         if ([config objectForKey: @"activationMethodShake"] != nil && [[config objectForKey: @"activationMethodShake"] boolValue] == YES) {
             [activationMethods addObject: @(SHAKE)];
@@ -94,9 +98,10 @@
         if ([config objectForKey: @"activationMethodScreenshotGesture"] != nil && [[config objectForKey: @"activationMethodScreenshotGesture"] boolValue] == YES) {
             [activationMethods addObject: @(SCREENSHOT)];
         }
-        [[GleapActivationMethodHelper sharedInstance] setActivationMethods: activationMethods];
+        [GleapActivationMethodHelper setActivationMethods: activationMethods];
     }
     
+    // Config loaded delegate
     if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(configLoaded:)]) {
         [Gleap.sharedInstance.delegate configLoaded: config];
     }

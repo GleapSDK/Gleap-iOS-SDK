@@ -11,13 +11,23 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+@protocol GleapFrameManagerDelegate <NSObject>
+@optional
+- (void) connected;
+- (void) failedToConnect;
+@required
+@end
+
 @interface GleapFrameManagerViewController : UIViewController <WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate>
 
 - (void)setScreenshot:(UIImage *)image;
+- (void)sendMessageWithData:(NSDictionary *)data;
 - (void)sendSessionUpdate;
 - (void)sendConfigUpdate;
 
 @property (nonatomic, retain, nullable) NSTimer* timeoutTimer;
+@property (nonatomic, assign) bool connected;
+@property (nonatomic, weak) id <GleapFrameManagerDelegate> delegate;
 
 @end
 

@@ -34,7 +34,9 @@
           NSLog(@"Data received: %@", myString);
     }] resume];
     
-    [Gleap sendSilentCrashReportWith: @"asdfasdfas" andSeverity: LOW];
+    [Gleap sendSilentCrashReportWith: @"Testing the brand new SDK!" andSeverity: LOW andDataExclusion: nil andCompletion:^(bool success) {
+        NSLog(@"DONE?? %i", success);
+    }];
 }
 
 /*
