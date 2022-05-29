@@ -144,8 +144,6 @@
         NSString *name = [message.body objectForKey: @"name"];
         NSDictionary *messageData = [message.body objectForKey: @"data"];
         
-        NSLog(@"Event %@ with data %@", name, messageData);
-        
         if ([name isEqualToString: @"ping"]) {
             [self invalidateTimeout];
             [self->_loadingView setHidden: YES];
@@ -160,12 +158,27 @@
             [self sendScreenshotUpdate];
         }
         
+        if ([name isEqualToString: @"cleanup-drawings"]) {
+            [GleapScreenshotManager sharedInstance].updatedScreenshot = nil;
+        }
+        
         if ([name isEqualToString: @"close-widget"]) {
             [self closeWidget: nil];
         }
         
         if ([name isEqualToString: @"screenshot-updated"] && messageData != nil) {
-            
+            @try
+            {
+                NSString *screenshotBase64String = (NSString *)messageData;
+                if (screenshotBase64String != nil) {
+                    screenshotBase64String = [screenshotBase64String stringByReplacingOccurrencesOfString: @"data:image/png;base64," withString: @""];
+                    NSData *dataEncoded = [[NSData alloc] initWithBase64EncodedString: screenshotBase64String options:0];
+                    if (dataEncoded != nil) {
+                        [GleapScreenshotManager sharedInstance].updatedScreenshot = [UIImage imageWithData:dataEncoded];
+                    }
+                }
+            }
+            @catch(id exception) {}
         }
         
         if ([name isEqualToString: @"run-custom-action"] && messageData != nil) {
@@ -186,8 +199,10 @@
             NSString *eventType = [messageData objectForKey: @"type"];
             NSDictionary *eventData = [messageData objectForKey: @"data"];
             
-            if (Gleap.sharedInstance.delegate) {
-                if ([eventType isEqualToString: @"flow-started"] && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackFlowStarted:)]) {
+            if ([eventType isEqualToString: @"flow-started"]) {
+                [GleapScreenshotManager sharedInstance].updatedScreenshot = nil;
+                
+                if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackFlowStarted:)]) {
                     [Gleap.sharedInstance.delegate feedbackFlowStarted: eventData];
                 }
             }
@@ -214,7 +229,7 @@
                 feedback.excludeData = [action objectForKey: @"excludeData"];
             }
             
-            UIImage *screenshot = [GleapScreenshotManager getScreenshot];
+            UIImage *screenshot = [GleapScreenshotManager getScreenshotToAttach];
             if (screenshot != nil) {
                 feedback.screenshot = screenshot;
             }

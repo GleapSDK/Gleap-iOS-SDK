@@ -27,6 +27,14 @@
     return [GleapScreenshotManager sharedInstance].screenshot;
 }
 
++ (UIImage *)getScreenshotToAttach {
+    if ([GleapScreenshotManager sharedInstance].updatedScreenshot != nil) {
+        return [GleapScreenshotManager sharedInstance].updatedScreenshot;
+    }
+    
+    return [GleapScreenshotManager getScreenshot];
+}
+
 + (void)takeScreenshot {
     [GleapScreenshotManager sharedInstance].screenshot = [GleapScreenCaptureHelper captureScreen];
 }

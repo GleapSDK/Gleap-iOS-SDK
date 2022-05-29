@@ -14,9 +14,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (instancetype)sharedInstance;
 + (UIImage *)getScreenshot;
++ (UIImage *)getScreenshotToAttach;
 + (void)takeScreenshot;
 
 @property (strong, nonatomic, nullable) UIImage *screenshot;
+@property (strong, nonatomic, nullable) UIImage *updatedScreenshot;
 
 @end
 
