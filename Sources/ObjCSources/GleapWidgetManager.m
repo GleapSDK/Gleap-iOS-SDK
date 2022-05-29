@@ -50,16 +50,32 @@
     }
 }
 
+- (void)sendSessionUpdate {
+    if ([self isConnected]) {
+        [self.gleapWidget sendSessionUpdate];
+    }
+}
+
+- (void)sendConfigUpdate {
+    if ([self isConnected]) {
+        [self.gleapWidget sendConfigUpdate];
+    }
+}
+
 - (void)closeWidget: (void (^)())completion {
     [self.messageQueue removeAllObjects];
     if (self.gleapWidget == nil) {
-        completion();
+        if (completion != nil) {
+            completion();
+        }
         return;
     }
     
     [self.gleapWidget dismissViewControllerAnimated: YES completion:^{
         self.gleapWidget = nil;
-        completion();
+        if (completion != nil) {
+            completion();
+        }
     }];
 }
 

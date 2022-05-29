@@ -23,7 +23,6 @@
 @property (retain, nonatomic) WKWebView *webView;
 @property (retain, nonatomic) UIView *loadingView;
 @property (retain, nonatomic) UIActivityIndicatorView *loadingActivityView;
-@property (retain, nonatomic) UIImage *screenshotImage;
 
 @end
 
@@ -88,7 +87,9 @@
     self.connected = false;
     
     [[GleapWidgetManager sharedInstance] closeWidget:^{
-        completion();
+        if (completion != nil) {
+            completion();
+        }
     }];
 }
 
@@ -118,19 +119,18 @@
         @"data": @{
             @"config": GleapConfigHelper.sharedInstance.config,
             @"actions": GleapConfigHelper.sharedInstance.projectActions,
-            @"overrideLanguage": GleapTranslationHelper.sharedInstance.language
+            @"overrideLanguage": GleapTranslationHelper.sharedInstance.language,
+            @"isApp": @(YES),
         }
     }];
 }
 
 - (void)sendMessageWithData:(NSDictionary *)data {
-    NSLog(@"%@", data);
-    
     NSError *error;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject: data
                                                        options: 0
                                                          error:&error];
-    if (! jsonData) {
+    if (!jsonData) {
         NSLog(@"Got an error: %@", error);
     } else {
         NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
@@ -144,6 +144,8 @@
         NSString *name = [message.body objectForKey: @"name"];
         NSDictionary *messageData = [message.body objectForKey: @"data"];
         
+        NSLog(@"Event %@ with data %@", name, messageData);
+        
         if ([name isEqualToString: @"ping"]) {
             [self invalidateTimeout];
             [self->_loadingView setHidden: YES];
@@ -155,10 +157,15 @@
             
             [self sendConfigUpdate];
             [self sendSessionUpdate];
+            [self sendScreenshotUpdate];
         }
         
         if ([name isEqualToString: @"close-widget"]) {
             [self closeWidget: nil];
+        }
+        
+        if ([name isEqualToString: @"screenshot-updated"] && messageData != nil) {
+            
         }
         
         if ([name isEqualToString: @"run-custom-action"] && messageData != nil) {
@@ -215,23 +222,17 @@
             [feedback send:^(bool success) {
                 if (success) {
                     [self sendMessageWithData: @{
-                        @"feedback-sent": @(YES)
+                        @"name": @"feedback-sent"
                     }];
                 } else {
                     [self sendMessageWithData: @{
-                        @"feedback-sending-failed": @(YES),
+                        @"name": @"feedback-sending-failed",
                         @"data": @"Something went wrong, please try again.",
                     }];
                 }
             }];
         }
     }
-    
-    /*
-    if ([message.name isEqualToString: @"requestScreenshot"]) {
-        [self injectScreenshot];
-    }
-    */
 }
 
 - (void)webView:(WKWebView *)webView runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))completionHandler
@@ -275,7 +276,7 @@
                                        selector: @selector(requestTimedOut:)
                                        userInfo: nil
                                         repeats: NO];
-    NSURLRequest * request = [NSURLRequest requestWithURL: [NSURL URLWithString: @"https://frame.gleap.io/app.html"]];
+    NSURLRequest * request = [NSURLRequest requestWithURL: [NSURL URLWithString: @"http://localhost:3000/app.html"]];
     [self.webView loadRequest: request];
 }
 
@@ -286,16 +287,20 @@
     [otherView addConstraint:[NSLayoutConstraint constraintWithItem: view attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem: otherView attribute:NSLayoutAttributeWidth multiplier:1.0 constant:0]];
 }
 
-- (void)injectScreenshot {
-    if (self.screenshotImage == nil) {
+- (void)sendScreenshotUpdate {
+    UIImage *screenshot = [GleapScreenshotManager getScreenshot];
+    if (screenshot == nil) {
         return;
     }
     
     @try
     {
-        NSData *data = UIImagePNGRepresentation(self.screenshotImage);
+        NSData *data = UIImagePNGRepresentation(screenshot);
         NSString *base64Data = [data base64EncodedStringWithOptions: 0];
-        [self.webView evaluateJavaScript: [NSString stringWithFormat: @"Gleap.setScreenshot('data:image/png;base64,%@', true)", base64Data] completionHandler: nil];
+        [self sendMessageWithData: @{
+            @"name": @"screenshot-update",
+            @"data": [NSString stringWithFormat: @"data:image/png;base64,%@", base64Data]
+        }];
     }
     @catch(id exception) {}
 }
@@ -375,43 +380,6 @@
     }
     
     return decisionHandler(WKNavigationActionPolicyAllow);
-}
-
-- (void)sendBugReport {
-    self.navigationItem.leftBarButtonItem = false;
-    self.navigationItem.rightBarButtonItem = false;
-    
-    /*[Gleap.sharedInstance sendReport:^(bool success) {
-        if (success) {
-            [self showSuccessMessage];
-            
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSent:)]) {
-                [Gleap.sharedInstance.delegate feedbackSent: [Gleap.sharedInstance getFormData]];
-            }
-        } else {
-            [[self navigationController] setNavigationBarHidden: NO animated: NO];
-            UIAlertController * alert = [UIAlertController
-                                         alertControllerWithTitle: [GleapTranslationHelper localizedString: @"report_failed_title"]
-                                         message: [GleapTranslationHelper localizedString: @"report_failed"]
-                                         preferredStyle:UIAlertControllerStyleAlert];
-            UIAlertAction* yesButton = [UIAlertAction
-                                        actionWithTitle: [GleapTranslationHelper localizedString: @"ok"]
-                                        style:UIAlertActionStyleDefault
-                                        handler:^(UIAlertAction * action) {
-                                            [self dismissViewControllerAnimated: true completion:^{}];
-                                        }];
-            [alert addAction:yesButton];
-            [self presentViewController:alert animated:YES completion:nil];
-            
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSendingFailed)]) {
-                [Gleap.sharedInstance.delegate feedbackSendingFailed];
-            }
-        }
-    }];*/
-}
-
-- (void)setScreenshot:(UIImage *)image {
-    self.screenshotImage = image;
 }
 
 - (void)pinEdgesFrom:(UIView *)subView to:(UIView *)parent {

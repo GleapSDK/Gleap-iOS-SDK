@@ -23,16 +23,48 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "2B879D06-3CD4-45D5-A911-DC75377DA379"
+            uuid = "E631923A-4124-4756-94AC-044EDC80B07E"
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "../Sources/ObjCSources/GleapConfigHelper.m"
+            filePath = "../Sources/ObjCSources/GleapFrameManagerViewController.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "93"
-            endingLineNumber = "93"
-            landmarkName = "-configureGleapWithConfig:"
+            startingLineNumber = "137"
+            endingLineNumber = "137"
+            landmarkName = "-sendMessageWithData:"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "6D3F1A09-C780-41E9-B30B-2EBC6674457E"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../Sources/ObjCSources/GleapFrameManagerViewController.m"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "133"
+            endingLineNumber = "133"
+            landmarkName = "-sendMessageWithData:"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "26022F43-581F-47F2-A1B9-CA1B1D119709"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../Sources/ObjCSources/GleapFrameManagerViewController.m"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "130"
+            endingLineNumber = "130"
+            landmarkName = "-sendMessageWithData:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

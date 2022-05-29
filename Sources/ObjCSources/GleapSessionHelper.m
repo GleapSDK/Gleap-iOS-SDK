@@ -7,6 +7,7 @@
 
 #import "GleapSessionHelper.h"
 #import "GleapCore.h"
+#import "GleapWidgetManager.h"
 
 @implementation GleapSessionHelper
 
@@ -176,6 +177,9 @@
     // Process any open identity actions.
     [self processOpenIdentityAction];
     
+    // Update widget session
+    [[GleapWidgetManager sharedInstance] sendSessionUpdate];
+    
     return completion(true);
 }
 
@@ -183,6 +187,9 @@
     self.currentSession = nil;
     [[NSUserDefaults standardUserDefaults] removeObjectForKey: @"gleapId"];
     [[NSUserDefaults standardUserDefaults] removeObjectForKey: @"gleapHash"];
+    
+    // Update widget session
+    [[GleapWidgetManager sharedInstance] sendSessionUpdate];
     
     // Restart a session.
     [self startSessionWith:^(bool success) {}];

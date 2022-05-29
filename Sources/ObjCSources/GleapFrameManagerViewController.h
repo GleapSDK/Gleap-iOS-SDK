@@ -20,7 +20,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface GleapFrameManagerViewController : UIViewController <WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate>
 
-- (void)setScreenshot:(UIImage *)image;
 - (void)sendMessageWithData:(NSDictionary *)data;
 - (void)sendSessionUpdate;
 - (void)sendConfigUpdate;

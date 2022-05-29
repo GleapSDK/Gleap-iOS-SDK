@@ -18,6 +18,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)closeWidget: (void (^)())completion;
 - (void)showWidget;
 - (void)sendMessageWithData:(NSDictionary *)data;
+- (void)sendSessionUpdate;
+- (void)sendConfigUpdate;
 
 @property (nonatomic, retain, nullable) GleapFrameManagerViewController *gleapWidget;
 @property (nonatomic, retain, nullable) NSMutableArray *messageQueue;

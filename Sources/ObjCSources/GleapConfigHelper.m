@@ -10,6 +10,7 @@
 #import "GleapActivationMethodHelper.h"
 #import "GleapHttpTrafficRecorder.h"
 #import "GleapReplayHelper.h"
+#import "GleapWidgetManager.h"
 
 @implementation GleapConfigHelper
 
@@ -100,6 +101,9 @@
         }
         [GleapActivationMethodHelper setActivationMethods: activationMethods];
     }
+    
+    // Update widget config
+    [[GleapWidgetManager sharedInstance] sendConfigUpdate];
     
     // Config loaded delegate
     if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(configLoaded:)]) {
