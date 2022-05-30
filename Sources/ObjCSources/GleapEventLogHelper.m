@@ -5,23 +5,23 @@
 //  Created by Lukas Boehler on 15.01.21.
 //
 
-#import "GleapLogHelper.h"
+#import "GleapEventLogHelper.h"
 #import "GleapSessionHelper.h"
 #import "GleapCore.h"
 #import "GleapUIHelper.h"
 #import "GleapWidgetManager.h"
 
-@implementation GleapLogHelper
+@implementation GleapEventLogHelper
 
 /*
  Returns a shared instance (singleton).
  */
 + (instancetype)sharedInstance
 {
-    static GleapLogHelper *sharedInstance = nil;
+    static GleapEventLogHelper *sharedInstance = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        sharedInstance = [[GleapLogHelper alloc] init];
+        sharedInstance = [[GleapEventLogHelper alloc] init];
     });
     return sharedInstance;
 }

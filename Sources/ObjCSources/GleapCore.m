@@ -12,7 +12,7 @@
 #import "GleapHttpTrafficRecorder.h"
 #import "GleapSessionHelper.h"
 #import "GleapUserProperty.h"
-#import "GleapLogHelper.h"
+#import "GleapEventLogHelper.h"
 #import "GleapConfigHelper.h"
 #import "GleapMetaDataHelper.h"
 #import "GleapScreenCaptureHelper.h"
@@ -99,11 +99,11 @@
 }
 
 + (void)logEvent: (NSString *)name {
-    [[GleapLogHelper sharedInstance] logEvent: name];
+    [[GleapEventLogHelper sharedInstance] logEvent: name];
 }
 
 + (void)logEvent: (NSString *)name withData: (NSDictionary *)data {
-    [[GleapLogHelper sharedInstance] logEvent: name withData: data];
+    [[GleapEventLogHelper sharedInstance] logEvent: name withData: data];
 }
 
 - (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod {
@@ -134,7 +134,7 @@
     [[GleapSessionHelper sharedInstance] startSessionWith:^(bool success) {
         [Gleap logEvent: @"sessionStarted"];
         [[GleapConfigHelper sharedInstance] run];
-        [[GleapLogHelper sharedInstance] start];
+        [[GleapEventLogHelper sharedInstance] start];
     }];
 }
 

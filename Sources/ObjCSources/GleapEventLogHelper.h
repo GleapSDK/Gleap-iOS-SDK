@@ -11,7 +11,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface GleapLogHelper : NSObject
+@interface GleapEventLogHelper : NSObject
 
 /**
  * Returns a new shared instance of GleapReplayHelper.

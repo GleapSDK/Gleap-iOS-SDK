@@ -57,7 +57,7 @@
 
 + (NSString *)getJSStringForNSDate:(NSDate *)date {
     NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-    dateFormatter.dateFormat = @"yyyy-MM-dd'T'HH:mm:ssZ";
+    dateFormatter.dateFormat = @"yyyy-MM-dd'T'HH:mm:ssZZZZZ";
     return [dateFormatter stringFromDate: date];
 }
 

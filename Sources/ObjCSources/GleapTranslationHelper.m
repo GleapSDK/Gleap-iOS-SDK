@@ -6,6 +6,7 @@
 //
 
 #import "GleapTranslationHelper.h"
+#import "GleapWidgetManager.h"
 
 @implementation GleapTranslationHelper
 
@@ -32,6 +33,9 @@
 
 + (void)setLanguage: (NSString *)language {
     [GleapTranslationHelper sharedInstance].language = language;
+    
+    // Update widget config
+    [[GleapWidgetManager sharedInstance] sendConfigUpdate];
 }
 
 + (NSDictionary *)getTranslation {
@@ -96,8 +100,7 @@
 }
 
 + (NSString *)localizedString:(NSString *)string {
-    NSDictionary *translation = GleapTranslationHelper.getTranslation;
-    
+    NSDictionary *translation = [GleapTranslationHelper getTranslation];
     NSString *translatedString = [translation objectForKey: string];
     if (translatedString) {
         return translatedString;

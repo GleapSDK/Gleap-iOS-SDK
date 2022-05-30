@@ -11,7 +11,7 @@
 #import "GleapMetaDataHelper.h"
 #import "GleapAttachmentHelper.h"
 #import "GleapUploadManager.h"
-#import "GleapLogHelper.h"
+#import "GleapEventLogHelper.h"
 #import "GleapReplayHelper.h"
 #import "GleapHttpTrafficRecorder.h"
 #import "GleapCore.h"
@@ -162,7 +162,7 @@
     [self attachData: @{ @"customData": [GleapCustomDataHelper getCustomData] }];
     
     // Attach custom event log.
-    [self attachData: @{ @"customEventLog": [[GleapLogHelper sharedInstance] getLogs] }];
+    [self attachData: @{ @"customEventLog": [[GleapEventLogHelper sharedInstance] getLogs] }];
     
     // Attach and merge network logs.
     NSMutableArray *networkLogs = [[NSMutableArray alloc] initWithArray: [[GleapHttpTrafficRecorder sharedRecorder] networkLogs]];

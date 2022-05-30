@@ -27,7 +27,7 @@
 }
 
 - (IBAction)killAll:(id)sender {
-    [Gleap startFeedbackFlow: @"bugreporting" showBackButton: NO];
+    [Gleap setLanguage: @"AR_IQ"];
 }
 
 @end

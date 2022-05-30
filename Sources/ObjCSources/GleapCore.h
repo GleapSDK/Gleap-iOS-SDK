@@ -171,7 +171,7 @@ static id ObjectOrNull(id object)
  * Set's the current userinterface language.
  * @author Gleap
  *
- * @param language The 2 digit ISO code language to set
+ * @param language The 2 or 4 digit ISO code language to set
  */
 + (void)setLanguage: (NSString *)language;
 
