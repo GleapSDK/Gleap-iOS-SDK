@@ -55,5 +55,6 @@
  */
 @property(nonatomic, readonly, assign) BOOL isRecording;
 @property (retain, nonatomic) NSArray *networkLogPropsToIgnore;
+@property (retain, nonatomic) NSArray *blacklist;
 
 @end

@@ -72,6 +72,10 @@
         GleapHttpTrafficRecorder.sharedRecorder.networkLogPropsToIgnore = [config objectForKey: @"networkLogPropsToIgnore"];
     }
     
+    if ([config objectForKey: @"networkLogBlacklist"] != nil && [[config objectForKey: @"networkLogBlacklist"] isKindOfClass:[NSArray class]]) {
+        GleapHttpTrafficRecorder.sharedRecorder.blacklist = [config objectForKey: @"networkLogBlacklist"];
+    }
+    
     if ([config objectForKey: @"enableNetworkLogs"] != nil && [[config objectForKey: @"enableNetworkLogs"] boolValue] == YES) {
         [Gleap startNetworkRecording];
     }

@@ -38,37 +38,63 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey     = @"ERROR_KEY";
         shared.maxRequestsInQueue = 10;
         shared.requests = [[NSMutableArray alloc] init];
         shared.networkLogPropsToIgnore = [[NSArray alloc] init];
+        shared.blacklist = [[NSArray alloc] init];
     });
     return shared;
 }
 
 - (NSArray *)filterNetworkLogs:(NSArray *)networkLogs {
-    if (self.networkLogPropsToIgnore == nil || [self.networkLogPropsToIgnore count] <= 0) {
-        return networkLogs;
-    }
-    
     NSMutableArray* processedNetworkLogs = [[NSMutableArray alloc] init];
     
     // Filter networklog properties.
     for (int i = 0; i < [networkLogs count]; i++) {
         NSMutableDictionary * log =  [[NSMutableDictionary alloc] initWithDictionary: [networkLogs objectAtIndex: i]];
         
-        if ([log objectForKey: @"request"] != nil) {
-            NSMutableDictionary *request = [[NSMutableDictionary alloc] initWithDictionary: [log objectForKey: @"request"]];
-            if (request != nil && [request objectForKey: @"headers"]) {
-                if ([request objectForKey: @"headers"] != nil) {
-                    NSMutableDictionary *mutableHeaders = [[NSMutableDictionary alloc] initWithDictionary: [request objectForKey: @"headers"]];
-                    [mutableHeaders removeObjectsForKeys: self.networkLogPropsToIgnore];
-                    [request setObject: mutableHeaders forKey: @"headers"];
+        if (self.networkLogPropsToIgnore != nil && self.networkLogPropsToIgnore.count >= 0) {
+            if ([log objectForKey: @"request"] != nil) {
+                NSMutableDictionary *request = [[NSMutableDictionary alloc] initWithDictionary: [log objectForKey: @"request"]];
+                if (request != nil && [request objectForKey: @"headers"]) {
+                    if ([request objectForKey: @"headers"] != nil) {
+                        NSMutableDictionary *mutableHeaders = [[NSMutableDictionary alloc] initWithDictionary: [request objectForKey: @"headers"]];
+                        [mutableHeaders removeObjectsForKeys: self.networkLogPropsToIgnore];
+                        [request setObject: mutableHeaders forKey: @"headers"];
+                    }
+                }
+                
+                if (request != nil && [request objectForKey: @"payload"]) {
+                    if ([request objectForKey: @"payload"] != nil) {
+                        NSError *jsonError;
+                        NSMutableDictionary *jsonObject = [NSJSONSerialization JSONObjectWithData:[[request objectForKey: @"payload"] dataUsingEncoding:NSUTF8StringEncoding]  options: NSJSONReadingMutableContainers error:&jsonError];
+                        if (jsonError == nil && jsonObject != nil) {
+                            [jsonObject removeObjectsForKeys: self.networkLogPropsToIgnore];
+                            
+                            NSError *jsonDataError;
+                            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonObject
+                                                                               options:0
+                                                                                 error:&jsonDataError];
+                            if (jsonData != nil) {
+                                NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                                if (jsonString != nil) {
+                                    [request setObject: jsonString forKey: @"payload"];
+                                }
+                            }
+                        }
+                    }
+                }
+                if (request != nil) {
+                    [log setObject: request forKey: @"request"];
                 }
             }
             
-            if (request != nil && [request objectForKey: @"payload"]) {
-                if ([request objectForKey: @"payload"] != nil) {
+            if ([log objectForKey: @"response"] != nil) {
+                NSMutableDictionary *response = [[NSMutableDictionary alloc] initWithDictionary: [log objectForKey: @"response"]];
+                if (response != nil && [response objectForKey: @"responseText"] != nil) {
                     NSError *jsonError;
-                    NSMutableDictionary *jsonObject = [NSJSONSerialization JSONObjectWithData:[[request objectForKey: @"payload"] dataUsingEncoding:NSUTF8StringEncoding]  options: NSJSONReadingMutableContainers error:&jsonError];
+                    id jsonObject = [NSJSONSerialization JSONObjectWithData:[[response objectForKey: @"responseText"] dataUsingEncoding:NSUTF8StringEncoding]  options: NSJSONReadingMutableContainers error:&jsonError];
                     if (jsonError == nil && jsonObject != nil) {
-                        [jsonObject removeObjectsForKeys: self.networkLogPropsToIgnore];
+                        if ([jsonObject isKindOfClass:[NSDictionary class]]) {
+                            [jsonObject removeObjectsForKeys: self.networkLogPropsToIgnore];
+                        }
                         
                         NSError *jsonDataError;
                         NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonObject
@@ -77,44 +103,31 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey     = @"ERROR_KEY";
                         if (jsonData != nil) {
                             NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
                             if (jsonString != nil) {
-                                [request setObject: jsonString forKey: @"payload"];
+                                [response setObject: jsonString forKey: @"responseText"];
                             }
                         }
                     }
-                }
-            }
-            if (request != nil) {
-                [log setObject: request forKey: @"request"];
-            }
-        }
-        
-        if ([log objectForKey: @"response"] != nil) {
-            NSMutableDictionary *response = [[NSMutableDictionary alloc] initWithDictionary: [log objectForKey: @"response"]];
-            if (response != nil && [response objectForKey: @"responseText"] != nil) {
-                NSError *jsonError;
-                id jsonObject = [NSJSONSerialization JSONObjectWithData:[[response objectForKey: @"responseText"] dataUsingEncoding:NSUTF8StringEncoding]  options: NSJSONReadingMutableContainers error:&jsonError];
-                if (jsonError == nil && jsonObject != nil) {
-                    if ([jsonObject isKindOfClass:[NSDictionary class]]) {
-                        [jsonObject removeObjectsForKeys: self.networkLogPropsToIgnore];
-                    }
                     
-                    NSError *jsonDataError;
-                    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonObject
-                                                                       options:0
-                                                                         error:&jsonDataError];
-                    if (jsonData != nil) {
-                        NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                        if (jsonString != nil) {
-                            [response setObject: jsonString forKey: @"responseText"];
-                        }
-                    }
+                    [log setObject: response forKey: @"response"];
                 }
-                
-                [log setObject: response forKey: @"response"];
             }
         }
         
-        [processedNetworkLogs addObject: log];
+        // Network log blacklist.
+        NSString *logUrl = [log objectForKey: @"url"];
+        BOOL shouldAddLog = YES;
+        if (logUrl != nil) {
+            for (int i = 0; i < self.blacklist.count; i++) {
+                NSString *currentBlacklistItem = [self.blacklist objectAtIndex: i];
+                if (currentBlacklistItem != nil && [logUrl containsString: currentBlacklistItem]) {
+                    shouldAddLog = NO;
+                }
+            }
+        }
+        
+        if (shouldAddLog) {
+            [processedNetworkLogs addObject: log];
+        }
     }
     
     return [processedNetworkLogs copy];
