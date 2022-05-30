@@ -107,6 +107,7 @@
     ) {
         self.lastPageName = currentViewControllerName;
         
+        // Append the page view.
         [Gleap logEvent: @"pageView" withData: @{
             @"page": currentViewControllerName
         }];

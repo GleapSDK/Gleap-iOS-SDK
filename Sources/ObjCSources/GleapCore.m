@@ -134,8 +134,6 @@
     [[GleapSessionHelper sharedInstance] startSessionWith:^(bool success) {
         [Gleap logEvent: @"sessionStarted"];
         [[GleapConfigHelper sharedInstance] run];
-        
-        // TODO: After config?
         [[GleapLogHelper sharedInstance] start];
     }];
 }

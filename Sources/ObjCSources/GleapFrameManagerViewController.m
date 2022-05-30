@@ -308,7 +308,7 @@
                                        selector: @selector(requestTimedOut:)
                                        userInfo: nil
                                         repeats: NO];
-    NSURLRequest * request = [NSURLRequest requestWithURL: [NSURL URLWithString: @"http://localhost:3000/app.html"]];
+    NSURLRequest * request = [NSURLRequest requestWithURL: [NSURL URLWithString: @"https://frame.gleap.io/app.html"]];
     [self.webView loadRequest: request];
 }
 

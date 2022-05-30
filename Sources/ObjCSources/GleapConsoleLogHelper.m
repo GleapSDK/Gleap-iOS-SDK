@@ -108,13 +108,10 @@
             if (line != NULL && ![line isEqualToString: @""]) {
                 NSString *dateString = [GleapUIHelper getJSStringForNSDate: [[NSDate alloc] init]];
                 NSDictionary *log = @{ @"date": dateString, @"log": line, @"priority": @"INFO" };
-                // TODO: check widget is open
-                if (true) {
-                    if (_consoleLog.count > 1000) {
-                        [_consoleLog removeObjectAtIndex: 0];
-                    }
-                    [_consoleLog addObject: log];
+                if (_consoleLog.count > 1000) {
+                    [_consoleLog removeObjectAtIndex: 0];
                 }
+                [_consoleLog addObject: log];
             }
         }
     }

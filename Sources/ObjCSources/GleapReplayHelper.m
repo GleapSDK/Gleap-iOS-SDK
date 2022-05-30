@@ -98,7 +98,6 @@
         [self.replaySteps removeObjectAtIndex: 0];
     }
     
-    // TODO: Ignore step when bug reporting is currently open.
     dispatch_async(dispatch_get_main_queue(), ^{
         if ([UIApplication sharedApplication].applicationState == UIApplicationStateActive) {
             UIImage *screenshot = [GleapScreenCaptureHelper captureScreen];
