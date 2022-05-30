@@ -184,13 +184,22 @@
 }
 
 + (void)open {
-    [self startFeedbackFlow: nil withOptions: nil];
+    [[Gleap sharedInstance] startFeedbackFlow: nil withOptions: nil];
+}
+
+/**
+    Starts the specified feedback flow.
+ */
++ (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow showBackButton:(BOOL)showBackButton {
+    [[Gleap sharedInstance] startFeedbackFlow: feedbackFlow withOptions: @{
+        @"hideBackButton": @(!showBackButton)
+    }];
 }
 
 /**
  Starts the bug reporting flow, when a SDK key has been assigned.
  */
-+ (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options {
+- (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options {
     if (GleapSessionHelper.sharedInstance.currentSession == nil) {
         NSLog(@"[GLEAP_SDK] Gleap session not ready.");
         return;
@@ -205,11 +214,16 @@
     
     // Start a feedback flow.
     if (feedbackFlow != nil) {
+        NSMutableDictionary *startFeedbackFlowData = [[NSMutableDictionary alloc] initWithDictionary: @{
+            @"flow": feedbackFlow
+        }];
+        if (options != nil) {
+            [startFeedbackFlowData addEntriesFromDictionary: options];
+        }
+        
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
             @"name": @"start-feedbackflow",
-            @"data": @{
-                @"flow": feedbackFlow
-            }
+            @"data": startFeedbackFlowData,
         }];
     }
 }
@@ -320,7 +334,7 @@
 }
 
 - (void)performAction:(GleapAction *)action {
-    [Gleap startFeedbackFlow: action.actionType withOptions: @{
+    [self startFeedbackFlow: action.actionType withOptions: @{
         @"actionOutboundId": action.outbound,
         @"hideBackButton": @YES
     }];

@@ -131,11 +131,16 @@
                                                        options: 0
                                                          error:&error];
     if (!jsonData) {
-        NSLog(@"Got an error: %@", error);
+        NSLog(@"[GLEAP_SDK] Error sending message: %@", error);
     } else {
         NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
         [self.webView evaluateJavaScript: [NSString stringWithFormat: @"sendMessage(%@)", jsonString] completionHandler: nil];
     }
+}
+
+- (void)stopLoading {
+    [self.loadingView setHidden: YES];
+    self.webView.alpha = 1.0;
 }
 
 - (void)userContentController:(WKUserContentController*)userContentController didReceiveScriptMessage:(WKScriptMessage*)message
@@ -146,8 +151,10 @@
         
         if ([name isEqualToString: @"ping"]) {
             [self invalidateTimeout];
-            [self->_loadingView setHidden: YES];
             self.connected = YES;
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                [self stopLoading];
+            });
             
             if (self.delegate != nil && [self.delegate respondsToSelector:@selector(connected)]) {
                 [self.delegate connected];
@@ -211,6 +218,7 @@
         if ([name isEqualToString: @"send-feedback"] && messageData != nil) {
             NSDictionary *formData = [messageData objectForKey: @"formData"];
             NSDictionary *action = [messageData objectForKey: @"action"];
+            NSString *outboundId = [messageData objectForKey: @"outboundId"];
             NSString *spamToken = [messageData objectForKey: @"spamToken"];
             
             // Notify.
@@ -232,6 +240,14 @@
             UIImage *screenshot = [GleapScreenshotManager getScreenshotToAttach];
             if (screenshot != nil) {
                 feedback.screenshot = screenshot;
+            }
+            
+            if (outboundId != nil) {
+                feedback.outboundId = outboundId;
+            }
+            
+            if (action != nil && [action objectForKey: @"feedbackType"] != nil) {
+                feedback.feedbackType = [action objectForKey: @"feedbackType"];
             }
             
             [feedback send:^(bool success) {
@@ -281,6 +297,7 @@
     self.webView.scrollView.backgroundColor = UIColor.clearColor;
     self.webView.navigationDelegate = self;
     self.webView.UIDelegate = self;
+    self.webView.alpha = 0;
     
     [self.view addSubview: self.webView];
     self.webView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -335,10 +352,6 @@
       CGFloat b = components[2];
       NSString *hexString=[NSString stringWithFormat:@"%02X%02X%02X", (int)(r * 255), (int)(g * 255), (int)(b * 255)];
       return hexString;
-}
-
-- (void)webView:(WKWebView *)webView didStartProvisionalNavigation:(WKNavigation *)navigation {
-    [_loadingView setHidden: false];
 }
 
 - (void)webView:(WKWebView *)webView didFailProvisionalNavigation:(WKNavigation *)navigation withError:(NSError *)error {

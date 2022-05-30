@@ -20,7 +20,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, retain) NSDictionary* excludeData;
 @property (nonatomic, retain) NSMutableDictionary* data;
 @property (nonatomic, retain) UIImage *screenshot;
-@property (nonatomic, retain, nullable) GleapAction *action;
+@property (nonatomic, retain, nullable) NSString *outboundId;
+@property (nonatomic, retain, nullable) NSString *feedbackType;
 
 @end
 

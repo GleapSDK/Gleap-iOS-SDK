@@ -23,7 +23,9 @@
     self = [super init];
     if (self) {
         self.excludeData = [[NSDictionary alloc] init];
-        self.data = [[NSMutableDictionary alloc] init];
+        self.data = [[NSMutableDictionary alloc] initWithDictionary: @{
+            @"type": @"BUG"
+        }];
     }
     return self;
 }
@@ -175,8 +177,12 @@
     }
     
     // Add outbound
-    if (self.action != nil) {
-        [self attachData: @{ @"outbound": self.action.outbound }];
+    if (self.outboundId != nil) {
+        [self attachData: @{ @"outbound": self.outboundId }];
+    }
+    
+    if (self.feedbackType != nil) {
+        [self attachData: @{ @"type": self.feedbackType }];
     }
     
     [self excludeExcludedData];

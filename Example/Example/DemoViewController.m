@@ -27,7 +27,7 @@
 }
 
 - (IBAction)killAll:(id)sender {
-    [Gleap clearIdentity];
+    [Gleap startFeedbackFlow: @"bugreporting" showBackButton: NO];
 }
 
 /*

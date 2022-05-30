@@ -60,11 +60,11 @@ static id ObjectOrNull(id object)
 + (void)open;
 
 /**
- * Manually start the bug reporting workflow.
+ * Manually start a feedback flow.
  * @author Gleap
  *
  */
-+ (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options;
++ (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow showBackButton:(BOOL)showBackButton;
 
 /**
  * Sends a silent crash report.
@@ -253,6 +253,7 @@ static id ObjectOrNull(id object)
 + (void)setAutoActivationMethodsDisabled;
 - (void)performAction:(GleapAction *)action;
 - (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod;
+- (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options;
 
 @property (nonatomic, retain) NSString* token;
 @property (nonatomic, retain) NSString* apiUrl;
