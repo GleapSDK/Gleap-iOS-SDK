@@ -24,7 +24,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)injectSessionInRequest:(NSMutableURLRequest *)request;
 
 - (void)startSessionWith:(void (^)(bool success))completion;
-- (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserProperty *)data;
+- (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString * _Nullable)userHash;
 - (void)clearSession;
 
 @property (nonatomic, retain, nullable) GleapSession* currentSession;

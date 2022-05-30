@@ -15,10 +15,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         Gleap.enableDebugConsoleLog()
         Gleap.initialize(withToken: "g4yw8blWFi0d50TubfV4iyN6HGG5Z2c1")
         Gleap.sharedInstance().delegate = self
-        let userData = GleapUserProperty()
-        userData.email = "max@gleap.io"
-        userData.name = "Max"
-        Gleap.identifyUser(with: "1928382", andData: userData)
         
         Gleap.attachCustomData(["value": "Unicorn", "type": "Demo", "ExtraInfo": ["Age": "28", "City": "San Francisco"]])
         

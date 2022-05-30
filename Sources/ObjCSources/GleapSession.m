@@ -6,13 +6,9 @@
 //
 
 #import "GleapSession.h"
+#import "GleapCore.h"
 
 @implementation GleapSession
-
-static id ObjectOrNull(id object)
-{
-  return object ?: [NSNull null];
-}
 
 - (NSDictionary *)toDictionary {
     return @{

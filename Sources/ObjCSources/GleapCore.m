@@ -144,10 +144,23 @@
  * Updates a session's user data.
  * @author Gleap
  *
+ * @param userId The user ID of the the user (can be an email as well)
  * @param data The updated user data.
  */
 + (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data {
-    [GleapSessionHelper.sharedInstance identifySessionWith: userId andData: data];
+    [GleapSessionHelper.sharedInstance identifySessionWith: userId andData: data andUserHash: nil];
+}
+
+/**
+ * Updates a session's identity.
+ * @author Gleap
+ *
+ * @param userId The user ID of the the user (can be an email as well)
+ * @param data The updated user data.
+ * @param userHash The calculated user hash to verify ownership.
+ */
++ (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString *)userHash {
+    [GleapSessionHelper.sharedInstance identifySessionWith: userId andData: data andUserHash: userHash];
 }
 
 /**

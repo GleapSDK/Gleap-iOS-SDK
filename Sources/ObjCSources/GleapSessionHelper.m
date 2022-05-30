@@ -8,6 +8,7 @@
 #import "GleapSessionHelper.h"
 #import "GleapCore.h"
 #import "GleapWidgetManager.h"
+#import "GleapCore.h"
 
 @implementation GleapSessionHelper
 
@@ -82,9 +83,10 @@
     [task resume];
 }
 
-- (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserProperty *)data {
+- (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString * _Nullable)userHash {
     self.openIdentityAction = @{
         @"userId": userId,
+        @"userHash": ObjectOrNull(userHash),
         @"data": data
     };
     [self processOpenIdentityAction];
@@ -108,6 +110,10 @@
     }
     if (data != nil && data.email != nil) {
         [sessionRequestData setValue: data.email forKey: @"email"];
+    }
+    
+    if (![self sessionUpgradeWithDataNeeded: sessionRequestData]) {
+        return;
     }
     
     NSError *error;
@@ -171,6 +177,8 @@
     gleapSession.gleapId = [data objectForKey: @"gleapId"];
     gleapSession.gleapHash = [data objectForKey: @"gleapHash"];
     gleapSession.userId = [data objectForKey: @"userId"];
+    gleapSession.email = [data objectForKey: @"email"];
+    gleapSession.name = [data objectForKey: @"name"];
     
     self.currentSession = gleapSession;
     
@@ -193,6 +201,40 @@
     
     // Restart a session.
     [self startSessionWith:^(bool success) {}];
+}
+
+- (BOOL)sessionDataItemNeedsUpgrade:(NSString *)data compareTo:(NSString *)newData {
+    // Both values are nil, no upgrade needed.
+    if (data == nil && newData == nil) {
+        return NO;
+    }
+    
+    // One value is nil, upgrade needed.
+    if (data == nil || newData == nil) {
+        return YES;
+    }
+    
+    return ![data isEqualToString: newData];
+}
+
+- (BOOL)sessionUpgradeWithDataNeeded:(NSDictionary *)newData {
+    if (self.currentSession == nil) {
+        return YES;
+    }
+    
+    if ([self sessionDataItemNeedsUpgrade: self.currentSession.name compareTo: [newData objectForKey: @"name"]]) {
+        return YES;
+    }
+    
+    if ([self sessionDataItemNeedsUpgrade: self.currentSession.email compareTo: [newData objectForKey: @"email"]]) {
+        return YES;
+    }
+    
+    if ([self sessionDataItemNeedsUpgrade: self.currentSession.userId compareTo: [newData objectForKey: @"userId"]]) {
+        return YES;
+    }
+    
+    return NO;
 }
 
 @end

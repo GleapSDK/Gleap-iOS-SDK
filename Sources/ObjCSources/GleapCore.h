@@ -17,6 +17,11 @@ typedef enum activationMethodTypes { NONE, SHAKE, SCREENSHOT } GleapActivationMe
 typedef enum bugSeverityTypes { LOW, MEDIUM, HIGH } GleapBugSeverity;
 typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationType;
 
+static id ObjectOrNull(id object)
+{
+  return object ?: [NSNull null];
+}
+
 @protocol GleapDelegate <NSObject>
 @optional
 - (void) feedbackFlowStarted: (NSDictionary *)feedbackAction;
@@ -72,9 +77,20 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
  * Updates a session's identity.
  * @author Gleap
  *
+ * @param userId The user ID of the the user (can be an email as well)
  * @param data The updated user data.
  */
 + (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data;
+
+/**
+ * Updates a session's identity.
+ * @author Gleap
+ *
+ * @param userId The user ID of the the user (can be an email as well)
+ * @param data The updated user data.
+ * @param userHash The calculated user hash to verify ownership.
+ */
++ (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString *)userHash;
 
 /**
  * Clears a user session.

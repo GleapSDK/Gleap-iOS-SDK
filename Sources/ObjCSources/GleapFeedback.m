@@ -218,7 +218,7 @@
     
     NSMutableURLRequest *request = [NSMutableURLRequest new];
     request.HTTPMethod = @"POST";
-    [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/bugs", Gleap.sharedInstance.apiUrl]]];
+    [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/bugs/v2", Gleap.sharedInstance.apiUrl]]];
     [GleapSessionHelper injectSessionInRequest: request];
     [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
     [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
