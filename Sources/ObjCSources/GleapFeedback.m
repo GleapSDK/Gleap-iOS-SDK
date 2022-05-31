@@ -16,6 +16,7 @@
 #import "GleapHttpTrafficRecorder.h"
 #import "GleapCore.h"
 #import "GleapSessionHelper.h"
+#import "GleapExternalDataHelper.h"
 
 @implementation GleapFeedback
 
@@ -150,8 +151,8 @@
     
     // Attach and merge console log.
     NSMutableArray *consoleLogs = [[NSMutableArray alloc] initWithArray: [[GleapConsoleLogHelper sharedInstance] getConsoleLogs]];
-    if ([self.data objectForKey: @"consoleLog"] != nil) {
-        NSArray *existingConsoleLogs = [self.data objectForKey: @"consoleLog"];
+    if ([[GleapExternalDataHelper sharedInstance].data objectForKey: @"consoleLog"] != nil) {
+        NSArray *existingConsoleLogs = [[GleapExternalDataHelper sharedInstance].data objectForKey: @"consoleLog"];
         if (existingConsoleLogs != nil && existingConsoleLogs.count > 0) {
             [consoleLogs addObjectsFromArray: existingConsoleLogs];
         }
@@ -166,8 +167,8 @@
     
     // Attach and merge network logs.
     NSMutableArray *networkLogs = [[NSMutableArray alloc] initWithArray: [[GleapHttpTrafficRecorder sharedRecorder] networkLogs]];
-    if ([self.data objectForKey: @"networkLogs"] != nil) {
-        NSArray *existingNetworkLogs = [self.data objectForKey: @"networkLogs"];
+    if ([[GleapExternalDataHelper sharedInstance].data objectForKey: @"networkLogs"] != nil) {
+        NSArray *existingNetworkLogs = [[GleapExternalDataHelper sharedInstance].data objectForKey: @"networkLogs"];
         if (existingNetworkLogs != nil && existingNetworkLogs.count > 0) {
             [networkLogs addObjectsFromArray: existingNetworkLogs];
         }
@@ -176,15 +177,17 @@
         [self attachData: @{ @"networkLogs": [[GleapHttpTrafficRecorder sharedRecorder] filterNetworkLogs: networkLogs] }];
     }
     
-    // Add outbound
+    // Add outbound ID if set.
     if (self.outboundId != nil) {
         [self attachData: @{ @"outbound": self.outboundId }];
     }
     
+    // Set the feedback type.
     if (self.feedbackType != nil) {
         [self attachData: @{ @"type": self.feedbackType }];
     }
     
+    // Exclude data that should not be sent.
     [self excludeExcludedData];
     
     // Sending report to server.

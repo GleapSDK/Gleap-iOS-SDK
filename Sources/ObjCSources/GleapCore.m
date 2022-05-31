@@ -25,6 +25,7 @@
 #import "GleapTranslationHelper.h"
 #import "GleapWidgetManager.h"
 #import "GleapFeedback.h"
+#import "GleapExternalDataHelper.h"
 
 @interface Gleap ()
 
@@ -84,6 +85,12 @@
 
 + (void)enableDebugConsoleLog {
     GleapConsoleLogHelper.sharedInstance.debugConsoleLogDisabled = NO;
+}
+
++ (void)attachExternalData:(NSDictionary *)data {
+    if (data != nil) {
+        [[GleapExternalDataHelper sharedInstance].data addEntriesFromDictionary: data];
+    }
 }
 
 + (void)startNetworkRecording {

@@ -213,6 +213,14 @@ static id ObjectOrNull(id object)
 + (bool)addAttachmentWithData: (NSData *)data andName: (NSString *)name;
 
 /**
+ * Attaches external data to all feedback items.
+ * @author Gleap
+ *
+ * @param data The external data to attach to the bug report
+ */
++ (void)attachExternalData: (NSDictionary *)data;
+
+/**
  * Removes all attachments
  * @author Gleap
  */
