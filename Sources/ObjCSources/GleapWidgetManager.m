@@ -10,6 +10,7 @@
 #import "GleapReplayHelper.h"
 #import "GleapMetaDataHelper.h"
 #import "GleapScreenshotManager.h"
+#import "GleapCore.h"
 
 @implementation GleapWidgetManager
 
@@ -76,6 +77,10 @@
         if (completion != nil) {
             completion();
         }
+        
+        if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetClosed)]) {
+            [Gleap.sharedInstance.delegate widgetClosed];
+        }
     }];
 }
 
@@ -119,7 +124,9 @@
     // Show on top of all viewcontrollers.
     UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
     [topMostViewController presentViewController: navController animated: YES completion:^{
-        
+        if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetOpened)]) {
+            [Gleap.sharedInstance.delegate widgetOpened];
+        }
     }];
 }
 

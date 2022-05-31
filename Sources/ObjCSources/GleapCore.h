@@ -25,12 +25,13 @@ static id ObjectOrNull(id object)
 @protocol GleapDelegate <NSObject>
 @optional
 - (void) feedbackFlowStarted: (NSDictionary *)feedbackAction;
-- (void) feedbackFlowClosed;
 - (void) feedbackWillBeSent: (NSDictionary *)formData;
 - (void) feedbackSent: (NSDictionary *)data;
 - (void) feedbackSendingFailed;
 - (void) customActionCalled: (NSString *)customAction;
 - (void) configLoaded: (NSDictionary *)config;
+- (void) widgetOpened;
+- (void) widgetClosed;
 @required
 @end
 

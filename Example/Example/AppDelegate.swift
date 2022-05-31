@@ -24,8 +24,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         return true
     }
     
+    func widgetClosed() {
+        NSLog("Closed widget.")
+    }
+    
+    func widgetOpened() {
+        NSLog("Opened widget.")
+    }
+    
+    func feedbackFlowStarted(_ feedbackAction: [AnyHashable : Any]) {
+        NSLog("Started feedback flow", feedbackAction)
+    }
+    
+    func feedbackSendingFailed() {
+        NSLog("Sending feedback failed")
+    }
+    
+    func feedbackWillBeSent(_ formData: [AnyHashable : Any]) {
+        NSLog("Feedback will be sent", formData)
+    }
+    
     func feedbackSent(_ data: [AnyHashable : Any]) {
-        dump(data)
+        NSLog("Feedback sent", data)
     }
     
     func customActionCalled(_ customAction: String) {
