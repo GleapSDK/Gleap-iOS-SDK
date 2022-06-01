@@ -8,6 +8,9 @@
 #import "GleapReplayHelper.h"
 #import "GleapCore.h"
 #import "GleapTouchHelper.h"
+#import "GleapScreenCaptureHelper.h"
+#import "GleapUIHelper.h"
+#import "GleapWidgetManager.h"
 
 @implementation GleapReplayHelper
 
@@ -48,17 +51,17 @@
 }
 
 - (void)appWillEnterForeground:(NSNotification*)notification {
+    // Reactivate the replays.
     if (self.running) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
             if ([UIApplication sharedApplication].applicationState == UIApplicationStateActive) {
-                [self startWithInterval: self.timerInterval];
+                [self start];
             }
         });
     }
 }
 
-- (void)startWithInterval:(int)interval {
-    self.timerInterval = interval;
+- (void)start {
     if (self.running) {
         if (self.replayTimer != nil) {
             [self.replayTimer invalidate];
@@ -67,7 +70,7 @@
     }
     self.running = true;
     dispatch_async(dispatch_get_main_queue(), ^{
-        self.replayTimer = [NSTimer scheduledTimerWithTimeInterval: interval
+        self.replayTimer = [NSTimer scheduledTimerWithTimeInterval: self.timerInterval
                                              target: self
                                            selector: @selector(addReplayStep)
                                            userInfo: nil
@@ -87,20 +90,24 @@
 }
 
 - (void)addReplayStep {
+    if ([[GleapWidgetManager sharedInstance] isOpened]) {
+        return;
+    }
+    
     if (self.replaySteps.count >= 60) {
         [self.replaySteps removeObjectAtIndex: 0];
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
         if ([UIApplication sharedApplication].applicationState == UIApplicationStateActive) {
-            UIImage *screenshot = [[Gleap sharedInstance] captureScreen];
-            NSString *currentViewControllerName = [[Gleap sharedInstance] getTopMostViewControllerName];
+            UIImage *screenshot = [GleapScreenCaptureHelper captureScreen];
+            NSString *currentViewControllerName = [GleapUIHelper getTopMostViewControllerName];
             
             [self.replaySteps addObject: @{
                 @"screenname": currentViewControllerName,
                 @"image": screenshot,
                 @"interactions": [GleapTouchHelper getAndClearTouchEvents],
-                @"date": [[Gleap sharedInstance] getJSStringForNSDate: [[NSDate alloc] init]]
+                @"date": [GleapUIHelper getJSStringForNSDate: [[NSDate alloc] init]]
             }];
         }
     });

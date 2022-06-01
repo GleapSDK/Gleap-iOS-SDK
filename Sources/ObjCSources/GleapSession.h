@@ -6,17 +6,18 @@
 //
 
 #import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface GleapSession : NSObject
 
+- (NSDictionary *)toDictionary;
+
 @property (nonatomic, retain) NSString* gleapId;
 @property (nonatomic, retain) NSString* gleapHash;
-@property (nonatomic, retain) NSString* userId;
-@property (nonatomic, retain) NSString* name;
-@property (nonatomic, retain) NSString* email;
+@property (nonatomic, retain, nullable) NSString* userId;
+@property (nonatomic, retain, nullable) NSString* name;
+@property (nonatomic, retain, nullable) NSString* email;
 
 @end
 

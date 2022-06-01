@@ -48,9 +48,13 @@
  */
 - (void)setMaxRequests:(int)maxRequests;
 
+- (NSArray *)filterNetworkLogs:(NSArray *)networkLogs;
+
 /**
  *  A Boolean value which indicates whether the recording is recording traffic.
  */
 @property(nonatomic, readonly, assign) BOOL isRecording;
+@property (retain, nonatomic) NSArray *networkLogPropsToIgnore;
+@property (retain, nonatomic) NSArray *blacklist;
 
 @end

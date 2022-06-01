@@ -7,6 +7,7 @@
 
 #import "GleapTouchHelper.h"
 #import "GleapCore.h"
+#import "GleapUIHelper.h"
 
 #define MAX_INTERACTIONS 10
 
@@ -51,7 +52,7 @@
     NSDictionary *point = @{
         @"x": @(x),
         @"y": @(y),
-        @"date": [[Gleap sharedInstance] getJSStringForNSDate: [[NSDate alloc] init]],
+        @"date": [GleapUIHelper getJSStringForNSDate: [[NSDate alloc] init]],
         @"type": type
     };
     [self.touchEvents addObject: point];

@@ -20,7 +20,7 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (instancetype)sharedInstance;
 
-- (void)startWithInterval:(int)interval;
+- (void)start;
 - (void)stop;
 - (void)clear;
 

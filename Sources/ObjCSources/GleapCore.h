@@ -17,13 +17,21 @@ typedef enum activationMethodTypes { NONE, SHAKE, SCREENSHOT } GleapActivationMe
 typedef enum bugSeverityTypes { LOW, MEDIUM, HIGH } GleapBugSeverity;
 typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationType;
 
+static id ObjectOrNull(id object)
+{
+  return object ?: [NSNull null];
+}
+
 @protocol GleapDelegate <NSObject>
 @optional
-- (void) feedbackWillBeSent;
+- (void) feedbackFlowStarted: (NSDictionary *)feedbackAction;
+- (void) feedbackWillBeSent: (NSDictionary *)formData;
 - (void) feedbackSent: (NSDictionary *)data;
 - (void) feedbackSendingFailed;
 - (void) customActionCalled: (NSString *)customAction;
 - (void) configLoaded: (NSDictionary *)config;
+- (void) widgetOpened;
+- (void) widgetClosed;
 @required
 @end
 
@@ -53,40 +61,37 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)open;
 
 /**
- * Manually shows the feedback menu or default feedback flow. This is used, when you use the activation method "NONE".
+ * Manually start a feedback flow.
  * @author Gleap
  *
  */
-+ (void)startFeedbackFlow;
++ (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow showBackButton:(BOOL)showBackButton;
 
 /**
- * Manually start the bug reporting workflow. This is used, when you use the activation method "NONE".
+ * Sends a silent crash report.
  * @author Gleap
  *
  */
-+ (void)startFeedbackFlow:(NSString *)feedbackFlow;
-
-/**
- * Sends a silent bug report.
- * @author Gleap
- *
- */
-+ (void)sendSilentBugReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity;
-
-/**
- * Sends a silent bug report with type.
- * @author Gleap
- *
- */
-+ (void)sendSilentBugReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity andType:(NSString *)type;
++ (void)sendSilentCrashReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity andDataExclusion:(NSDictionary * _Nullable)excludeData andCompletion: (void (^)(bool success))completion;
 
 /**
  * Updates a session's identity.
  * @author Gleap
  *
+ * @param userId The user ID of the the user (can be an email as well)
  * @param data The updated user data.
  */
 + (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data;
+
+/**
+ * Updates a session's identity.
+ * @author Gleap
+ *
+ * @param userId The user ID of the the user (can be an email as well)
+ * @param data The updated user data.
+ * @param userHash The calculated user hash to verify ownership.
+ */
++ (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString *)userHash;
 
 /**
  * Clears a user session.
@@ -142,12 +147,12 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)setApiUrl: (NSString *)apiUrl;
 
 /**
- * Sets a custom widget url.
+ * Sets a custom frame url.
  * @author Gleap
  *
- * @param widgetUrl The custom widget url.
+ * @param frameUrl The custom frame url.
  */
-+ (void)setWidgetUrl: (NSString *)widgetUrl;
++ (void)setFrameUrl: (NSString *)frameUrl;
 
 /**
  * Disables the console logging. This must be called BEFORE initializing the SDK.
@@ -167,7 +172,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
  * Set's the current userinterface language.
  * @author Gleap
  *
- * @param language The 2 digit ISO code language to set
+ * @param language The 2 or 4 digit ISO code language to set
  */
 + (void)setLanguage: (NSString *)language;
 
@@ -208,10 +213,24 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (bool)addAttachmentWithData: (NSData *)data andName: (NSString *)name;
 
 /**
+ * Attaches external data to all feedback items.
+ * @author Gleap
+ *
+ * @param data The external data to attach to the bug report
+ */
++ (void)attachExternalData: (NSDictionary *)data;
+
+/**
  * Removes all attachments
  * @author Gleap
  */
 + (void)removeAllAttachments;
+
+/**
+ * Returns the widget state
+ * @author Gleap
+ */
++ (BOOL)isOpened;
 
 /**
  * Starts network recording.
@@ -237,47 +256,20 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationTy
 + (void)stopNetworkRecording;
 
 // Helper
-+ (void)enableReplays: (BOOL)enable;
 + (void)setApplicationType: (GleapApplicationType)applicationType;
-+ (void)attachData: (NSDictionary *)data;
 + (void)setActivationMethods: (NSArray *)activationMethods;
-+ (NSBundle *)frameworkBundle;
 + (void)shakeInvocation;
-+ (void)attachScreenshot: (UIImage *)screenshot;
-+ (UIImage *)getAttachedScreenshot;
-+ (void)afterBugReportCleanup;
 + (void)setAutoActivationMethodsDisabled;
-- (NSDictionary *)getFormData;
 - (void)performAction:(GleapAction *)action;
-- (void)sendReport: (void (^)(bool success))completion;
-- (void)uploadStepImages: (NSArray *)steps andCompletion: (void (^)(bool success, NSArray *fileUrls))completion;
-- (UIViewController *)getTopMostViewController;
-- (NSString *)getTopMostViewControllerName;
-- (NSString *)getJSStringForNSDate:(NSDate *)date;
-- (UIImage *)captureScreen;
 - (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod;
+- (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options;
 
-@property (nonatomic, retain) NSDictionary* excludeData;
-@property (nonatomic, retain) NSString* startFlow;
-@property (nonatomic, retain) NSString* language;
 @property (nonatomic, retain) NSString* token;
 @property (nonatomic, retain) NSString* apiUrl;
-@property (nonatomic, retain) NSString* widgetUrl;
-@property (nonatomic, retain) NSArray *activationMethods;
-@property (nonatomic, retain) NSString *logoUrl;
-@property (nonatomic, retain, nullable) GleapAction *action;
-@property (nonatomic, retain) NSMutableDictionary* data;
-@property (nonatomic, assign) int replayInterval;
+@property (nonatomic, retain) NSString* frameUrl;
 @property (nonatomic, assign) int initialized;
-@property (nonatomic, assign) bool replaysEnabled;
-@property (nonatomic, assign) bool consoleLogDisabled;
-@property (nonatomic, assign) bool debugConsoleLogDisabled;
-@property (nonatomic, assign) bool disableAutoActivationMethods;
 @property (nonatomic, assign) GleapApplicationType applicationType;
 @property (nonatomic, weak) id <GleapDelegate> delegate;
-@property (retain, nonatomic) NSString *lastScreenName;
-@property (retain, nonatomic) NSArray *networkLogPropsToIgnore;
-@property (nonatomic, assign) bool currentlyOpened;
 
 @end
 

@@ -6,29 +6,34 @@
 //  Copyright © 2019 Gleap. All rights reserved.
 //
 
-#import "GleapWidgetViewController.h"
+#import "GleapFrameManagerViewController.h"
 #import "GleapCore.h"
 #import "GleapReplayHelper.h"
 #import "GleapSessionHelper.h"
 #import "GleapTranslationHelper.h"
+#import "GleapConfigHelper.h"
 #import <SafariServices/SafariServices.h>
 #import <math.h>
+#import "GleapFeedback.h"
+#import "GleapWidgetManager.h"
+#import "GleapScreenshotManager.h"
 
-@interface GleapWidgetViewController ()
+@interface GleapFrameManagerViewController ()
+
 @property (retain, nonatomic) WKWebView *webView;
 @property (retain, nonatomic) UIView *loadingView;
 @property (retain, nonatomic) UIActivityIndicatorView *loadingActivityView;
-@property (retain, nonatomic) UIImage *screenshotImage;
 
 @end
 
-@implementation GleapWidgetViewController
+@implementation GleapFrameManagerViewController
 
 - (instancetype)init
 {
    self = [super initWithNibName: nil bundle:nil];
    if (self != nil)
    {
+       self.connected = NO;
        self.view.backgroundColor = [UIColor colorWithRed: 0.0 green: 0.0 blue: 0.0 alpha: 0.7];
    }
    return self;
@@ -73,75 +78,190 @@
         self.timeoutTimer = nil;
     }
 }
+
 - (void)viewWillDisappear:(BOOL)animated {
     [self invalidateTimeout];
-    [Gleap afterBugReportCleanup];
 }
 
-- (void)closeReporting:(id)sender {
-    [self dismissViewControllerAnimated: YES completion:^{}];
+- (void)closeWidget: (void (^)())completion {
+    self.connected = false;
+    
+    [[GleapWidgetManager sharedInstance] closeWidget:^{
+        if (completion != nil) {
+            completion();
+        }
+    }];
+}
+
+- (void)sendSessionUpdate {
+    NSDictionary *currentSession = @{};
+    if (GleapSessionHelper.sharedInstance.currentSession != nil) {
+        currentSession = [GleapSessionHelper.sharedInstance.currentSession toDictionary];
+    }
+    
+    [self sendMessageWithData: @{
+        @"name": @"session-update",
+        @"data": @{
+            @"sessionData": currentSession,
+            @"apiUrl": Gleap.sharedInstance.apiUrl,
+            @"sdkKey": Gleap.sharedInstance.token
+        }
+    }];
+}
+
+- (void)sendConfigUpdate {
+    if (GleapConfigHelper.sharedInstance.config == nil || GleapConfigHelper.sharedInstance.projectActions == nil) {
+        return;
+    }
+    
+    [self sendMessageWithData: @{
+        @"name": @"config-update",
+        @"data": @{
+            @"config": GleapConfigHelper.sharedInstance.config,
+            @"actions": GleapConfigHelper.sharedInstance.projectActions,
+            @"overrideLanguage": GleapTranslationHelper.sharedInstance.language,
+            @"isApp": @(YES),
+        }
+    }];
+}
+
+- (void)sendMessageWithData:(NSDictionary *)data {
+    NSError *error;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject: data
+                                                       options: 0
+                                                         error:&error];
+    if (!jsonData) {
+        NSLog(@"[GLEAP_SDK] Error sending message: %@", error);
+    } else {
+        NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+        [self.webView evaluateJavaScript: [NSString stringWithFormat: @"sendMessage(%@)", jsonString] completionHandler: nil];
+    }
+}
+
+- (void)stopLoading {
+    [self.loadingView setHidden: YES];
+    self.webView.alpha = 1.0;
 }
 
 - (void)userContentController:(WKUserContentController*)userContentController didReceiveScriptMessage:(WKScriptMessage*)message
 {
-    if ([message.name isEqualToString: @"customActionCalled"]) {
-        if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(customActionCalled:)]) {
-            [Gleap.sharedInstance.delegate customActionCalled: [message.body objectForKey: @"name"]];
-        }
-        [self closeReporting: nil];
-    }
-    
-    if ([message.name isEqualToString: @"openExternalURL"]) {
-        UIViewController *presentingViewController = self.presentingViewController;
-        [self dismissViewControllerAnimated: YES completion:^{
-            [self openURLExternally: [NSURL URLWithString: [message.body objectForKey: @"url"]] fromViewController: presentingViewController];
-        }];
-    }
-    
-    if ([message.name isEqualToString: @"closeGleap"]) {
-        [self closeReporting: nil];
-    }
-    
-    if ([message.name isEqualToString: @"sessionReady"]) {
-        [self invalidateTimeout];
-        [self->_loadingView setHidden: YES];
-    }
-    
-    if ([message.name isEqualToString: @"requestScreenshot"]) {
-        [self injectScreenshot];
-    }
-    
-    if ([message.name isEqualToString: @"sendFeedback"]) {
-        NSDictionary *formData = [message.body objectForKey: @"formData"];
-        NSString *feedbackType = [message.body objectForKey: @"type"];
-        NSDictionary *excludeData = [message.body objectForKey: @"excludeData"];
-        if (excludeData != nil) {
-            Gleap.sharedInstance.excludeData = excludeData;
-        } else {
-            Gleap.sharedInstance.excludeData = [[NSDictionary alloc] init];
+    if ([message.name isEqualToString: @"gleapCallback"]) {
+        NSString *name = [message.body objectForKey: @"name"];
+        NSDictionary *messageData = [message.body objectForKey: @"data"];
+        
+        if ([name isEqualToString: @"ping"]) {
+            [self invalidateTimeout];
+            self.connected = YES;
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                [self stopLoading];
+            });
+            
+            if (self.delegate != nil && [self.delegate respondsToSelector:@selector(connected)]) {
+                [self.delegate connected];
+            }
+            
+            [self sendConfigUpdate];
+            [self sendSessionUpdate];
+            [self sendScreenshotUpdate];
         }
         
-        NSMutableDictionary *dataToAppend = [[NSMutableDictionary alloc] init];
-        [dataToAppend setValue: @"MEDIUM" forKey: @"priority"];
-        [dataToAppend setValue: formData forKey: @"formData"];
-        [dataToAppend setValue: feedbackType forKey: @"type"];
-        [Gleap attachData: dataToAppend];
+        if ([name isEqualToString: @"cleanup-drawings"]) {
+            [GleapScreenshotManager sharedInstance].updatedScreenshot = nil;
+        }
         
-        @try
-        {
-            NSString *screenshotBase64String = [message.body objectForKey: @"screenshot"];
-            if (screenshotBase64String != nil) {
-                screenshotBase64String = [screenshotBase64String stringByReplacingOccurrencesOfString: @"data:image/png;base64," withString: @""];
-                NSData *dataEncoded = [[NSData alloc] initWithBase64EncodedString: screenshotBase64String options:0];
-                if (dataEncoded != nil) {
-                    self.screenshotImage = [UIImage imageWithData:dataEncoded];
-                    [Gleap attachScreenshot: self.screenshotImage];
+        if ([name isEqualToString: @"close-widget"]) {
+            [self closeWidget: nil];
+        }
+        
+        if ([name isEqualToString: @"screenshot-updated"] && messageData != nil) {
+            @try
+            {
+                NSString *screenshotBase64String = (NSString *)messageData;
+                if (screenshotBase64String != nil) {
+                    screenshotBase64String = [screenshotBase64String stringByReplacingOccurrencesOfString: @"data:image/png;base64," withString: @""];
+                    NSData *dataEncoded = [[NSData alloc] initWithBase64EncodedString: screenshotBase64String options:0];
+                    if (dataEncoded != nil) {
+                        [GleapScreenshotManager sharedInstance].updatedScreenshot = [UIImage imageWithData:dataEncoded];
+                    }
+                }
+            }
+            @catch(id exception) {}
+        }
+        
+        if ([name isEqualToString: @"run-custom-action"] && messageData != nil) {
+            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(customActionCalled:)]) {
+                [Gleap.sharedInstance.delegate customActionCalled: (NSString *)messageData];
+            }
+        }
+        
+        if ([name isEqualToString: @"open-url"] && messageData != nil) {
+            UIViewController *presentingViewController = self.presentingViewController;
+            [self closeWidget:^{
+                [self openURLExternally: [NSURL URLWithString: (NSString *)messageData] fromViewController: presentingViewController];
+            }];
+        }
+        
+        if ([name isEqualToString: @"notify-event"] && messageData != nil) {
+            NSString *eventType = [messageData objectForKey: @"type"];
+            NSDictionary *eventData = [messageData objectForKey: @"data"];
+            
+            if ([eventType isEqualToString: @"flow-started"]) {
+                [GleapScreenshotManager sharedInstance].updatedScreenshot = nil;
+                
+                if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackFlowStarted:)]) {
+                    [Gleap.sharedInstance.delegate feedbackFlowStarted: eventData];
                 }
             }
         }
-        @catch(id exception) {}
         
-        [self sendBugReport];
+        if ([name isEqualToString: @"send-feedback"] && messageData != nil) {
+            NSDictionary *formData = [messageData objectForKey: @"formData"];
+            NSDictionary *action = [messageData objectForKey: @"action"];
+            NSString *outboundId = [messageData objectForKey: @"outboundId"];
+            NSString *spamToken = [messageData objectForKey: @"spamToken"];
+            
+            // Notify.
+            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackWillBeSent:)]) {
+                [Gleap.sharedInstance.delegate feedbackWillBeSent: formData];
+            }
+            
+            GleapFeedback *feedback = [[GleapFeedback alloc] init];
+            [feedback appendData: @{
+                @"spamToken": spamToken,
+                @"formData": formData,
+            }];
+            
+            // Attach exclude data.
+            if (action != nil && [action objectForKey: @"excludeData"] != nil) {
+                feedback.excludeData = [action objectForKey: @"excludeData"];
+            }
+            
+            UIImage *screenshot = [GleapScreenshotManager getScreenshotToAttach];
+            if (screenshot != nil) {
+                feedback.screenshot = screenshot;
+            }
+            
+            if (outboundId != nil) {
+                feedback.outboundId = outboundId;
+            }
+            
+            if (action != nil && [action objectForKey: @"feedbackType"] != nil) {
+                feedback.feedbackType = [action objectForKey: @"feedbackType"];
+            }
+            
+            [feedback send:^(bool success) {
+                if (success) {
+                    [self sendMessageWithData: @{
+                        @"name": @"feedback-sent"
+                    }];
+                } else {
+                    [self sendMessageWithData: @{
+                        @"name": @"feedback-sending-failed",
+                        @"data": @"Something went wrong, please try again.",
+                    }];
+                }
+            }];
+        }
     }
 }
 
@@ -167,12 +287,7 @@
 - (void)createWebView {
     WKWebViewConfiguration *webConfig = [[WKWebViewConfiguration alloc] init];
     WKUserContentController* userController = [[WKUserContentController alloc] init];
-    [userController addScriptMessageHandler: self name: @"requestScreenshot"];
-    [userController addScriptMessageHandler: self name: @"sendFeedback"];
-    [userController addScriptMessageHandler: self name: @"customActionCalled"];
-    [userController addScriptMessageHandler: self name: @"openExternalURL"];
-    [userController addScriptMessageHandler: self name: @"closeGleap"];
-    [userController addScriptMessageHandler: self name: @"sessionReady"];
+    [userController addScriptMessageHandler: self name: @"gleapCallback"];
     webConfig.userContentController = userController;
     
     self.webView = [[WKWebView alloc] initWithFrame:self.view.frame configuration: webConfig];
@@ -181,6 +296,7 @@
     self.webView.scrollView.backgroundColor = UIColor.clearColor;
     self.webView.navigationDelegate = self;
     self.webView.UIDelegate = self;
+    self.webView.alpha = 0;
     
     [self.view addSubview: self.webView];
     self.webView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -191,9 +307,7 @@
                                        selector: @selector(requestTimedOut:)
                                        userInfo: nil
                                         repeats: NO];
-    
-    NSURL * url = [NSURL URLWithString: [NSString stringWithFormat: @"%@/appwidget/%@?lang=%@&gleapId=%@&gleapHash=%@&startFlow=%@", Gleap.sharedInstance.widgetUrl, Gleap.sharedInstance.token, [Gleap.sharedInstance.language stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]], GleapSessionHelper.sharedInstance.currentSession.gleapId, GleapSessionHelper.sharedInstance.currentSession.gleapHash, Gleap.sharedInstance.startFlow]];
-    NSURLRequest * request = [NSURLRequest requestWithURL: url];
+    NSURLRequest * request = [NSURLRequest requestWithURL: [NSURL URLWithString: Gleap.sharedInstance.frameUrl]];
     [self.webView loadRequest: request];
 }
 
@@ -204,16 +318,20 @@
     [otherView addConstraint:[NSLayoutConstraint constraintWithItem: view attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem: otherView attribute:NSLayoutAttributeWidth multiplier:1.0 constant:0]];
 }
 
-- (void)injectScreenshot {
-    if (self.screenshotImage == nil) {
+- (void)sendScreenshotUpdate {
+    UIImage *screenshot = [GleapScreenshotManager getScreenshot];
+    if (screenshot == nil) {
         return;
     }
     
     @try
     {
-        NSData *data = UIImagePNGRepresentation(self.screenshotImage);
+        NSData *data = UIImagePNGRepresentation(screenshot);
         NSString *base64Data = [data base64EncodedStringWithOptions: 0];
-        [self.webView evaluateJavaScript: [NSString stringWithFormat: @"Gleap.setScreenshot('data:image/png;base64,%@', true)", base64Data] completionHandler: nil];
+        [self sendMessageWithData: @{
+            @"name": @"screenshot-update",
+            @"data": [NSString stringWithFormat: @"data:image/png;base64,%@", base64Data]
+        }];
     }
     @catch(id exception) {}
 }
@@ -235,10 +353,6 @@
       return hexString;
 }
 
-- (void)webView:(WKWebView *)webView didStartProvisionalNavigation:(WKNavigation *)navigation {
-    [_loadingView setHidden: false];
-}
-
 - (void)webView:(WKWebView *)webView didFailProvisionalNavigation:(WKNavigation *)navigation withError:(NSError *)error {
     [self loadingFailed: error];
 }
@@ -248,7 +362,10 @@
 }
 
 - (void)requestTimedOut:(id)sender {
-    [self closeReporting: nil];
+    if (self.delegate != nil && [self.delegate respondsToSelector:@selector(failedToConnect)]) {
+        [self.delegate failedToConnect];
+    }
+    [self closeWidget: nil];
 }
 
 - (void)loadingFailed:(NSError *)error {
@@ -258,7 +375,7 @@
     [alertController addAction:[UIAlertAction actionWithTitle:@"OK"
                                                         style:UIAlertActionStyleCancel
                                                       handler:^(UIAlertAction *action) {
-        [self closeReporting: nil];
+        [self closeWidget: nil];
     }]];
     [self presentViewController:alertController animated:YES completion:^{}];
 }
@@ -290,43 +407,6 @@
     }
     
     return decisionHandler(WKNavigationActionPolicyAllow);
-}
-
-- (void)sendBugReport {
-    self.navigationItem.leftBarButtonItem = false;
-    self.navigationItem.rightBarButtonItem = false;
-    
-    [Gleap.sharedInstance sendReport:^(bool success) {
-        if (success) {
-            [self showSuccessMessage];
-            
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSent:)]) {
-                [Gleap.sharedInstance.delegate feedbackSent: [Gleap.sharedInstance getFormData]];
-            }
-        } else {
-            [[self navigationController] setNavigationBarHidden: NO animated: NO];
-            UIAlertController * alert = [UIAlertController
-                                         alertControllerWithTitle: [GleapTranslationHelper localizedString: @"report_failed_title"]
-                                         message: [GleapTranslationHelper localizedString: @"report_failed"]
-                                         preferredStyle:UIAlertControllerStyleAlert];
-            UIAlertAction* yesButton = [UIAlertAction
-                                        actionWithTitle: [GleapTranslationHelper localizedString: @"ok"]
-                                        style:UIAlertActionStyleDefault
-                                        handler:^(UIAlertAction * action) {
-                                            [self dismissViewControllerAnimated: true completion:^{}];
-                                        }];
-            [alert addAction:yesButton];
-            [self presentViewController:alert animated:YES completion:nil];
-            
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSendingFailed)]) {
-                [Gleap.sharedInstance.delegate feedbackSendingFailed];
-            }
-        }
-    }];
-}
-
-- (void)setScreenshot:(UIImage *)image {
-    self.screenshotImage = image;
 }
 
 - (void)pinEdgesFrom:(UIView *)subView to:(UIView *)parent {
