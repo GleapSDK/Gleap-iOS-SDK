@@ -192,7 +192,6 @@
             if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(customActionCalled:)]) {
                 [Gleap.sharedInstance.delegate customActionCalled: (NSString *)messageData];
             }
-            [self closeWidget: nil];
         }
         
         if ([name isEqualToString: @"open-url"] && messageData != nil) {
@@ -308,7 +307,7 @@
                                        selector: @selector(requestTimedOut:)
                                        userInfo: nil
                                         repeats: NO];
-    NSURLRequest * request = [NSURLRequest requestWithURL: [NSURL URLWithString: @"https://frame.gleap.io/app.html"]];
+    NSURLRequest * request = [NSURLRequest requestWithURL: [NSURL URLWithString: Gleap.sharedInstance.frameUrl]];
     [self.webView loadRequest: request];
 }
 

@@ -18,6 +18,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.attachCustomData(["value": "Unicorn", "type": "Demo", "ExtraInfo": ["Age": "28", "City": "San Francisco"]])
         
+        // Testing file attachments.
+        if let data = "Dies ist ein test.".data(using: String.Encoding.utf8) {
+            Gleap.addAttachment(with: data, andName: "text.txt")
+        }
+        
+        // Some demo logs.
         print("App started.")
         print("User logged in.")
         
@@ -53,7 +59,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     }
 
     // MARK: UISceneSession Lifecycle
-
     func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
         // Called when a new scene session is being created.
         // Use this method to select a configuration to create the new scene with.

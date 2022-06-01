@@ -2,6 +2,7 @@
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="19529" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
     <device id="retina6_1" orientation="portrait" appearance="light"/>
     <dependencies>
+        <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="19519"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
@@ -15,48 +16,33 @@
                         <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" image="Logo" translatesAutoresizingMaskIntoConstraints="NO" id="xob-OO-vdL">
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Logo" translatesAutoresizingMaskIntoConstraints="NO" id="xob-OO-vdL">
                                 <rect key="frame" x="158" y="394" width="98" height="108"/>
-                            </imageView>
-                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="lH0-Wr-nTS">
-                                <rect key="frame" x="91" y="351" width="232" height="194"/>
-                                <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="plain" title=""/>
-                                <connections>
-                                    <segue destination="2wY-OI-ygZ" kind="presentation" modalPresentationStyle="fullScreen" id="fuI-Dm-3C9"/>
-                                </connections>
-                            </button>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="jn6-c6-Bdj">
-                                <rect key="frame" x="173.5" y="102" width="67" height="31"/>
-                                <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="plain" title="Button"/>
-                                <connections>
-                                    <action selector="doIt:" destination="BYZ-38-t0r" eventType="touchUpInside" id="mYf-jI-sEK"/>
-                                </connections>
-                            </button>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="5tw-F0-5Ci">
-                                <rect key="frame" x="140" y="155" width="134" height="31"/>
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="31" id="U53-Pj-Qz5"/>
-                                    <constraint firstAttribute="width" constant="134" id="d93-lh-4e8"/>
+                                    <constraint firstAttribute="width" constant="98" id="EME-Z8-pFl"/>
+                                    <constraint firstAttribute="height" constant="108" id="hmZ-8s-VZZ"/>
+                                </constraints>
+                            </imageView>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="5tw-F0-5Ci">
+                                <rect key="frame" x="20" y="814" width="374" height="48"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="48" id="6Pu-pX-AfT"/>
                                 </constraints>
                                 <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="plain" title="Go guest."/>
+                                <buttonConfiguration key="configuration" style="plain" title="Show next screen"/>
                                 <connections>
-                                    <action selector="doIt:" destination="BYZ-38-t0r" eventType="touchUpInside" id="ibg-fK-cQe"/>
-                                    <action selector="killAll:" destination="BYZ-38-t0r" eventType="touchUpInside" id="ldZ-qr-BA6"/>
+                                    <segue destination="2wY-OI-ygZ" kind="show" id="0dX-wl-Uf1"/>
                                 </connections>
                             </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
-                            <constraint firstItem="5tw-F0-5Ci" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="9Yu-Ju-Gbp"/>
-                            <constraint firstItem="5tw-F0-5Ci" firstAttribute="centerX" secondItem="xob-OO-vdL" secondAttribute="centerX" id="A2A-He-qh7"/>
-                            <constraint firstItem="5tw-F0-5Ci" firstAttribute="centerX" secondItem="jn6-c6-Bdj" secondAttribute="centerX" id="PlD-1h-LyG"/>
-                            <constraint firstItem="5tw-F0-5Ci" firstAttribute="centerX" secondItem="lH0-Wr-nTS" secondAttribute="centerX" id="bBN-eo-PKd"/>
-                            <constraint firstItem="5tw-F0-5Ci" firstAttribute="top" secondItem="jn6-c6-Bdj" secondAttribute="bottom" constant="22" id="dxN-Kk-eEM"/>
-                            <constraint firstItem="5tw-F0-5Ci" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" constant="155" id="eKv-Cj-rbH"/>
+                            <constraint firstItem="5tw-F0-5Ci" firstAttribute="bottom" secondItem="6Tk-OE-BBY" secondAttribute="bottom" id="2ki-Pe-Ch5"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="5tw-F0-5Ci" secondAttribute="trailing" constant="20" id="6Fn-ql-62R"/>
+                            <constraint firstItem="xob-OO-vdL" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="CFT-EB-OsH"/>
+                            <constraint firstItem="xob-OO-vdL" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="YTP-VR-NOL"/>
+                            <constraint firstItem="5tw-F0-5Ci" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="ZHF-no-WSk"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -69,11 +55,11 @@
             <objects>
                 <viewController id="2wY-OI-ygZ" customClass="DemoViewController" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="Xy1-7i-YVC">
-                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
+                        <rect key="frame" x="0.0" y="0.0" width="414" height="842"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="ErrorMockup" translatesAutoresizingMaskIntoConstraints="NO" id="Tho-0w-ND6">
-                                <rect key="frame" x="0.0" y="-19" width="414" height="915"/>
+                                <rect key="frame" x="0.0" y="-73" width="414" height="915"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="915" id="n43-Po-7Of"/>
                                 </constraints>

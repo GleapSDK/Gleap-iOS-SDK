@@ -60,7 +60,7 @@
 - (void)initHelper {
     self.token = @"";
     self.apiUrl = @"https://api.gleap.io";
-    self.widgetUrl = @"https://widget.gleap.io";
+    self.frameUrl = @"https://frame.gleap.io/app.html";
     self.initialized = NO;
     self.applicationType = NATIVE;
     
@@ -180,8 +180,8 @@
     Gleap.sharedInstance.apiUrl = apiUrl;
 }
 
-+ (void)setWidgetUrl: (NSString *)widgetUrl {
-    Gleap.sharedInstance.widgetUrl = widgetUrl;
++ (void)setFrameUrl: (NSString *)frameUrl {
+    Gleap.sharedInstance.frameUrl = frameUrl;
 }
 
 + (BOOL)isOpened {

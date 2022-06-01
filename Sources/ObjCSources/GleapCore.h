@@ -147,12 +147,12 @@ static id ObjectOrNull(id object)
 + (void)setApiUrl: (NSString *)apiUrl;
 
 /**
- * Sets a custom widget url.
+ * Sets a custom frame url.
  * @author Gleap
  *
- * @param widgetUrl The custom widget url.
+ * @param frameUrl The custom frame url.
  */
-+ (void)setWidgetUrl: (NSString *)widgetUrl;
++ (void)setFrameUrl: (NSString *)frameUrl;
 
 /**
  * Disables the console logging. This must be called BEFORE initializing the SDK.
@@ -266,7 +266,7 @@ static id ObjectOrNull(id object)
 
 @property (nonatomic, retain) NSString* token;
 @property (nonatomic, retain) NSString* apiUrl;
-@property (nonatomic, retain) NSString* widgetUrl;
+@property (nonatomic, retain) NSString* frameUrl;
 @property (nonatomic, assign) int initialized;
 @property (nonatomic, assign) GleapApplicationType applicationType;
 @property (nonatomic, weak) id <GleapDelegate> delegate;

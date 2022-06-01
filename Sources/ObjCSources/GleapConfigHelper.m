@@ -33,7 +33,7 @@
 }
 
 - (void)run {
-    NSString *widgetConfigURL = [NSString stringWithFormat: @"%@/widget/%@/config", Gleap.sharedInstance.widgetUrl, Gleap.sharedInstance.token];
+    NSString *widgetConfigURL = [NSString stringWithFormat: @"%@/config/%@", Gleap.sharedInstance.apiUrl, Gleap.sharedInstance.token];
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
     [request setHTTPMethod:@"GET"];
     [request setURL: [NSURL URLWithString: widgetConfigURL]];

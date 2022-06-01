@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DF0842102847572700670447 /* testimage.png in Resources */ = {isa = PBXBuildFile; fileRef = DF08420F2847572700670447 /* testimage.png */; };
+		DF0842122847583A00670447 /* 6881.pdf in Resources */ = {isa = PBXBuildFile; fileRef = DF0842112847583A00670447 /* 6881.pdf */; };
 		DF0FF1A5275CBAD80070507E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF0FF1A4275CBAD80070507E /* AppDelegate.swift */; };
 		DF0FF1A7275CBAD80070507E /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF0FF1A6275CBAD80070507E /* SceneDelegate.swift */; };
 		DF0FF1AC275CBAD80070507E /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DF0FF1AA275CBAD80070507E /* Main.storyboard */; };
@@ -17,6 +19,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		DF08420F2847572700670447 /* testimage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = testimage.png; sourceTree = "<group>"; };
+		DF0842112847583A00670447 /* 6881.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = 6881.pdf; sourceTree = "<group>"; };
 		DF0FF1A1275CBAD80070507E /* Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Example.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DF0FF1A4275CBAD80070507E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		DF0FF1A6275CBAD80070507E /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -63,6 +67,8 @@
 		DF0FF1A3275CBAD80070507E /* Example */ = {
 			isa = PBXGroup;
 			children = (
+				DF0842112847583A00670447 /* 6881.pdf */,
+				DF08420F2847572700670447 /* testimage.png */,
 				DF0FF1A4275CBAD80070507E /* AppDelegate.swift */,
 				DF0FF1A6275CBAD80070507E /* SceneDelegate.swift */,
 				DF0FF1AA275CBAD80070507E /* Main.storyboard */,
@@ -153,9 +159,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DF0842122847583A00670447 /* 6881.pdf in Resources */,
 				DF0FF1B1275CBAD90070507E /* LaunchScreen.storyboard in Resources */,
 				DF0FF1AE275CBAD90070507E /* Assets.xcassets in Resources */,
 				DF0FF1AC275CBAD80070507E /* Main.storyboard in Resources */,
+				DF0842102847572700670447 /* testimage.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -327,6 +335,7 @@
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -360,6 +369,7 @@
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
