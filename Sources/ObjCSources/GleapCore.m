@@ -114,7 +114,7 @@
 }
 
 - (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod {
-    [GleapActivationMethodHelper isActivationMethodActive: activationMethod];
+    return [GleapActivationMethodHelper isActivationMethodActive: activationMethod];
 }
 
 /**

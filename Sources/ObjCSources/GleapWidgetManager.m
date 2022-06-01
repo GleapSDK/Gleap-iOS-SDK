@@ -63,7 +63,7 @@
     }
 }
 
-- (void)closeWidget: (void (^)())completion {
+- (void)closeWidget:(void (^)())completion {
     [self.messageQueue removeAllObjects];
     if (self.gleapWidget == nil) {
         if (completion != nil) {
