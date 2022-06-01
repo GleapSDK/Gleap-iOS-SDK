@@ -17,6 +17,7 @@
 #import "GleapFeedback.h"
 #import "GleapWidgetManager.h"
 #import "GleapScreenshotManager.h"
+#import "GleapPreFillHelper.h"
 
 @interface GleapFrameManagerViewController ()
 
@@ -125,6 +126,13 @@
     }];
 }
 
+- (void)sendPreFillData {
+    [self sendMessageWithData: @{
+        @"name": @"prefill-form-data",
+        @"data": [GleapPreFillHelper sharedInstance].preFillData
+    }];
+}
+
 - (void)sendMessageWithData:(NSDictionary *)data {
     NSError *error;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject: data
@@ -162,6 +170,7 @@
             
             [self sendConfigUpdate];
             [self sendSessionUpdate];
+            [self sendPreFillData];
             [self sendScreenshotUpdate];
         }
         

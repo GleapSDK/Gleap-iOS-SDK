@@ -100,6 +100,14 @@ static id ObjectOrNull(id object)
 + (void)clearIdentity;
 
 /**
+ * Prefills the widget form with data.
+ * @author Gleap
+ *
+ * @param data The data you want to prefill the form with.
+ */
++ (void)preFillForm: (NSDictionary *)data;
+
+/**
  * Attaches custom data, which can be viewed in the Gleap dashboard. New data will be merged with existing custom data.
  * @author Gleap
  *
@@ -129,14 +137,6 @@ static id ObjectOrNull(id object)
  * @author Gleap
  */
 + (void)clearCustomData;
-
-/**
- * Sets the API token.
- * @author Gleap
- *
- * @param token The custom api url.
- */
-+ (void)setApiToken: (NSString *)token;
 
 /**
  * Sets a custom api url.

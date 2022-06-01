@@ -26,6 +26,7 @@
 #import "GleapWidgetManager.h"
 #import "GleapFeedback.h"
 #import "GleapExternalDataHelper.h"
+#import "GleapPreFillHelper.h"
 
 @interface Gleap ()
 
@@ -117,12 +118,8 @@
     return [GleapActivationMethodHelper isActivationMethodActive: activationMethod];
 }
 
-/**
- Sets the API token.
- */
-+ (void)setApiToken: (NSString *)token {
-    Gleap* instance = [Gleap sharedInstance];
-    instance.token = token;
++ (void)preFillForm: (NSDictionary *)data {
+    [[GleapPreFillHelper sharedInstance].preFillData addEntriesFromDictionary: data];
 }
 
 /*
@@ -134,7 +131,7 @@
     }
     
     [Gleap sharedInstance].initialized = YES;
-    [Gleap setApiToken: token];
+    [Gleap sharedInstance].token = token;
     
     [[GleapConsoleLogHelper sharedInstance] start];
     [[GleapScreenshotListener sharedInstance] start];
