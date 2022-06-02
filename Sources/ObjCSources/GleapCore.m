@@ -119,7 +119,7 @@
 }
 
 + (NSArray *)getActivationMethods {
-    [GleapActivationMethodHelper getActivationMethods];
+    return [GleapActivationMethodHelper getActivationMethods];
 }
 
 + (void)preFillForm: (NSDictionary *)data {
