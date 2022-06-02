@@ -61,6 +61,13 @@ static id ObjectOrNull(id object)
 + (void)open;
 
 /**
+ * Manually close the feedback.
+ * @author Gleap
+ *
+ */
++ (void)close;
+
+/**
  * Manually start a feedback flow.
  * @author Gleap
  *
@@ -258,10 +265,11 @@ static id ObjectOrNull(id object)
 // Helper
 + (void)setApplicationType: (GleapApplicationType)applicationType;
 + (void)setActivationMethods: (NSArray *)activationMethods;
++ (NSArray *)getActivationMethods;
++ (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod;
 + (void)shakeInvocation;
 + (void)setAutoActivationMethodsDisabled;
 - (void)performAction:(GleapAction *)action;
-- (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod;
 - (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options;
 
 @property (nonatomic, retain) NSString* token;

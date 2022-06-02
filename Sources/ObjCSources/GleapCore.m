@@ -114,8 +114,12 @@
     [[GleapEventLogHelper sharedInstance] logEvent: name withData: data];
 }
 
-- (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod {
++ (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod {
     return [GleapActivationMethodHelper isActivationMethodActive: activationMethod];
+}
+
++ (NSArray *)getActivationMethods {
+    [GleapActivationMethodHelper getActivationMethods];
 }
 
 + (void)preFillForm: (NSDictionary *)data {
@@ -187,6 +191,10 @@
 
 + (void)open {
     [[Gleap sharedInstance] startFeedbackFlow: nil withOptions: nil];
+}
+
++ (void)close {
+    [[GleapWidgetManager sharedInstance] closeWidget:^{}];
 }
 
 /**

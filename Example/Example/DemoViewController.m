@@ -17,10 +17,6 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
-    
-    [Gleap preFillForm: @{
-        @"description": @"TEEEEEST :)"
-    }];
 }
 
 @end

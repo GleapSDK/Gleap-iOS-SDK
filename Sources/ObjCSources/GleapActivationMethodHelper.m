@@ -48,6 +48,10 @@
     return false;
 }
 
++ (NSArray *)getActivationMethods {
+    return [GleapActivationMethodHelper sharedInstance].activationMethods;
+}
+
 + (void)setActivationMethods: (NSArray *)activationMethods {
     [GleapActivationMethodHelper sharedInstance].activationMethods = activationMethods;
 }

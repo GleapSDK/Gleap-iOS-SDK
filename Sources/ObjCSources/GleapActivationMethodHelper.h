@@ -15,6 +15,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)sharedInstance;
 + (void)setActivationMethods: (NSArray *)activationMethods;
 + (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod;
++ (NSArray *)getActivationMethods;
 + (void)setAutoActivationMethodsDisabled;
 + (BOOL)useAutoActivationMethods;
 
