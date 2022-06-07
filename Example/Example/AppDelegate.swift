@@ -23,6 +23,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
             Gleap.addAttachment(with: data, andName: "text.txt")
         }
         
+        Gleap.sendSilentCrashReport(with: "Houston, we have a problem!", andSeverity: MEDIUM, andDataExclusion: ["screenshot": true, "replays": true]) { success in
+            // Sent
+        }
+        
         // Some demo logs.
         print("App started.")
         print("User logged in.")
@@ -44,10 +48,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     
     func feedbackSendingFailed() {
         NSLog("Sending feedback failed")
-    }
-    
-    func feedbackWillBeSent(_ formData: [AnyHashable : Any]) {
-        NSLog("Feedback will be sent", formData)
     }
     
     func feedbackSent(_ data: [AnyHashable : Any]) {

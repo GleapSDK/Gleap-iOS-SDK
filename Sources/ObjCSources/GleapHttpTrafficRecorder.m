@@ -312,7 +312,6 @@ static NSString * const GleapRecordingProtocolHandledKey = @"GleapRecordingProto
                                                  }];
 }
 
-
 - (void)connection:(NSURLConnection *)connection didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
     [self.client URLProtocol:self didReceiveAuthenticationChallenge:challenge];
 }

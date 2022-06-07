@@ -34,6 +34,17 @@
                                     <segue destination="2wY-OI-ygZ" kind="show" id="0dX-wl-Uf1"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="S1J-0x-V21">
+                                <rect key="frame" x="20" y="758" width="374" height="48"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="48" id="BQI-1Q-VL4"/>
+                                </constraints>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" title="Send data"/>
+                                <connections>
+                                    <action selector="sendData:" destination="BYZ-38-t0r" eventType="touchUpInside" id="woT-fp-wWR"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -41,8 +52,11 @@
                             <constraint firstItem="5tw-F0-5Ci" firstAttribute="bottom" secondItem="6Tk-OE-BBY" secondAttribute="bottom" id="2ki-Pe-Ch5"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="5tw-F0-5Ci" secondAttribute="trailing" constant="20" id="6Fn-ql-62R"/>
                             <constraint firstItem="xob-OO-vdL" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="CFT-EB-OsH"/>
+                            <constraint firstItem="5tw-F0-5Ci" firstAttribute="top" secondItem="S1J-0x-V21" secondAttribute="bottom" constant="8" symbolic="YES" id="Q79-jP-0I6"/>
                             <constraint firstItem="xob-OO-vdL" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="YTP-VR-NOL"/>
                             <constraint firstItem="5tw-F0-5Ci" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="ZHF-no-WSk"/>
+                            <constraint firstItem="S1J-0x-V21" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="iBy-Tj-Q7M"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="S1J-0x-V21" secondAttribute="trailing" constant="20" id="ppH-Qf-F77"/>
                         </constraints>
                     </view>
                 </viewController>

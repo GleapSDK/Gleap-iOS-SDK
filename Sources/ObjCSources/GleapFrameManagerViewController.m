@@ -229,11 +229,6 @@
             NSString *outboundId = [messageData objectForKey: @"outboundId"];
             NSString *spamToken = [messageData objectForKey: @"spamToken"];
             
-            // Notify.
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackWillBeSent:)]) {
-                [Gleap.sharedInstance.delegate feedbackWillBeSent: formData];
-            }
-            
             GleapFeedback *feedback = [[GleapFeedback alloc] init];
             [feedback appendData: @{
                 @"spamToken": spamToken,
