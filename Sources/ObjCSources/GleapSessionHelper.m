@@ -204,6 +204,10 @@
 }
 
 - (BOOL)sessionDataItemNeedsUpgrade:(NSString *)data compareTo:(NSString *)newData {
+    if ([data isKindOfClass:[NSNull class]] || [newData isKindOfClass:[NSNull class]]) {
+        return YES;
+    }
+    
     // Both values are nil, no upgrade needed.
     if (data == nil && newData == nil) {
         return NO;

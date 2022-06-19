@@ -15,6 +15,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 typedef enum activationMethodTypes { NONE, SHAKE, SCREENSHOT } GleapActivationMethod;
 typedef enum bugSeverityTypes { LOW, MEDIUM, HIGH } GleapBugSeverity;
+typedef enum gleapLogLevel { INFO, WARNING, ERROR } GleapLogLevel;
 typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationType;
 
 static id ObjectOrNull(id object)
@@ -79,6 +80,22 @@ static id ObjectOrNull(id object)
  *
  */
 + (void)sendSilentCrashReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity andDataExclusion:(NSDictionary * _Nullable)excludeData andCompletion: (void (^)(bool success))completion;
+
+/**
+ * Logs a message to the Gleap activity log
+ * @author Gleap
+ *
+ * @param msg The logged message
+ */
++ (void)log:(NSString *)msg;
+
+/**
+ * Logs a message with a given log level to the Gleap activity log
+ * @author Gleap
+ *
+ * @param msg The logged message
+ */
++ (void)log:(NSString *)msg withLogLevel:(GleapLogLevel)logLevel;
 
 /**
  * Updates a session's identity.

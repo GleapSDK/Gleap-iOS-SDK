@@ -6,6 +6,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "GleapCore.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -14,6 +15,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)sharedInstance;
 
 - (void)start;
+- (void)log:(NSString *)msg andLogLevel:(GleapLogLevel)logLevel;
 - (NSArray *)getConsoleLogs;
 
 @property (nonatomic, assign) bool consoleLogDisabled;

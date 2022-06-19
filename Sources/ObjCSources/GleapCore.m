@@ -290,6 +290,20 @@
     }
 }
 
+/**
+ Log message to the Gleap logs
+ */
++ (void)log:(NSString *)msg {
+    [[GleapConsoleLogHelper sharedInstance] log: msg andLogLevel: INFO];
+}
+
+/**
+ Log message with log level to the Gleap logs
+ */
++ (void)log:(NSString *)msg withLogLevel:(GleapLogLevel)logLevel {
+    [[GleapConsoleLogHelper sharedInstance] log: msg andLogLevel: logLevel];
+}
+
 /*
  Attaches custom data, which can be viewed in the Gleap dashboard. New data will be merged with existing custom data.
  */

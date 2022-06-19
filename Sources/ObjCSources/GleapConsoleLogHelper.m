@@ -6,7 +6,6 @@
 //
 
 #import "GleapConsoleLogHelper.h"
-#import "GleapCore.h"
 #import "GleapUIHelper.h"
 #import "GleapWidgetManager.h"
 
@@ -42,7 +41,33 @@
 }
 
 - (NSArray *)getConsoleLogs {
-    return [self.consoleLog copy];
+    return [_consoleLog copy];
+}
+
+/**
+ Returns the application type.
+ */
+- (NSString *)getLogLevelAsString:(GleapLogLevel)logLevel {
+    NSString *logLevelString = @"INFO";
+    if (logLevel == WARNING) {
+        logLevelString = @"WARNING";
+    } else if (logLevel == ERROR) {
+        logLevelString = @"ERROR";
+    }
+    return logLevelString;
+}
+
+- (void)addLogWith:(NSString *)description andPriority:(NSString *)priority {
+    NSString *dateString = [GleapUIHelper getJSStringForNSDate: [[NSDate alloc] init]];
+    NSDictionary *log = @{ @"date": dateString, @"log": description, @"priority": priority };
+    if (_consoleLog.count > 1000) {
+        [_consoleLog removeObjectAtIndex: 0];
+    }
+    [_consoleLog addObject: log];
+}
+
+- (void)log:(NSString *)msg andLogLevel:(GleapLogLevel)logLevel {
+    [self addLogWith: msg andPriority: [self getLogLevelAsString: logLevel]];
 }
 
 /*
@@ -106,12 +131,7 @@
         for (int i = 0; i < lines.count; i++) {
             NSString *line = [lines objectAtIndex: i];
             if (line != NULL && ![line isEqualToString: @""]) {
-                NSString *dateString = [GleapUIHelper getJSStringForNSDate: [[NSDate alloc] init]];
-                NSDictionary *log = @{ @"date": dateString, @"log": line, @"priority": @"INFO" };
-                if (_consoleLog.count > 1000) {
-                    [_consoleLog removeObjectAtIndex: 0];
-                }
-                [_consoleLog addObject: log];
+                [self addLogWith: line andPriority: @"INFO"];
             }
         }
     }
