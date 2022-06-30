@@ -5,7 +5,7 @@
 //  Created by Lukas Boehler on 25.05.22.
 //
 
-#define SDK_VERSION @"7.0.0"
+#define SDK_VERSION @"7.0.4"
 
 #import "GleapMetaDataHelper.h"
 #import <sys/utsname.h>
@@ -63,7 +63,12 @@
     #ifdef DEBUG
     buildMode = @"DEBUG";
     #endif
-        
+    
+    float scaleFactor = [[UIScreen mainScreen] scale];
+    CGRect screenRect = [[UIScreen mainScreen] bounds];
+    CGFloat screenWidth = screenRect.size.width;
+    CGFloat screenHeight = screenRect.size.height;
+    
     return @{
         @"deviceName": deviceName,
         @"deviceModel": deviceModel,
@@ -83,7 +88,10 @@
         @"phoneChargingStatus": phoneChargingState,
         @"batterySaveMode": lowPowerModeEnabled,
         @"totalDiskSpace": [diskInfo objectForKey: @"totalSpace"],
-        @"totalFreeDiskSpace": [diskInfo objectForKey: @"totalFreeSpace"]
+        @"totalFreeDiskSpace": [diskInfo objectForKey: @"totalFreeSpace"],
+        @"devicePixelRatio": @(scaleFactor),
+        @"screenWidth": @(screenWidth),
+        @"screenHeight": @(screenHeight)
     };
 }
 

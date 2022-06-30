@@ -25,6 +25,7 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view.
     
+    [Gleap log: @"This is a test log."];
     [Gleap log: @"This is a test error." withLogLevel: ERROR];
     [Gleap log: @"This is a test info." withLogLevel: INFO];
     [Gleap log: @"This is a test warning." withLogLevel: WARNING];
