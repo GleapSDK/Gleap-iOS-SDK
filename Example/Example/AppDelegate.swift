@@ -14,17 +14,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         // Override point for customization after application launch.
         Gleap.enableDebugConsoleLog()
         Gleap.initialize(withToken: "DUPaIr7s689BBblcFI4pc5aBgYJTm7Sc")
+        
         Gleap.sharedInstance().delegate = self
         
+        // Attach custom data sample.
         Gleap.attachCustomData(["value": "Unicorn", "type": "Demo", "ExtraInfo": ["Age": "28", "City": "San Francisco"]])
+        
+        let userProps = GleapUserProperty()
+        userProps.email = "lukas@gleap.io"
+        userProps.name = "Lukas"
+        Gleap.identifyUser(with: "user_1293", andData: userProps)
         
         // Testing file attachments.
         if let data = "Dies ist ein test.".data(using: String.Encoding.utf8) {
             Gleap.addAttachment(with: data, andName: "text.txt")
-        }
-        
-        Gleap.sendSilentCrashReport(with: "Houston, we have a problem!", andSeverity: MEDIUM, andDataExclusion: ["screenshot": true, "replays": true]) { success in
-            // Sent
         }
         
         // Some demo logs.
