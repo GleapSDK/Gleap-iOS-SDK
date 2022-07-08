@@ -32,7 +32,7 @@
 }
 
 /**
-    Appends data to the bug report.
+ Appends data to the bug report.
  */
 - (void)appendData:(NSDictionary *)data {
     [self.data addEntriesFromDictionary: data];
@@ -112,8 +112,8 @@
                 if (success) {
                     // Attach replay
                     [self attachData: @{ @"replay": @{
-                                                      @"interval": replayInterval,
-                                                      @"frames": fileUrls
+                        @"interval": replayInterval,
+                        @"frames": fileUrls
                     } }];
                 }
                 
@@ -217,36 +217,41 @@
         return completion(false);
     }
     
-    NSError *error;
-    NSData *jsonBodyData = [NSJSONSerialization dataWithJSONObject: _data options:kNilOptions error: &error];
-    
-    // Check for parsing error.
-    if (error != nil) {
+    @try {
+        NSError *error;
+        NSData *jsonBodyData = [NSJSONSerialization dataWithJSONObject: _data options:kNilOptions error: &error];
+        
+        // Check for parsing error.
+        if (error != nil) {
+            return completion(false);
+        }
+        
+        NSMutableURLRequest *request = [NSMutableURLRequest new];
+        request.HTTPMethod = @"POST";
+        [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/bugs/v2", Gleap.sharedInstance.apiUrl]]];
+        [GleapSessionHelper injectSessionInRequest: request];
+        [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
+        [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
+        [request setHTTPBody: jsonBodyData];
+        
+        NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
+        NSURLSession *session = [NSURLSession sessionWithConfiguration:config
+                                                              delegate:nil
+                                                         delegateQueue:[NSOperationQueue mainQueue]];
+        NSURLSessionDataTask *task = [session dataTaskWithRequest:request
+                                                completionHandler:^(NSData * _Nullable data,
+                                                                    NSURLResponse * _Nullable response,
+                                                                    NSError * _Nullable error) {
+            if (error != nil) {
+                return completion(false);
+            }
+            return completion(true);
+        }];
+        [task resume];
+    } @catch (NSException *exp) {
+        NSLog(@"Failed sending feedback: %@", NSThread.callStackSymbols);
         return completion(false);
     }
-    
-    NSMutableURLRequest *request = [NSMutableURLRequest new];
-    request.HTTPMethod = @"POST";
-    [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/bugs/v2", Gleap.sharedInstance.apiUrl]]];
-    [GleapSessionHelper injectSessionInRequest: request];
-    [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
-    [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
-    [request setHTTPBody: jsonBodyData];
-    
-    NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:config
-                                                          delegate:nil
-                                                     delegateQueue:[NSOperationQueue mainQueue]];
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                            completionHandler:^(NSData * _Nullable data,
-                                                                NSURLResponse * _Nullable response,
-                                                                NSError * _Nullable error) {
-                                                if (error != nil) {
-                                                    return completion(false);
-                                                }
-                                                return completion(true);
-                                            }];
-    [task resume];
 }
 
 - (NSDictionary *)getFormData {
