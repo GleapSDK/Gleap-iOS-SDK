@@ -16,7 +16,8 @@
         @"gleapHash": ObjectOrNull(self.gleapHash),
         @"userId": ObjectOrNull(self.userId),
         @"name": ObjectOrNull(self.name),
-        @"email": ObjectOrNull(self.email)
+        @"email": ObjectOrNull(self.email),
+        @"value": ObjectOrNull(self.value)
     };
 }
 

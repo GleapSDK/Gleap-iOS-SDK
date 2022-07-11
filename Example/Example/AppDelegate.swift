@@ -13,7 +13,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         Gleap.enableDebugConsoleLog()
-        Gleap.initialize(withToken: "DUPaIr7s689BBblcFI4pc5aBgYJTm7Sc")
+        Gleap.initialize(withToken: "ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV")
         
         Gleap.sharedInstance().delegate = self
         
@@ -23,6 +23,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         let userProps = GleapUserProperty()
         userProps.email = "lukas@gleap.io"
         userProps.name = "Lukas"
+        userProps.value = 2918288
         Gleap.identifyUser(with: "user_1293", andData: userProps)
         
         // Testing file attachments.

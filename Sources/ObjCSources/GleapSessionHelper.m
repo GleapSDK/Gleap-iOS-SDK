@@ -111,6 +111,9 @@
     if (data != nil && data.email != nil) {
         [sessionRequestData setValue: data.email forKey: @"email"];
     }
+    if (data != nil && data.value != nil) {
+        [sessionRequestData setValue: data.value forKey: @"value"];
+    }
     
     if (![self sessionUpgradeWithDataNeeded: sessionRequestData]) {
         return;
@@ -221,6 +224,24 @@
     return ![data isEqualToString: newData];
 }
 
+- (BOOL)sessionDataNumberItemNeedsUpgrade:(NSNumber *)data compareTo:(NSNumber *)newData {
+    if ([data isKindOfClass:[NSNull class]] || [newData isKindOfClass:[NSNull class]]) {
+        return YES;
+    }
+    
+    // Both values are nil, no upgrade needed.
+    if (data == nil && newData == nil) {
+        return NO;
+    }
+    
+    // One value is nil, upgrade needed.
+    if (data == nil || newData == nil) {
+        return YES;
+    }
+    
+    return !(data == newData);
+}
+
 - (BOOL)sessionUpgradeWithDataNeeded:(NSDictionary *)newData {
     if (self.currentSession == nil) {
         return YES;
@@ -235,6 +256,10 @@
     }
     
     if ([self sessionDataItemNeedsUpgrade: self.currentSession.userId compareTo: [newData objectForKey: @"userId"]]) {
+        return YES;
+    }
+    
+    if ([self sessionDataNumberItemNeedsUpgrade: self.currentSession.value compareTo: [newData objectForKey: @"value"]]) {
         return YES;
     }
     
