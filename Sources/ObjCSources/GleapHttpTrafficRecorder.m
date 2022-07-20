@@ -55,7 +55,7 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey     = @"ERROR_KEY";
                 if ([log objectForKey: @"request"] != nil) {
                     NSMutableDictionary *request = [[NSMutableDictionary alloc] initWithDictionary: [log objectForKey: @"request"]];
                     if (request != nil && [request objectForKey: @"headers"]) {
-                        if ([request objectForKey: @"headers"] != nil) {
+                        if ([request objectForKey: @"headers"] != nil && [[request objectForKey: @"headers"] isKindOfClass:[NSDictionary class]]) {
                             NSMutableDictionary *mutableHeaders = [[NSMutableDictionary alloc] initWithDictionary: [request objectForKey: @"headers"]];
                             [mutableHeaders removeObjectsForKeys: self.networkLogPropsToIgnore];
                             [request setObject: mutableHeaders forKey: @"headers"];
