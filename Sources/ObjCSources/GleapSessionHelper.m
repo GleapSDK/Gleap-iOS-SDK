@@ -111,6 +111,9 @@
     if (data != nil && data.email != nil) {
         [sessionRequestData setValue: data.email forKey: @"email"];
     }
+    if (data != nil && data.phone != nil) {
+        [sessionRequestData setValue: data.phone forKey: @"phone"];
+    }
     if (data != nil && data.value != nil) {
         [sessionRequestData setValue: data.value forKey: @"value"];
     }
@@ -181,6 +184,7 @@
     gleapSession.gleapHash = [data objectForKey: @"gleapHash"];
     gleapSession.userId = [data objectForKey: @"userId"];
     gleapSession.email = [data objectForKey: @"email"];
+    gleapSession.phone = [data objectForKey: @"phone"];
     gleapSession.name = [data objectForKey: @"name"];
     
     self.currentSession = gleapSession;
@@ -252,6 +256,10 @@
     }
     
     if ([self sessionDataItemNeedsUpgrade: self.currentSession.email compareTo: [newData objectForKey: @"email"]]) {
+        return YES;
+    }
+    
+    if ([self sessionDataItemNeedsUpgrade: self.currentSession.phone compareTo: [newData objectForKey: @"phone"]]) {
         return YES;
     }
     

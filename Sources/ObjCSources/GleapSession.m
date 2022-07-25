@@ -17,7 +17,8 @@
         @"userId": ObjectOrNull(self.userId),
         @"name": ObjectOrNull(self.name),
         @"email": ObjectOrNull(self.email),
-        @"value": ObjectOrNull(self.value)
+        @"value": ObjectOrNull(self.value),
+        @"phone": ObjectOrNull(self.phone)
     };
 }
 
