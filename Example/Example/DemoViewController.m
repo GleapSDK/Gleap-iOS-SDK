@@ -16,14 +16,19 @@
 }*/
 
 @interface DemoViewController ()
+@property (weak, nonatomic) IBOutlet UIButton *button;
 
 @end
 
 @implementation DemoViewController
 
+
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
+    
+    self.button.layer.cornerRadius = 25;
     
     [Gleap log: @"This is a test log."];
     [Gleap log: @"This is a test error." withLogLevel: ERROR];

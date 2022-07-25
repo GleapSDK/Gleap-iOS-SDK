@@ -8,11 +8,14 @@
 import UIKit
 
 class ImageViewController: UIViewController {
-
+    @IBOutlet weak var button: UIButton!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
 
         // Do any additional setup after loading the view.
+        
+        self.button.layer.cornerRadius = 25
         
         NSLog("Test log :)")
     }

@@ -24,10 +24,10 @@
                                 </constraints>
                             </imageView>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="S1J-0x-V21">
-                                <rect key="frame" x="20" y="798" width="374" height="64"/>
+                                <rect key="frame" x="20" y="808" width="374" height="54"/>
                                 <color key="backgroundColor" red="0.29803922770000002" green="0.35294118520000001" blue="0.96470588450000005" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="64" id="pNj-NU-XvY"/>
+                                    <constraint firstAttribute="height" constant="54" id="pNj-NU-XvY"/>
                                 </constraints>
                                 <color key="tintColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <state key="normal" title="Button"/>
@@ -50,6 +50,9 @@
                             <constraint firstItem="S1J-0x-V21" firstAttribute="bottom" secondItem="6Tk-OE-BBY" secondAttribute="bottom" id="uhi-fg-mfI"/>
                         </constraints>
                     </view>
+                    <connections>
+                        <outlet property="button" destination="S1J-0x-V21" id="DYR-ek-saQ"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
@@ -70,10 +73,10 @@
                                 </constraints>
                             </imageView>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ru4-FV-kfb">
-                                <rect key="frame" x="20" y="778" width="374" height="64"/>
+                                <rect key="frame" x="20" y="768" width="374" height="54"/>
                                 <color key="backgroundColor" red="0.29803922770000002" green="0.35294118520000001" blue="0.96470588450000005" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="64" id="5Vk-gc-RHf"/>
+                                    <constraint firstAttribute="height" constant="54" id="5Vk-gc-RHf"/>
                                 </constraints>
                                 <color key="tintColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <state key="normal" title="Button"/>
@@ -116,12 +119,15 @@
                             <constraint firstItem="Zca-vq-hGg" firstAttribute="trailing" secondItem="4aH-KN-9rd" secondAttribute="trailing" constant="20" id="gQ5-cV-t9l"/>
                             <constraint firstItem="doF-CX-Gug" firstAttribute="leading" secondItem="Zca-vq-hGg" secondAttribute="leading" id="kEa-8w-qTf"/>
                             <constraint firstItem="doF-CX-Gug" firstAttribute="top" secondItem="Xy1-7i-YVC" secondAttribute="top" id="nc0-lW-ftp"/>
-                            <constraint firstItem="ru4-FV-kfb" firstAttribute="bottom" secondItem="Zca-vq-hGg" secondAttribute="bottom" id="q4n-fB-wni"/>
+                            <constraint firstItem="ru4-FV-kfb" firstAttribute="bottom" secondItem="Zca-vq-hGg" secondAttribute="bottom" constant="-20" id="q4n-fB-wni"/>
                             <constraint firstItem="WBd-CM-Aqo" firstAttribute="top" secondItem="doF-CX-Gug" secondAttribute="bottom" constant="27" id="qek-v9-eA3"/>
                             <constraint firstItem="WBd-CM-Aqo" firstAttribute="leading" secondItem="Zca-vq-hGg" secondAttribute="leading" constant="20" id="vr3-Lm-VVG"/>
                         </constraints>
                     </view>
                     <navigationItem key="navigationItem" id="xJU-Bg-9zf"/>
+                    <connections>
+                        <outlet property="button" destination="ru4-FV-kfb" id="258-QB-H5U"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="asx-GK-5vI" sceneMemberID="firstResponder"/>
             </objects>
