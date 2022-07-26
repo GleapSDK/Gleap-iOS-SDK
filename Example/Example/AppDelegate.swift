@@ -13,7 +13,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         Gleap.enableDebugConsoleLog()
-        Gleap.initialize(withToken: "KProDXhMS0V3UUku2iNnrZ4XsBnAYzxt")
+        Gleap.initialize(withToken: "YvKPITcLmsQR1q9mrfjD8gsPVg2Nb24i")
         
         Gleap.sharedInstance().delegate = self
         

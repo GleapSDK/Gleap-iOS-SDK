@@ -227,13 +227,18 @@
             NSDictionary *formData = [messageData objectForKey: @"formData"];
             NSDictionary *action = [messageData objectForKey: @"action"];
             NSString *outboundId = [messageData objectForKey: @"outboundId"];
-            NSString *spamToken = [messageData objectForKey: @"spamToken"];
             
             GleapFeedback *feedback = [[GleapFeedback alloc] init];
             [feedback appendData: @{
-                @"spamToken": spamToken,
                 @"formData": formData,
             }];
+            
+            NSString *spamToken = [messageData objectForKey: @"spamToken"];
+            if (spamToken != nil) {
+                [feedback appendData: @{
+                    @"spamToken": spamToken,
+                }];
+            }
             
             // Attach exclude data.
             if (action != nil && [action objectForKey: @"excludeData"] != nil) {
