@@ -16,7 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 typedef enum activationMethodTypes { NONE, SHAKE, SCREENSHOT } GleapActivationMethod;
 typedef enum bugSeverityTypes { LOW, MEDIUM, HIGH } GleapBugSeverity;
 typedef enum gleapLogLevel { INFO, WARNING, ERROR } GleapLogLevel;
-typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER } GleapApplicationType;
+typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR } GleapApplicationType;
 
 static id ObjectOrNull(id object)
 {
