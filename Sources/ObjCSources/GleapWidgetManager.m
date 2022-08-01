@@ -65,23 +65,26 @@
 
 - (void)closeWidget:(void (^)())completion {
     [self.messageQueue removeAllObjects];
-    if (self.gleapWidget == nil) {
-        if (completion != nil) {
-            completion();
-        }
-        return;
-    }
     
-    [self.gleapWidget dismissViewControllerAnimated: YES completion:^{
-        self.gleapWidget = nil;
-        if (completion != nil) {
-            completion();
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (self.gleapWidget == nil) {
+            if (completion != nil) {
+                completion();
+            }
+            return;
         }
         
-        if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetClosed)]) {
-            [Gleap.sharedInstance.delegate widgetClosed];
-        }
-    }];
+        [self.gleapWidget dismissViewControllerAnimated: YES completion:^{
+            self.gleapWidget = nil;
+            if (completion != nil) {
+                completion();
+            }
+            
+            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetClosed)]) {
+                [Gleap.sharedInstance.delegate widgetClosed];
+            }
+        }];
+    });
 }
 
 - (void)connected {
@@ -104,30 +107,32 @@
         return;
     }
     
-    // Pre widget open hook.
-    [GleapScreenshotManager takeScreenshot];
-    [[GleapMetaDataHelper sharedInstance] updateLastScreenName];
-    
-    self.gleapWidget = [[GleapFrameManagerViewController alloc] init];
-    self.gleapWidget.delegate = self;
-    
-    UINavigationController * navController = [[UINavigationController alloc] initWithRootViewController: self.gleapWidget];
-    navController.navigationBar.barStyle = UIBarStyleBlack;
-    [navController.navigationBar setTranslucent: NO];
-    [navController.navigationBar setBarTintColor: [UIColor whiteColor]];
-    [navController.navigationBar setTitleTextAttributes:
-       @{NSForegroundColorAttributeName:[UIColor blackColor]}];
-    navController.navigationBar.hidden = YES;
-    navController.modalPresentationStyle = UIModalPresentationCustom;
-    navController.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
-    
-    // Show on top of all viewcontrollers.
-    UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
-    [topMostViewController presentViewController: navController animated: YES completion:^{
-        if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetOpened)]) {
-            [Gleap.sharedInstance.delegate widgetOpened];
-        }
-    }];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        // Pre widget open hook.
+        [GleapScreenshotManager takeScreenshot];
+        [[GleapMetaDataHelper sharedInstance] updateLastScreenName];
+        
+        self.gleapWidget = [[GleapFrameManagerViewController alloc] init];
+        self.gleapWidget.delegate = self;
+        
+        UINavigationController * navController = [[UINavigationController alloc] initWithRootViewController: self.gleapWidget];
+        navController.navigationBar.barStyle = UIBarStyleBlack;
+        [navController.navigationBar setTranslucent: NO];
+        [navController.navigationBar setBarTintColor: [UIColor whiteColor]];
+        [navController.navigationBar setTitleTextAttributes:
+           @{NSForegroundColorAttributeName:[UIColor blackColor]}];
+        navController.navigationBar.hidden = YES;
+        navController.modalPresentationStyle = UIModalPresentationCustom;
+        navController.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
+        
+        // Show on top of all viewcontrollers.
+        UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
+        [topMostViewController presentViewController: navController animated: YES completion:^{
+            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetOpened)]) {
+                [Gleap.sharedInstance.delegate widgetOpened];
+            }
+        }];
+    });
 }
 
 @end

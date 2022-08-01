@@ -219,7 +219,7 @@
         NSLog(@"[GLEAP_SDK] Please provide a valid Gleap project TOKEN!");
         return;
     }
-    
+
     [[GleapWidgetManager sharedInstance] showWidget];
     
     // Start a feedback flow.
@@ -242,43 +242,44 @@
  Sends a silent bug report with type
  */
 + (void)sendSilentCrashReportWith:(NSString *)description andSeverity:(GleapBugSeverity)severity andDataExclusion:(NSDictionary * _Nullable)excludeData andCompletion: (void (^)(bool success))completion {
-    
-    NSString *bugReportPriority = @"LOW";
-    if (severity == MEDIUM) {
-        bugReportPriority = @"MEDIUM";
-    }
-    if (severity == HIGH) {
-        bugReportPriority = @"HIGH";
-    }
-    
-    GleapFeedback *feedback = [[GleapFeedback alloc] init];
-    [feedback appendData: @{
-        @"formData": @{
-            @"description": description
-        },
-        @"isSilent": @(YES),
-        @"type": @"CRASH",
-        @"priority": bugReportPriority,
-    }];
-    
-    // Attach current screenshot.
-    feedback.screenshot = [GleapScreenCaptureHelper captureScreen];
-    
-    // Attach exclude data.
-    if (excludeData != nil) {
-        feedback.excludeData = excludeData;
-    } else {
-        feedback.excludeData = @{
-            @"screenshot": @(YES),
-            @"replays": @(YES),
-            @"attachments": @(YES)
-        };
-    }
-    
-    // Send crash report.
-    [feedback send:^(bool success) {
-        completion(success);
-    }];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NSString *bugReportPriority = @"LOW";
+        if (severity == MEDIUM) {
+            bugReportPriority = @"MEDIUM";
+        }
+        if (severity == HIGH) {
+            bugReportPriority = @"HIGH";
+        }
+        
+        GleapFeedback *feedback = [[GleapFeedback alloc] init];
+        [feedback appendData: @{
+            @"formData": @{
+                @"description": description
+            },
+            @"isSilent": @(YES),
+            @"type": @"CRASH",
+            @"priority": bugReportPriority,
+        }];
+        
+        // Attach current screenshot.
+        feedback.screenshot = [GleapScreenCaptureHelper captureScreen];
+        
+        // Attach exclude data.
+        if (excludeData != nil) {
+            feedback.excludeData = excludeData;
+        } else {
+            feedback.excludeData = @{
+                @"screenshot": @(YES),
+                @"replays": @(YES),
+                @"attachments": @(YES)
+            };
+        }
+        
+        // Send crash report.
+        [feedback send:^(bool success) {
+            completion(success);
+        }];
+    });
 }
 
 /*
