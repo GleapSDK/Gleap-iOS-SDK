@@ -173,7 +173,7 @@
             [networkLogs addObjectsFromArray: existingNetworkLogs];
         }
     }
-    if ([networkLogs count] > 0) {
+    if ([networkLogs count] > 0 && [GleapHttpTrafficRecorder sharedRecorder].isRecording) {
         [self attachData: @{ @"networkLogs": [[GleapHttpTrafficRecorder sharedRecorder] filterNetworkLogs: networkLogs] }];
     }
     
