@@ -22,8 +22,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         let userProps = GleapUserProperty()
         userProps.email = "lukas@gleap.io"
-        userProps.name = "Lukas"
-        userProps.value = 2918288
+        userProps.name = "Luki"
+        userProps.value = 343
         Gleap.identifyUser(with: "user_1293", andData: userProps)
         
         // Testing file attachments.

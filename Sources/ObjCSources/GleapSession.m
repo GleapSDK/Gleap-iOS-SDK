@@ -10,6 +10,11 @@
 
 @implementation GleapSession
 
+static id ObjectOrNull(id object)
+{
+  return object ?: [NSNull null];
+}
+
 - (NSDictionary *)toDictionary {
     return @{
         @"gleapId": ObjectOrNull(self.gleapId),

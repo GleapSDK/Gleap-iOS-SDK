@@ -12,6 +12,11 @@
 
 @implementation GleapSessionHelper
 
+static id ObjectOrNull(id object)
+{
+  return object ?: [NSNull null];
+}
+
 /*
  Returns a shared instance (singleton).
  */

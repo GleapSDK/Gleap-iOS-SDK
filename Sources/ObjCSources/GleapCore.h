@@ -18,11 +18,6 @@ typedef enum bugSeverityTypes { LOW, MEDIUM, HIGH } GleapBugSeverity;
 typedef enum gleapLogLevel { INFO, WARNING, ERROR } GleapLogLevel;
 typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR } GleapApplicationType;
 
-static id ObjectOrNull(id object)
-{
-  return object ?: [NSNull null];
-}
-
 @protocol GleapDelegate <NSObject>
 @optional
 - (void) feedbackFlowStarted: (NSDictionary *)feedbackAction;
