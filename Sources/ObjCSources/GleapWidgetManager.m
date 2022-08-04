@@ -63,7 +63,7 @@
     }
 }
 
-- (void)closeWidget:(void (^)())completion {
+- (void)closeWidget:(void (^)(void))completion {
     [self.messageQueue removeAllObjects];
     
     dispatch_async(dispatch_get_main_queue(), ^{

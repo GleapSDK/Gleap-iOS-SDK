@@ -84,7 +84,7 @@
     [self invalidateTimeout];
 }
 
-- (void)closeWidget: (void (^)())completion {
+- (void)closeWidget: (void (^)(void))completion {
     self.connected = false;
     
     [[GleapWidgetManager sharedInstance] closeWidget:^{
