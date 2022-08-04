@@ -5,7 +5,7 @@
 //  Created by Lukas Boehler on 25.05.22.
 //
 
-#define SDK_VERSION @"7.0.13"
+#define SDK_VERSION @"7.0.14"
 
 #import "GleapMetaDataHelper.h"
 #import <sys/utsname.h>
@@ -108,6 +108,10 @@
         applicationType = @"Flutter/iOS";
     } else if (Gleap.sharedInstance.applicationType == REACTNATIVE) {
         applicationType = @"ReactNative/iOS";
+    } else if (Gleap.sharedInstance.applicationType == CORDOVA) {
+        applicationType = @"Cordova/iOS";
+    } else if (Gleap.sharedInstance.applicationType == CAPACITOR) {
+        applicationType = @"Capacitor/iOS";
     }
     return applicationType;
 }
