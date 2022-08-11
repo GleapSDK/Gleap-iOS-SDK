@@ -142,7 +142,12 @@
         NSLog(@"[GLEAP_SDK] Error sending message: %@", error);
     } else {
         NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-        [self.webView evaluateJavaScript: [NSString stringWithFormat: @"sendMessage(%@)", jsonString] completionHandler: nil];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            @try {
+                [self.webView evaluateJavaScript: [NSString stringWithFormat: @"sendMessage(%@)", jsonString] completionHandler: nil];
+            }
+            @catch(id exception) {}
+        });
     }
 }
 
@@ -346,11 +351,13 @@
 }
 
 - (void)showSuccessMessage {
-    @try
-    {
-        [self.webView evaluateJavaScript: @"Gleap.getInstance().showSuccessAndClose()" completionHandler: nil];
-    }
-    @catch(id exception) {}
+    dispatch_async(dispatch_get_main_queue(), ^{
+        @try
+        {
+            [self.webView evaluateJavaScript: @"Gleap.getInstance().showSuccessAndClose()" completionHandler: nil];
+        }
+        @catch(id exception) {}
+    });
 }
 
 - (NSString *)hexStringForColor:(UIColor *)color {
