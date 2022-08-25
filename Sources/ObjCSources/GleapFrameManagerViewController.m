@@ -156,6 +156,15 @@
     self.webView.alpha = 1.0;
 }
 
+- (void)sendWidgetStatusUpdate {
+    [self sendMessageWithData: @{
+        @"name": @"widget-status-update",
+        @"data": @{
+            @"isWidgetOpen": @(YES),
+        }
+    }];
+}
+
 - (void)userContentController:(WKUserContentController*)userContentController didReceiveScriptMessage:(WKScriptMessage*)message
 {
     if ([message.name isEqualToString: @"gleapCallback"]) {
@@ -173,6 +182,7 @@
                 [self.delegate connected];
             }
             
+            [self sendWidgetStatusUpdate];
             [self sendConfigUpdate];
             [self sendSessionUpdate];
             [self sendPreFillData];
