@@ -35,10 +35,10 @@
     [Gleap log: @"This is a test info." withLogLevel: INFO];
     [Gleap log: @"This is a test warning." withLogLevel: WARNING];
     
-    double delayInSeconds = 8.0;
+    double delayInSeconds = 3.0;
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
     dispatch_after(popTime, dispatch_get_main_queue(), ^(void) {
-        [Gleap close];
+        [Gleap open];
     });
 }
 

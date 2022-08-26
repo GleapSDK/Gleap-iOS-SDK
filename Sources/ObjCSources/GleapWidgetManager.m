@@ -30,6 +30,7 @@
 - (id)init {
     self = [super init];
     if (self) {
+        self.widgetOpened = NO;
         self.messageQueue = [[NSMutableArray alloc] init];
     }
     return self;
@@ -76,6 +77,7 @@
         
         [self.gleapWidget dismissViewControllerAnimated: YES completion:^{
             self.gleapWidget = nil;
+            self.widgetOpened = NO;
             if (completion != nil) {
                 completion();
             }
@@ -103,9 +105,11 @@
 }
 
 - (void)showWidget {
-    if (self.gleapWidget != nil) {
+    if (self.widgetOpened) {
         return;
     }
+    
+    self.widgetOpened = YES;
     
     dispatch_async(dispatch_get_main_queue(), ^{
         // Pre widget open hook.

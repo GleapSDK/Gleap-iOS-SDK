@@ -21,6 +21,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)sendSessionUpdate;
 - (void)sendConfigUpdate;
 
+@property (nonatomic, assign) bool widgetOpened;
 @property (nonatomic, retain, nullable) GleapFrameManagerViewController *gleapWidget;
 @property (nonatomic, retain, nullable) NSMutableArray *messageQueue;
 
