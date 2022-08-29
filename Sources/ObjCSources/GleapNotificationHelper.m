@@ -140,6 +140,7 @@
     contentLabel.lineBreakMode = NSLineBreakByWordWrapping;
     contentLabel.numberOfLines = 2;
     contentLabel.textColor = [UIColor blackColor];
+    
     [chatBubbleView addSubview: contentLabel];
     
     UIView * containerView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0, width, chatBubbleView.frame.size.height)];
@@ -148,6 +149,16 @@
     [containerView addSubview: senderImageView];
     
     return containerView;
+}
+
+-(void)calculateHeightForLabel:(UILabel *)label {
+    CGSize constraint = CGSizeMake(label.frame.size.width, CGFLOAT_MAX);
+    CGSize size;
+    NSStringDrawingContext *context = [[NSStringDrawingContext alloc] init];
+    CGSize boundingBox = [label.text boundingRectWithSize:constraint    options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName: label.font}
+                                            context:context].size;
+    size = CGSizeMake(ceil(boundingBox.width), ceil(boundingBox.height));
+    label.frame = CGRectMake(label.frame.origin.x, label.frame.origin.y, label.frame.size.width, size.height);
 }
 
 @end
