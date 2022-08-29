@@ -187,6 +187,7 @@
             [self sendSessionUpdate];
             [self sendPreFillData];
             [self sendScreenshotUpdate];
+            [self widgetStatusUpdate];
         }
         
         if ([name isEqualToString: @"cleanup-drawings"]) {
@@ -322,6 +323,11 @@
     self.webView.UIDelegate = self;
     self.webView.alpha = 0;
     
+    self.webView.scrollView.bounces = NO;
+    if (@available(iOS 11.0, *)) {
+        [self.webView.scrollView setContentInsetAdjustmentBehavior: UIScrollViewContentInsetAdjustmentNever];
+    }
+
     [self.view addSubview: self.webView];
     self.webView.translatesAutoresizingMaskIntoConstraints = NO;
     [self pinEdgesFrom: self.webView to: self.view];
@@ -365,6 +371,21 @@
         @try
         {
             [self.webView evaluateJavaScript: @"Gleap.getInstance().showSuccessAndClose()" completionHandler: nil];
+        }
+        @catch(id exception) {}
+    });
+}
+
+- (void)widgetStatusUpdate {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        @try
+        {
+            [self sendMessageWithData: @{
+                @"name": @"widget-status-update",
+                @"data": @{
+                    @"isWidgetOpen": @(YES)
+                }
+            }];
         }
         @catch(id exception) {}
     });
@@ -455,45 +476,24 @@
     [parent addConstraint: leading];
     [parent addConstraint: trailing];
     
-    if (@available(iOS 11.0, *)) {
-        NSLayoutConstraint *bottom =[NSLayoutConstraint
-                                     constraintWithItem: subView
-                                     attribute: NSLayoutAttributeBottom
-                                     relatedBy: NSLayoutRelationEqual
-                                     toItem: parent.safeAreaLayoutGuide
-                                     attribute: NSLayoutAttributeBottom
-                                     multiplier: 1.0f
-                                     constant: 0.f];
-        NSLayoutConstraint *top =[NSLayoutConstraint
-                                  constraintWithItem: subView
-                                  attribute: NSLayoutAttributeTop
-                                  relatedBy: NSLayoutRelationEqual
-                                  toItem: parent.safeAreaLayoutGuide
-                                  attribute: NSLayoutAttributeTop
-                                  multiplier: 1.0f
-                                  constant: 0.f];
-        [parent addConstraint: top];
-        [parent addConstraint: bottom];
-    } else {
-        NSLayoutConstraint *bottom =[NSLayoutConstraint
-                                     constraintWithItem: subView
-                                     attribute: NSLayoutAttributeBottom
-                                     relatedBy: NSLayoutRelationEqual
-                                     toItem: parent
-                                     attribute: NSLayoutAttributeBottom
-                                     multiplier: 1.0f
-                                     constant: 0.f];
-        NSLayoutConstraint *top =[NSLayoutConstraint
-                                  constraintWithItem: subView
-                                  attribute: NSLayoutAttributeTop
-                                  relatedBy: NSLayoutRelationEqual
-                                  toItem: parent
-                                  attribute: NSLayoutAttributeTop
-                                  multiplier: 1.0f
-                                  constant: 0.f];
-        [parent addConstraint: top];
-        [parent addConstraint: bottom];
-    }
+    NSLayoutConstraint *bottom =[NSLayoutConstraint
+                                 constraintWithItem: subView
+                                 attribute: NSLayoutAttributeBottom
+                                 relatedBy: NSLayoutRelationEqual
+                                 toItem: parent
+                                 attribute: NSLayoutAttributeBottom
+                                 multiplier: 1.0f
+                                 constant: 0.f];
+    NSLayoutConstraint *top =[NSLayoutConstraint
+                              constraintWithItem: subView
+                              attribute: NSLayoutAttributeTop
+                              relatedBy: NSLayoutRelationEqual
+                              toItem: parent
+                              attribute: NSLayoutAttributeTop
+                              multiplier: 1.0f
+                              constant: 0.f];
+    [parent addConstraint: top];
+    [parent addConstraint: bottom];
 }
 
 @end

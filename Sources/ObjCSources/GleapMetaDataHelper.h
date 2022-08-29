@@ -15,6 +15,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)sharedInstance;
 
 - (void)startSession;
+- (double)sessionDuration;
 - (void)updateLastScreenName;
 - (NSDictionary *)getMetaData;
 

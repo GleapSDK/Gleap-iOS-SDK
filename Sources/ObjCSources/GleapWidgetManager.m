@@ -10,6 +10,7 @@
 #import "GleapReplayHelper.h"
 #import "GleapMetaDataHelper.h"
 #import "GleapScreenshotManager.h"
+#import "GleapNotificationHelper.h"
 #import "GleapCore.h"
 
 @implementation GleapWidgetManager
@@ -108,6 +109,9 @@
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
+        // Clear all notifications.
+        [[GleapNotificationHelper sharedInstance] clearNotifications];
+        
         // Pre widget open hook.
         [GleapScreenshotManager takeScreenshot];
         [[GleapMetaDataHelper sharedInstance] updateLastScreenName];

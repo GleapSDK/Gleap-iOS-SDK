@@ -13,7 +13,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         Gleap.enableDebugConsoleLog()
-        Gleap.setFrameUrl("http://localhost:3001/app.html")
+        Gleap.setApiUrl("http://192.168.200.16:9000")
+        Gleap.setFrameUrl("http://192.168.200.16:3001/app.html")
         Gleap.initialize(withToken: "KProDXhMS0V3UUku2iNnrZ4XsBnAYzxt")
         
         Gleap.sharedInstance().delegate = self
