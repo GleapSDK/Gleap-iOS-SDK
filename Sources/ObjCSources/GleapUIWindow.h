@@ -7,9 +7,16 @@
 
 #import <UIKit/UIKit.h>
 
+@protocol GleapUIWindowDelegate <NSObject>
+@optional
+- (void)pressedView:(UIView * _Nonnull)view;
+@end
+
 NS_ASSUME_NONNULL_BEGIN
 
 @interface GleapUIWindow : UIWindow
+
+@property (nonatomic, weak) id <GleapUIWindowDelegate> delegate;
 
 @end
 

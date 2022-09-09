@@ -200,7 +200,7 @@
             }
             
             int unreadCount = [[actionData objectForKey: @"u"] intValue];
-            [[GleapNotificationHelper sharedInstance] setNotificationCount: unreadCount];
+            [GleapNotificationHelper updateNotificationCount: unreadCount];
         }
         @catch(id exception) {}
     }];

@@ -11,15 +11,14 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface GleapNotificationHelper : NSObject
+@interface GleapNotificationHelper : NSObject <GleapUIWindowDelegate>
 
 + (instancetype)sharedInstance;
 + (void)showNotification:(NSDictionary *)notification;
-+ (void)setNotificationCount:(int)notificationCount;
-- (void)clearNotifications;
++ (void)updateNotificationCount:(int)notificationCount;
 - (void)renderUI;
 
-@property (nonatomic, assign) int notificationCount;
+@property (nonatomic, assign) int internalNotificationCount;
 @property (nonatomic, retain) GleapFeedbackButton *feedbackButton;
 @property (nonatomic, retain) GleapUIWindow *uiWindow;
 @property (nonatomic, retain) NSMutableArray *notifications;

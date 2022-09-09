@@ -17,6 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (UIViewController *)topViewControllerWith:(UIViewController *)rootViewController;
 + (UIColor *)colorFromHexString:(NSString *)hexString;
 + (NSString *)getJSStringForNSDate:(NSDate *)date;
++ (UIColor *)contrastColorFrom:(UIColor *)color;
 
 @end
 

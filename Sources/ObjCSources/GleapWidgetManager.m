@@ -80,7 +80,9 @@
             if (completion != nil) {
                 completion();
             }
-            
+        
+            [[GleapNotificationHelper sharedInstance] renderUI];
+        
             if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetClosed)]) {
                 [Gleap.sharedInstance.delegate widgetClosed];
             }
@@ -109,16 +111,16 @@
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
-        // Clear all notifications.
-        [[GleapNotificationHelper sharedInstance] clearNotifications];
-        
         // Pre widget open hook.
         [GleapScreenshotManager takeScreenshot];
         [[GleapMetaDataHelper sharedInstance] updateLastScreenName];
         
         self.gleapWidget = [[GleapFrameManagerViewController alloc] init];
         self.gleapWidget.delegate = self;
-        
+    
+        // Clear all notifications.
+        [[GleapNotificationHelper sharedInstance] renderUI];
+    
         UINavigationController * navController = [[UINavigationController alloc] initWithRootViewController: self.gleapWidget];
         navController.navigationBar.barStyle = UIBarStyleBlack;
         [navController.navigationBar setTranslucent: NO];

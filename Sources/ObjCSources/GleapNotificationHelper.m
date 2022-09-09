@@ -29,9 +29,11 @@
 - (void)initializeUI {
     self.notifications = [[NSMutableArray alloc] init];
     self.notificationViews = [[NSMutableArray alloc] init];
-    self.notificationCount = 0;
+    self.internalNotificationCount = 0;
     
     dispatch_async(dispatch_get_main_queue(), ^{
+        UIWindow * currentKeyWindow = [[UIApplication sharedApplication] keyWindow];
+        
         if (@available(iOS 13.0, *)) {
             UIScene *scene = [[[[UIApplication sharedApplication] connectedScenes] allObjects] firstObject];
             self.uiWindow = [[GleapUIWindow alloc] initWithWindowScene: (UIWindowScene *)scene];
@@ -41,13 +43,28 @@
             self.uiWindow = [[GleapUIWindow alloc] init];
         }
         [self.uiWindow setFrame: UIScreen.mainScreen.bounds];
+        self.uiWindow.backgroundColor = nil;
         self.uiWindow.windowLevel = CGFLOAT_MAX;
         self.uiWindow.hidden = NO;
+        self.uiWindow.delegate = self;
+        
+        [currentKeyWindow makeKeyWindow];
     });
 }
 
-+ (void)setNotificationCount:(int)notificationCount {
-    [GleapNotificationHelper sharedInstance].notificationCount = notificationCount;
+- (void)pressedView:(UIView *)view {
+    @try {
+        if (view.tag == INT_MAX) {
+            [Gleap open];
+        } else {
+            NSDictionary *notification = [self.notifications objectAtIndex: view.tag];
+            [Gleap open];
+        }
+    } @catch(id exception) {}
+}
+
++ (void)updateNotificationCount:(int)notificationCount {
+    [GleapNotificationHelper sharedInstance].internalNotificationCount = notificationCount;
     [[GleapNotificationHelper sharedInstance] renderUI];
 }
 
@@ -65,6 +82,24 @@
             return;
         }
         
+        if ([Gleap isOpened]) {
+            self.notifications = [[NSMutableArray alloc] init];
+            
+            [UIView animateWithDuration:0.3f animations:^{
+                self.feedbackButton.alpha = 0.0;
+            } completion:^(BOOL finished) {
+                self.uiWindow.hidden = YES;
+            }];
+        } else {
+            if (self.uiWindow.hidden) {
+                self.feedbackButton.alpha = 0.0;
+                [UIView animateWithDuration:0.3f animations:^{
+                    self.feedbackButton.alpha = 1.0;
+                }];
+            }
+            self.uiWindow.hidden = NO;
+        }
+        
         CGFloat currentNotificationHeight = 20.0;
         if (@available(iOS 11.0, *)) {
             UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
@@ -77,7 +112,7 @@
             [self.uiWindow addSubview: self.feedbackButton];
         }
         [self.feedbackButton applyConfig];
-        [self.feedbackButton setNotificationCount: self.notificationCount];
+        [self.feedbackButton setNotificationCount: self.internalNotificationCount];
         if (!self.feedbackButton.isHidden) {
             currentNotificationHeight += self.feedbackButton.frame.size.height;
         }
@@ -93,11 +128,6 @@
             UIView *notificationView = [self createNotificationViewFor: notification onWindow: self.uiWindow];
             notificationView.tag = i;
             
-            UITapGestureRecognizer *singleFingerTap =
-              [[UITapGestureRecognizer alloc] initWithTarget:self
-                                                      action:@selector(notificationTaped:)];
-            [notificationView addGestureRecognizer: singleFingerTap];
-            
             notificationView.frame = CGRectMake(0.0, self.uiWindow.frame.size.height - notificationView.frame.size.height - 20 - currentNotificationHeight, notificationView.frame.size.width, notificationView.frame.size.height);
             
             [self.uiWindow addSubview: notificationView];
@@ -106,19 +136,6 @@
             currentNotificationHeight += notificationView.frame.size.height + 20.0;
         }
     });
-}
-
-- (void)notificationTaped:(UITapGestureRecognizer *)recognizer
-{
-    @try {
-        NSDictionary *notification = [self.notifications objectAtIndex: recognizer.view.tag];
-        [Gleap open];
-    } @catch(id exception) {}
-}
-
-- (void)clearNotifications {
-    self.notifications = [[NSMutableArray alloc] init];
-    [self renderUI];
 }
 
 - (UIView *)createNotificationViewFor:(NSDictionary *)notification onWindow:(UIWindow *)window {

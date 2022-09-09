@@ -9,24 +9,66 @@
 
 @implementation GleapUIWindow
 
-/*
-// Only override drawRect: if you perform custom drawing.
-// An empty implementation adversely affects performance during animation.
-- (void)drawRect:(CGRect)rect {
-    // Drawing code
-}
-*/
-
 - (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event {
     for (int i = 0; i < self.subviews.count; i++) {
         UIView *view = [self.subviews objectAtIndex: i];
         if (view != nil) {
             CGPoint pointInView = [self convertPoint: point toView: view];
-            return [view pointInside: pointInView withEvent: event];
+            Boolean pointInside = [view pointInside: pointInView withEvent: event];
+            if(pointInside && self.delegate != nil && [self.delegate respondsToSelector:@selector(pressedView:)]) {
+                [self.delegate pressedView: view];
+            }
         }
     }
     
     return NO;
+}
+
+- (BOOL)canBecomeFirstResponder
+{
+    return NO;
+}
+
+- (BOOL)becomeFirstResponder
+{
+    return NO;
+}
+
+- (void)becomeKeyWindow
+{
+    [[self class] findAndSetSuitableKeyWindow];
+}
+
+#pragma mark - Finding better key windows
+
+static BOOL IsAllowedKeyWindow(UIWindow *window)
+{
+    NSString *className = [[window class] description];
+    if([className isEqual:@"UIRemoteKeyboardWindow"])
+        return NO;
+    if([window isKindOfClass:[GleapUIWindow class]])
+        return NO;
+
+    return YES;
+}
+
++ (UIWindow*)suitableWindowToMakeKeyExcluding:(UIWindow*)notThis
+{
+    NSArray *windows = [UIApplication sharedApplication].windows;
+    NSInteger index = windows.count-1;
+
+    UIWindow *nextWindow = [windows objectAtIndex:index];
+    while((!IsAllowedKeyWindow(nextWindow) || nextWindow == notThis) && index >= 0) {
+        nextWindow = windows[--index];
+    }
+    return nextWindow;
+}
+
++ (UIWindow*)findAndSetSuitableKeyWindow
+{
+    UIWindow *nextWindow = [[self class] suitableWindowToMakeKeyExcluding:nil];
+    [nextWindow makeKeyWindow];
+    return nextWindow;
 }
 
 @end

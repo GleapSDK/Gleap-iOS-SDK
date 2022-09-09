@@ -17,6 +17,7 @@
 #import "GleapFeedback.h"
 #import "GleapWidgetManager.h"
 #import "GleapScreenshotManager.h"
+#import "GleapUIHelper.h"
 #import "GleapPreFillHelper.h"
 
 @interface GleapFrameManagerViewController ()
@@ -36,6 +37,20 @@
    {
        self.connected = NO;
        self.view.backgroundColor = [UIColor colorWithRed: 0.0 green: 0.0 blue: 0.0 alpha: 0.7];
+       
+       NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+       if (config != nil) {
+           NSString *backgroundColor = [config objectForKey: @"backgroundColor"];
+           if (backgroundColor != nil && backgroundColor.length > 0) {
+               self.view.backgroundColor = [GleapUIHelper colorFromHexString: backgroundColor];
+           } else {
+               if (@available(iOS 13.0, *)) {
+                   self.view.backgroundColor = [UIColor systemBackgroundColor];
+               } else {
+                   self.view.backgroundColor = [UIColor whiteColor];
+               }
+           }
+       }
    }
    return self;
 }
@@ -52,8 +67,22 @@
     loadingView.backgroundColor = UIColor.clearColor;
     UIActivityIndicatorView *loadingActivityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle: UIActivityIndicatorViewStyleWhiteLarge];
     [loadingActivityView startAnimating];
-    loadingActivityView.color = UIColor.whiteColor;
     
+    NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+    if (config != nil) {
+        NSString *backgroundColor = [config objectForKey: @"backgroundColor"];
+        if (backgroundColor != nil && backgroundColor.length > 0) {
+            UIColor *color = [GleapUIHelper colorFromHexString: backgroundColor];
+            loadingActivityView.color = [GleapUIHelper contrastColorFrom: color];
+        } else {
+            if (@available(iOS 13.0, *)) {
+                loadingActivityView.color = UIColor.darkTextColor;
+            } else {
+                loadingActivityView.color = UIColor.blackColor;
+            }
+        }
+    }
+
     // Loading view
     [self.view addSubview: loadingView];
     loadingView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -379,15 +408,6 @@
         }
         @catch(id exception) {}
     });
-}
-
-- (NSString *)hexStringForColor:(UIColor *)color {
-      const CGFloat *components = CGColorGetComponents(color.CGColor);
-      CGFloat r = components[0];
-      CGFloat g = components[1];
-      CGFloat b = components[2];
-      NSString *hexString=[NSString stringWithFormat:@"%02X%02X%02X", (int)(r * 255), (int)(g * 255), (int)(b * 255)];
-      return hexString;
 }
 
 - (void)webView:(WKWebView *)webView didFailProvisionalNavigation:(WKNavigation *)navigation withError:(NSError *)error {
