@@ -178,8 +178,6 @@
             return;
         }
         
-        NSLog(@"%@", actionData);
-        
         /*if ([action objectForKey: @"actionType"] != nil && [action objectForKey: @"outbound"] != nil) {
             GleapAction *gleapAction = [[GleapAction alloc] init];
             gleapAction.actionType = [action objectForKey: @"actionType"];
@@ -190,18 +188,21 @@
             });
         }*/
         
-        NSArray *actions = [actionData objectForKey: @"a"];
-        if (actions != nil) {
-            for (int i = 0; i < actions.count; i++) {
-                NSDictionary *action = [actions objectAtIndex: i];
-                if ([[action objectForKey: @"actionType"] isEqualToString: @"notification"]) {
-                    [GleapNotificationHelper showNotification: action];
+        @try {
+            NSArray *actions = [actionData objectForKey: @"a"];
+            if (actions != nil) {
+                for (int i = 0; i < actions.count; i++) {
+                    NSDictionary *action = [actions objectAtIndex: i];
+                    if ([[action objectForKey: @"actionType"] isEqualToString: @"notification"]) {
+                        [GleapNotificationHelper showNotification: action];
+                    }
                 }
             }
+            
+            int unreadCount = [[actionData objectForKey: @"u"] intValue];
+            [[GleapNotificationHelper sharedInstance] setNotificationCount: unreadCount];
         }
-        
-        int unreadCount = [actionData objectForKey: @"u"];
-        [[GleapNotificationHelper sharedInstance] setNotificationCount: unreadCount];
+        @catch(id exception) {}
     }];
     [task resume];
     

@@ -157,12 +157,18 @@
 }
 
 - (void)sendWidgetStatusUpdate {
-    [self sendMessageWithData: @{
-        @"name": @"widget-status-update",
-        @"data": @{
-            @"isWidgetOpen": @(YES),
+    dispatch_async(dispatch_get_main_queue(), ^{
+        @try
+        {
+            [self sendMessageWithData: @{
+                @"name": @"widget-status-update",
+                @"data": @{
+                    @"isWidgetOpen": @(YES)
+                }
+            }];
         }
-    }];
+        @catch(id exception) {}
+    });
 }
 
 - (void)userContentController:(WKUserContentController*)userContentController didReceiveScriptMessage:(WKScriptMessage*)message
@@ -187,7 +193,6 @@
             [self sendSessionUpdate];
             [self sendPreFillData];
             [self sendScreenshotUpdate];
-            [self widgetStatusUpdate];
         }
         
         if ([name isEqualToString: @"cleanup-drawings"]) {
@@ -371,21 +376,6 @@
         @try
         {
             [self.webView evaluateJavaScript: @"Gleap.getInstance().showSuccessAndClose()" completionHandler: nil];
-        }
-        @catch(id exception) {}
-    });
-}
-
-- (void)widgetStatusUpdate {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        @try
-        {
-            [self sendMessageWithData: @{
-                @"name": @"widget-status-update",
-                @"data": @{
-                    @"isWidgetOpen": @(YES)
-                }
-            }];
         }
         @catch(id exception) {}
     });
