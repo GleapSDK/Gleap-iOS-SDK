@@ -358,11 +358,4 @@
     Gleap.sharedInstance.applicationType = applicationType;
 }
 
-- (void)performAction:(GleapAction *)action {
-    [self startFeedbackFlow: action.actionType withOptions: @{
-        @"actionOutboundId": action.outbound,
-        @"hideBackButton": @YES
-    }];
-}
-
 @end

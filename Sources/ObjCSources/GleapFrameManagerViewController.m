@@ -358,6 +358,7 @@
     self.webView.alpha = 0;
     
     self.webView.scrollView.bounces = NO;
+    self.webView.allowsBackForwardNavigationGestures = NO;
     if (@available(iOS 11.0, *)) {
         [self.webView.scrollView setContentInsetAdjustmentBehavior: UIScrollViewContentInsetAdjustmentNever];
     }

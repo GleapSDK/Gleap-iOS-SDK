@@ -178,16 +178,6 @@
             return;
         }
         
-        /*if ([action objectForKey: @"actionType"] != nil && [action objectForKey: @"outbound"] != nil) {
-            GleapAction *gleapAction = [[GleapAction alloc] init];
-            gleapAction.actionType = [action objectForKey: @"actionType"];
-            gleapAction.outbound = [action objectForKey: @"outbound"];
-            
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-                [Gleap.sharedInstance performAction: gleapAction];
-            });
-        }*/
-        
         @try {
             NSArray *actions = [actionData objectForKey: @"a"];
             if (actions != nil) {
@@ -195,6 +185,15 @@
                     NSDictionary *action = [actions objectAtIndex: i];
                     if ([[action objectForKey: @"actionType"] isEqualToString: @"notification"]) {
                         [GleapNotificationHelper showNotification: action];
+                    } else {
+                        if ([action objectForKey: @"actionType"] != nil && [action objectForKey: @"outbound"] != nil) {
+                            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                                [Gleap.sharedInstance startFeedbackFlow: [action objectForKey: @"actionType"] withOptions: @{
+                                    @"actionOutboundId": [action objectForKey: @"outbound"],
+                                    @"hideBackButton": @YES
+                                }];
+                            });
+                        }
                     }
                 }
             }

@@ -111,7 +111,7 @@
     [[GleapWidgetManager sharedInstance] sendConfigUpdate];
     
     // Update notification UI components.
-    [[GleapNotificationHelper sharedInstance] renderUI];
+    [GleapNotificationHelper updateUI];
     
     // Config loaded delegate
     if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(configLoaded:)]) {

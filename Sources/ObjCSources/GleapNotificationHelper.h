@@ -8,6 +8,7 @@
 #import <Foundation/Foundation.h>
 #import "GleapUIWindow.h"
 #import "GleapFeedbackButton.h"
+#import "GleapUIOverlayViewController.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -16,13 +17,12 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)sharedInstance;
 + (void)showNotification:(NSDictionary *)notification;
 + (void)updateNotificationCount:(int)notificationCount;
-- (void)renderUI;
++ (void)updateUI;
 
-@property (nonatomic, assign) int internalNotificationCount;
-@property (nonatomic, retain) GleapFeedbackButton *feedbackButton;
+@property (nonatomic, assign) int notificationCount;
 @property (nonatomic, retain) GleapUIWindow *uiWindow;
+@property (nonatomic, retain) GleapUIOverlayViewController *uiOverlayViewController;
 @property (nonatomic, retain) NSMutableArray *notifications;
-@property (nonatomic, retain) NSMutableArray *notificationViews;
 
 @end
 

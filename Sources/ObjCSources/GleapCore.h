@@ -280,7 +280,6 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR 
 + (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod;
 + (void)shakeInvocation;
 + (void)setAutoActivationMethodsDisabled;
-- (void)performAction:(GleapAction *)action;
 - (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options;
 
 @property (nonatomic, retain) NSString* token;

@@ -80,9 +80,9 @@
             if (completion != nil) {
                 completion();
             }
-        
-            [[GleapNotificationHelper sharedInstance] renderUI];
-        
+            
+            [GleapNotificationHelper updateUI];
+            
             if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetClosed)]) {
                 [Gleap.sharedInstance.delegate widgetClosed];
             }
@@ -119,7 +119,7 @@
         self.gleapWidget.delegate = self;
     
         // Clear all notifications.
-        [[GleapNotificationHelper sharedInstance] renderUI];
+        [GleapNotificationHelper updateUI];
     
         UINavigationController * navController = [[UINavigationController alloc] initWithRootViewController: self.gleapWidget];
         navController.navigationBar.barStyle = UIBarStyleBlack;
@@ -128,8 +128,6 @@
         [navController.navigationBar setTitleTextAttributes:
            @{NSForegroundColorAttributeName:[UIColor blackColor]}];
         navController.navigationBar.hidden = YES;
-        navController.modalPresentationStyle = UIModalPresentationCustom;
-        navController.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
         
         // Show on top of all viewcontrollers.
         UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
