@@ -45,7 +45,7 @@
     self.notificationViews = [[NSMutableArray alloc] init];
     
     // Render feedback button.
-    self.feedbackButton = [[GleapFeedbackButton alloc] initWithFrame: CGRectMake(0, 0, 52.0, 52.0)];
+    self.feedbackButton = [[GleapFeedbackButton alloc] initWithFrame: CGRectMake(0, 0, 54.0, 54.0)];
     [self.view addSubview: self.feedbackButton];
     
     [self.feedbackButton applyConfig];

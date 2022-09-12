@@ -22,14 +22,14 @@
 
 - (void)commonInit {
     float padding = 10.0;
-    self.logoView = [[UIImageView alloc] initWithFrame: CGRectMake(padding, padding, self.frame.size.width - (padding * 2), self.frame.size.height - (padding * 2))];
+    self.logoView = [[UIImageView alloc] initWithFrame: CGRectMake(padding, 8.0, self.frame.size.width - (padding * 2), self.frame.size.height - (padding * 2))];
     self.logoView.contentMode = UIViewContentModeScaleAspectFit;
     [self addSubview: self.logoView];
     
     self.tag = INT_MAX;
     
     float notificationBadgeSize = 22.0;
-    self.notificationBadgeView = [[UIView alloc] initWithFrame: CGRectMake(self.frame.size.width - (notificationBadgeSize - 6.0), -6.0, notificationBadgeSize, notificationBadgeSize)];
+    self.notificationBadgeView = [[UIView alloc] initWithFrame: CGRectMake(self.frame.size.width - (notificationBadgeSize - 5.0), -5.0, notificationBadgeSize, notificationBadgeSize)];
     self.notificationBadgeView.backgroundColor = [UIColor redColor];
     self.notificationBadgeView.layer.cornerRadius = notificationBadgeSize / 2.0;
     [self addSubview: self.notificationBadgeView];
