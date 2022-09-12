@@ -188,6 +188,8 @@
                             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
                                 [Gleap.sharedInstance startFeedbackFlow: [action objectForKey: @"actionType"] withOptions: @{
                                     @"actionOutboundId": [action objectForKey: @"outbound"],
+                                    @"isSurvey": @YES,
+                                    @"format": [action objectForKey: @"format"],
                                     @"hideBackButton": @YES
                                 }];
                             });

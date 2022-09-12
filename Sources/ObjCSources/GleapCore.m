@@ -231,8 +231,13 @@
             [startFeedbackFlowData addEntriesFromDictionary: options];
         }
         
+        NSString *command = @"start-feedbackflow";
+        if (options != nil && [options objectForKey: @"isSurvey"] != nil && [[options objectForKey: @"isSurvey"] boolValue]) {
+            command = @"start-survey";
+        }
+        
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"start-feedbackflow",
+            @"name": command,
             @"data": startFeedbackFlowData,
         }];
     }

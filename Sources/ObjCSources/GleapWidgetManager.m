@@ -128,6 +128,9 @@
         [navController.navigationBar setTitleTextAttributes:
            @{NSForegroundColorAttributeName:[UIColor blackColor]}];
         navController.navigationBar.hidden = YES;
+        if (@available(iOS 13.0, *)) {
+            [navController setModalInPresentation: YES];
+        }
         
         if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
         {
