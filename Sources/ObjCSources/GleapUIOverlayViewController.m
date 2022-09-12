@@ -91,9 +91,6 @@
     }
     
     NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
-    if ([feedbackButtonPosition isEqualToString: @"BUTTON_NONE"]) {
-        return;
-    }
     
     CGFloat currentNotificationHeight = 20.0;
     if (@available(iOS 11.0, *)) {
