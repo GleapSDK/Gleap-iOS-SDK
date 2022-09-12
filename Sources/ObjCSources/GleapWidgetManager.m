@@ -120,7 +120,7 @@
     
         // Clear all notifications.
         [GleapNotificationHelper updateUI];
-    
+        
         UINavigationController * navController = [[UINavigationController alloc] initWithRootViewController: self.gleapWidget];
         navController.navigationBar.barStyle = UIBarStyleBlack;
         [navController.navigationBar setTranslucent: NO];
