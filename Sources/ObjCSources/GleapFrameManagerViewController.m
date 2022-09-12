@@ -64,7 +64,6 @@
 
 - (void)setupLoadingView {
     UIView *loadingView = [UIView new];
-    loadingView.backgroundColor = UIColor.clearColor;
     UIActivityIndicatorView *loadingActivityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle: UIActivityIndicatorViewStyleWhiteLarge];
     [loadingActivityView startAnimating];
     
@@ -73,13 +72,31 @@
         NSString *backgroundColor = [config objectForKey: @"backgroundColor"];
         if (backgroundColor != nil && backgroundColor.length > 0) {
             UIColor *color = [GleapUIHelper colorFromHexString: backgroundColor];
+            loadingView.backgroundColor = color;
             loadingActivityView.color = [GleapUIHelper contrastColorFrom: color];
         } else {
             if (@available(iOS 13.0, *)) {
-                loadingActivityView.color = UIColor.darkTextColor;
+                loadingView.backgroundColor = UIColor.systemBackgroundColor;
+                loadingActivityView.color = UIColor.labelColor;
             } else {
+                loadingView.backgroundColor = UIColor.whiteColor;
                 loadingActivityView.color = UIColor.blackColor;
             }
+        }
+        
+        NSString *headerColor = [config objectForKey: @"headerColor"];
+        if (headerColor != nil && headerColor.length > 0) {
+            UIColor *color = [GleapUIHelper colorFromHexString: headerColor];
+            UIView *headerView = [UIView new];
+            headerView.backgroundColor = color;
+                        
+            headerView.translatesAutoresizingMaskIntoConstraints = NO;
+            [loadingView addSubview: headerView];
+            
+            [[headerView.topAnchor constraintEqualToAnchor: loadingView.topAnchor] setActive:YES];
+            [[headerView.trailingAnchor constraintEqualToAnchor: loadingView.trailingAnchor] setActive:YES];
+            [[headerView.leadingAnchor constraintEqualToAnchor: loadingView.leadingAnchor] setActive:YES];
+            [[headerView.heightAnchor constraintEqualToConstant: 250] setActive:YES];
         }
     }
 
