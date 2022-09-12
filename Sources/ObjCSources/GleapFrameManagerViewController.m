@@ -308,10 +308,11 @@
                 feedback.feedbackType = [action objectForKey: @"feedbackType"];
             }
             
-            [feedback send:^(bool success) {
+            [feedback send:^(bool success, NSDictionary* data) {
                 if (success) {
                     [self sendMessageWithData: @{
-                        @"name": @"feedback-sent"
+                        @"name": @"feedback-sent",
+                        @"data": data
                     }];
                 } else {
                     [self sendMessageWithData: @{

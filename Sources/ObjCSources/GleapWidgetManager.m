@@ -129,6 +129,11 @@
            @{NSForegroundColorAttributeName:[UIColor blackColor]}];
         navController.navigationBar.hidden = YES;
         
+        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
+        {
+            [navController setModalPresentationStyle: UIModalPresentationCustom];
+        }
+        
         // Show on top of all viewcontrollers.
         UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
         [topMostViewController presentViewController: navController animated: YES completion:^{

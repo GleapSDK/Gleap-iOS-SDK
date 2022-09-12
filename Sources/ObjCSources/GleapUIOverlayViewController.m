@@ -204,7 +204,12 @@
     UILabel *senderLabel = [[UILabel alloc] initWithFrame: CGRectMake(16, 16, chatBubbleView.frame.size.width - 32, 14)];
     senderLabel.text = [sender objectForKey: @"name"];
     senderLabel.font = [UIFont systemFontOfSize: 14];
-    senderLabel.textColor = [UIColor darkGrayColor];
+    senderLabel.alpha = 0.5;
+    if (@available(iOS 13.0, *)) {
+        senderLabel.textColor = [UIColor labelColor];
+    } else {
+        senderLabel.textColor = [UIColor blackColor];
+    }
     [chatBubbleView addSubview: senderLabel];
     
     UILabel *contentLabel = [[UILabel alloc] initWithFrame: CGRectMake(16, 36, chatBubbleView.frame.size.width - 32, contentLabelSize.height)];
@@ -212,7 +217,11 @@
     contentLabel.font = contentFont;
     contentLabel.lineBreakMode = NSLineBreakByWordWrapping;
     contentLabel.numberOfLines = 2;
-    contentLabel.textColor = [UIColor blackColor];
+    if (@available(iOS 13.0, *)) {
+        senderLabel.textColor = [UIColor labelColor];
+    } else {
+        senderLabel.textColor = [UIColor blackColor];
+    }
     
     [chatBubbleView addSubview: contentLabel];
     

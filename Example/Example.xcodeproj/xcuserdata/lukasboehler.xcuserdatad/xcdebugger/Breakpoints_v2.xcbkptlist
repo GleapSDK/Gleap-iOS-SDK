@@ -14,8 +14,8 @@
             filePath = "../Sources/ObjCSources/GleapEventLogHelper.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "167"
-            endingLineNumber = "167"
+            startingLineNumber = "165"
+            endingLineNumber = "165"
             landmarkName = "-sendEventStreamToServer"
             landmarkType = "7">
          </BreakpointContent>
@@ -158,8 +158,8 @@
             filePath = "../Sources/ObjCSources/GleapEventLogHelper.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "153"
-            endingLineNumber = "153"
+            startingLineNumber = "151"
+            endingLineNumber = "151"
             landmarkName = "-sendEventStreamToServer"
             landmarkType = "7">
          </BreakpointContent>
@@ -231,54 +231,6 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "7179AD38-B5A1-4A32-9F5F-F64FDF0B2876"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "../Sources/ObjCSources/GleapNotificationHelper.m"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "58"
-            endingLineNumber = "58"
-            landmarkName = "-initializeUI"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "E30CD9F7-8CA2-4C97-B845-1C0B4A71D71D"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "../Sources/ObjCSources/GleapNotificationHelper.m"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "61"
-            endingLineNumber = "61"
-            landmarkName = "-initializeUI"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "9591C214-5DD4-476B-AD4A-1944F4812C0B"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "../Sources/ObjCSources/GleapNotificationHelper.m"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "59"
-            endingLineNumber = "59"
-            landmarkName = "-initializeUI"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
             uuid = "241681E3-8544-44AC-B607-94C3332DB58A"
             shouldBeEnabled = "No"
             ignoreCount = "0"
@@ -318,8 +270,8 @@
             filePath = "../Sources/ObjCSources/GleapEventLogHelper.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "187"
-            endingLineNumber = "187"
+            startingLineNumber = "185"
+            endingLineNumber = "185"
             landmarkName = "-sendEventStreamToServer"
             landmarkType = "7">
          </BreakpointContent>
@@ -350,8 +302,8 @@
             filePath = "../Sources/ObjCSources/GleapNotificationHelper.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "94"
-            endingLineNumber = "94"
+            startingLineNumber = "96"
+            endingLineNumber = "96"
             landmarkName = "+showNotification:"
             landmarkType = "7">
          </BreakpointContent>
@@ -385,22 +337,6 @@
             startingLineNumber = "98"
             endingLineNumber = "98"
             landmarkName = "-connected"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "ADF6CE18-C19E-46B4-A581-398A14E2771D"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "../Sources/ObjCSources/GleapUIOverlayViewController.m"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "210"
-            endingLineNumber = "210"
-            landmarkName = "-createNotificationViewFor:onWindow:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

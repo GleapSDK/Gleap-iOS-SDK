@@ -276,7 +276,7 @@
         }
         
         // Send crash report.
-        [feedback send:^(bool success) {
+        [feedback send:^(bool success, NSDictionary* data) {
             completion(success);
         }];
     });

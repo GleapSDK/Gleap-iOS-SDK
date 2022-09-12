@@ -77,6 +77,8 @@
                         @"shareToken": shareToken
                     },
                 }];
+            } else {
+                [Gleap open];
             }
         }
     } @catch(id exception) {}

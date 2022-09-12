@@ -140,8 +140,6 @@
         @"opened": @([Gleap isOpened])
     };
     
-    NSLog(@"%@", data);
-    
     NSError *error;
     NSData *jsonBodyData = [NSJSONSerialization dataWithJSONObject: data options:kNilOptions error: &error];
     
