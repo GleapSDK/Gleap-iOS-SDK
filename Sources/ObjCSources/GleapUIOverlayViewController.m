@@ -137,39 +137,69 @@
     NSDictionary * sender = [notificationData objectForKey: @"sender"];
     
     CGFloat width = view.frame.size.width;
-    if (width > 380) {
-        width = 380;
+    if (width > 360) {
+        width = 360;
     }
     
-    UIImageView * senderImageView = [[UIImageView alloc] initWithFrame: CGRectMake(20.0, 0.0, 40.0, 40.0)];
-    senderImageView.backgroundColor = [UIColor grayColor];
-    senderImageView.layer.cornerRadius = 20.0;
-    senderImageView.clipsToBounds = YES;
+    CGFloat chatBubbleViewWidth = width - 88.0;
     
-    dispatch_async(dispatch_get_global_queue(0,0), ^{
-        NSData * data = [[NSData alloc] initWithContentsOfURL: [NSURL URLWithString: [sender objectForKey: @"profileImageUrl"]]];
-        if ( data == nil )
-            return;
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (senderImageView != nil) {
-                senderImageView.image = [UIImage imageWithData: data];
-            }
-        });
-    });
+    NSString *userName = [[GleapSessionHelper sharedInstance] getSessionName];
+    NSString *textContent = [notificationData objectForKey: @"text"];
+    textContent = [textContent stringByReplacingOccurrencesOfString:@"{{name}}" withString: userName];
+
+    UIFont *contentFont = [UIFont systemFontOfSize: 16];
+    CGSize contentLabelSize = [textContent boundingRectWithSize:CGSizeMake(chatBubbleViewWidth - 32, 39.0)
+                                                      options:NSStringDrawingUsesLineFragmentOrigin
+                                                   attributes:@{
+                                                                NSFontAttributeName : contentFont
+                                                                }
+                                                      context:nil].size;
     
-    UIView * chatBubbleView = [[UIView alloc] initWithFrame: CGRectMake(68.0, 0.0, width - 88.0, 96.0)];
+    UIView * chatBubbleView = [[UIView alloc] initWithFrame: CGRectMake(68.0, 0.0, chatBubbleViewWidth, 52.0 + contentLabelSize.height)];
     chatBubbleView.layer.cornerRadius = 8.0;
     chatBubbleView.layer.shadowRadius  = 8.0;
     chatBubbleView.layer.shadowColor   = [UIColor blackColor].CGColor;
     chatBubbleView.layer.shadowOffset  = CGSizeMake(0.0f, 0.0f);
-    chatBubbleView.layer.shadowOpacity = 0.2;
+    chatBubbleView.layer.shadowOpacity = 0.15;
     chatBubbleView.layer.masksToBounds = NO;
     chatBubbleView.clipsToBounds = NO;
+    chatBubbleView.alpha = 0.0;
     if (@available(iOS 13.0, *)) {
         chatBubbleView.backgroundColor = [UIColor systemBackgroundColor];
     } else {
         chatBubbleView.backgroundColor = [UIColor whiteColor];
     }
+    
+    UIView * senderOuterImageView = [[UIView alloc] initWithFrame: CGRectMake(20.0, 8.0, 36.0, 36.0)];
+    senderOuterImageView.layer.cornerRadius = 18.0;
+    senderOuterImageView.layer.shadowRadius  = 8.0;
+    senderOuterImageView.layer.shadowColor   = [UIColor blackColor].CGColor;
+    senderOuterImageView.layer.shadowOffset  = CGSizeMake(0.0f, 0.0f);
+    senderOuterImageView.layer.shadowOpacity = 0.15;
+    senderOuterImageView.layer.masksToBounds = NO;
+    senderOuterImageView.clipsToBounds = NO;
+    
+    UIImageView * senderImageView = [[UIImageView alloc] initWithFrame: CGRectMake(0.0, 0.0, 36.0, 36.0)];
+    senderImageView.backgroundColor = [UIColor grayColor];
+    senderImageView.layer.cornerRadius = 18.0;
+    senderImageView.clipsToBounds = YES;
+    [senderOuterImageView addSubview: senderImageView];
+    
+    dispatch_async(dispatch_get_global_queue(0,0), ^{
+        NSData * data = [[NSData alloc] initWithContentsOfURL: [NSURL URLWithString: [sender objectForKey: @"profileImageUrl"]]];
+        if (data == nil) {
+            return;
+        }
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (senderImageView != nil) {
+                senderImageView.image = [UIImage imageWithData: data];
+            }
+            [UIView animateWithDuration:0.3f animations:^{
+                chatBubbleView.alpha = 1.0;
+            }];
+        });
+    });
     
     UILabel *senderLabel = [[UILabel alloc] initWithFrame: CGRectMake(16, 16, chatBubbleView.frame.size.width - 32, 14)];
     senderLabel.text = [sender objectForKey: @"name"];
@@ -177,13 +207,9 @@
     senderLabel.textColor = [UIColor darkGrayColor];
     [chatBubbleView addSubview: senderLabel];
     
-    NSString *userName = [[GleapSessionHelper sharedInstance] getSessionName];
-    NSString *textContent = [notificationData objectForKey: @"text"];
-    textContent = [textContent stringByReplacingOccurrencesOfString:@"{{name}}" withString: userName];
-    
-    UILabel *contentLabel = [[UILabel alloc] initWithFrame: CGRectMake(16, 36, chatBubbleView.frame.size.width - 32, 40)];
+    UILabel *contentLabel = [[UILabel alloc] initWithFrame: CGRectMake(16, 36, chatBubbleView.frame.size.width - 32, contentLabelSize.height)];
     contentLabel.text = textContent;
-    contentLabel.font = [UIFont systemFontOfSize: 16];
+    contentLabel.font = contentFont;
     contentLabel.lineBreakMode = NSLineBreakByWordWrapping;
     contentLabel.numberOfLines = 2;
     contentLabel.textColor = [UIColor blackColor];
@@ -193,7 +219,7 @@
     UIView * containerView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0, width, chatBubbleView.frame.size.height)];
     
     [containerView addSubview: chatBubbleView];
-    [containerView addSubview: senderImageView];
+    [containerView addSubview: senderOuterImageView];
     
     return containerView;
 }
