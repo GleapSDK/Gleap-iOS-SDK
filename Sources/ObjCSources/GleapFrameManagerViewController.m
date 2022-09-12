@@ -17,6 +17,7 @@
 #import "GleapFeedback.h"
 #import "GleapWidgetManager.h"
 #import "GleapScreenshotManager.h"
+#import "GleapUIHelper.h"
 #import "GleapPreFillHelper.h"
 
 @interface GleapFrameManagerViewController ()
@@ -36,6 +37,20 @@
    {
        self.connected = NO;
        self.view.backgroundColor = [UIColor colorWithRed: 0.0 green: 0.0 blue: 0.0 alpha: 0.7];
+       
+       NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+       if (config != nil) {
+           NSString *backgroundColor = [config objectForKey: @"backgroundColor"];
+           if (backgroundColor != nil && backgroundColor.length > 0) {
+               self.view.backgroundColor = [GleapUIHelper colorFromHexString: backgroundColor];
+           } else {
+               if (@available(iOS 13.0, *)) {
+                   self.view.backgroundColor = [UIColor systemBackgroundColor];
+               } else {
+                   self.view.backgroundColor = [UIColor whiteColor];
+               }
+           }
+       }
    }
    return self;
 }
@@ -52,8 +67,22 @@
     loadingView.backgroundColor = UIColor.clearColor;
     UIActivityIndicatorView *loadingActivityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle: UIActivityIndicatorViewStyleWhiteLarge];
     [loadingActivityView startAnimating];
-    loadingActivityView.color = UIColor.whiteColor;
     
+    NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+    if (config != nil) {
+        NSString *backgroundColor = [config objectForKey: @"backgroundColor"];
+        if (backgroundColor != nil && backgroundColor.length > 0) {
+            UIColor *color = [GleapUIHelper colorFromHexString: backgroundColor];
+            loadingActivityView.color = [GleapUIHelper contrastColorFrom: color];
+        } else {
+            if (@available(iOS 13.0, *)) {
+                loadingActivityView.color = UIColor.darkTextColor;
+            } else {
+                loadingActivityView.color = UIColor.blackColor;
+            }
+        }
+    }
+
     // Loading view
     [self.view addSubview: loadingView];
     loadingView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -156,6 +185,21 @@
     self.webView.alpha = 1.0;
 }
 
+- (void)sendWidgetStatusUpdate {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        @try
+        {
+            [self sendMessageWithData: @{
+                @"name": @"widget-status-update",
+                @"data": @{
+                    @"isWidgetOpen": @(YES)
+                }
+            }];
+        }
+        @catch(id exception) {}
+    });
+}
+
 - (void)userContentController:(WKUserContentController*)userContentController didReceiveScriptMessage:(WKScriptMessage*)message
 {
     if ([message.name isEqualToString: @"gleapCallback"]) {
@@ -173,6 +217,7 @@
                 [self.delegate connected];
             }
             
+            [self sendWidgetStatusUpdate];
             [self sendConfigUpdate];
             [self sendSessionUpdate];
             [self sendPreFillData];
@@ -263,10 +308,11 @@
                 feedback.feedbackType = [action objectForKey: @"feedbackType"];
             }
             
-            [feedback send:^(bool success) {
+            [feedback send:^(bool success, NSDictionary* data) {
                 if (success) {
                     [self sendMessageWithData: @{
-                        @"name": @"feedback-sent"
+                        @"name": @"feedback-sent",
+                        @"data": data
                     }];
                 } else {
                     [self sendMessageWithData: @{
@@ -312,6 +358,12 @@
     self.webView.UIDelegate = self;
     self.webView.alpha = 0;
     
+    self.webView.scrollView.bounces = NO;
+    self.webView.allowsBackForwardNavigationGestures = NO;
+    if (@available(iOS 11.0, *)) {
+        [self.webView.scrollView setContentInsetAdjustmentBehavior: UIScrollViewContentInsetAdjustmentNever];
+    }
+
     [self.view addSubview: self.webView];
     self.webView.translatesAutoresizingMaskIntoConstraints = NO;
     [self pinEdgesFrom: self.webView to: self.view];
@@ -358,15 +410,6 @@
         }
         @catch(id exception) {}
     });
-}
-
-- (NSString *)hexStringForColor:(UIColor *)color {
-      const CGFloat *components = CGColorGetComponents(color.CGColor);
-      CGFloat r = components[0];
-      CGFloat g = components[1];
-      CGFloat b = components[2];
-      NSString *hexString=[NSString stringWithFormat:@"%02X%02X%02X", (int)(r * 255), (int)(g * 255), (int)(b * 255)];
-      return hexString;
 }
 
 - (void)webView:(WKWebView *)webView didFailProvisionalNavigation:(WKNavigation *)navigation withError:(NSError *)error {
@@ -445,45 +488,24 @@
     [parent addConstraint: leading];
     [parent addConstraint: trailing];
     
-    if (@available(iOS 11.0, *)) {
-        NSLayoutConstraint *bottom =[NSLayoutConstraint
-                                     constraintWithItem: subView
-                                     attribute: NSLayoutAttributeBottom
-                                     relatedBy: NSLayoutRelationEqual
-                                     toItem: parent.safeAreaLayoutGuide
-                                     attribute: NSLayoutAttributeBottom
-                                     multiplier: 1.0f
-                                     constant: 0.f];
-        NSLayoutConstraint *top =[NSLayoutConstraint
-                                  constraintWithItem: subView
-                                  attribute: NSLayoutAttributeTop
-                                  relatedBy: NSLayoutRelationEqual
-                                  toItem: parent.safeAreaLayoutGuide
-                                  attribute: NSLayoutAttributeTop
-                                  multiplier: 1.0f
-                                  constant: 0.f];
-        [parent addConstraint: top];
-        [parent addConstraint: bottom];
-    } else {
-        NSLayoutConstraint *bottom =[NSLayoutConstraint
-                                     constraintWithItem: subView
-                                     attribute: NSLayoutAttributeBottom
-                                     relatedBy: NSLayoutRelationEqual
-                                     toItem: parent
-                                     attribute: NSLayoutAttributeBottom
-                                     multiplier: 1.0f
-                                     constant: 0.f];
-        NSLayoutConstraint *top =[NSLayoutConstraint
-                                  constraintWithItem: subView
-                                  attribute: NSLayoutAttributeTop
-                                  relatedBy: NSLayoutRelationEqual
-                                  toItem: parent
-                                  attribute: NSLayoutAttributeTop
-                                  multiplier: 1.0f
-                                  constant: 0.f];
-        [parent addConstraint: top];
-        [parent addConstraint: bottom];
-    }
+    NSLayoutConstraint *bottom =[NSLayoutConstraint
+                                 constraintWithItem: subView
+                                 attribute: NSLayoutAttributeBottom
+                                 relatedBy: NSLayoutRelationEqual
+                                 toItem: parent
+                                 attribute: NSLayoutAttributeBottom
+                                 multiplier: 1.0f
+                                 constant: 0.f];
+    NSLayoutConstraint *top =[NSLayoutConstraint
+                              constraintWithItem: subView
+                              attribute: NSLayoutAttributeTop
+                              relatedBy: NSLayoutRelationEqual
+                              toItem: parent
+                              attribute: NSLayoutAttributeTop
+                              multiplier: 1.0f
+                              constant: 0.f];
+    [parent addConstraint: top];
+    [parent addConstraint: bottom];
 }
 
 @end

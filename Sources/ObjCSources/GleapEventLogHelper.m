@@ -10,6 +10,8 @@
 #import "GleapCore.h"
 #import "GleapUIHelper.h"
 #import "GleapWidgetManager.h"
+#import "GleapMetaDataHelper.h"
+#import "GleapNotificationHelper.h"
 
 @implementation GleapEventLogHelper
 
@@ -82,13 +84,16 @@
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
+        [self lastPageNameUpdate];
+        [self sendEventStreamToServer];
+        
         self.pageNameTimer = [NSTimer scheduledTimerWithTimeInterval: 1
                                                               target: self
                                                             selector: @selector(lastPageNameUpdate)
                                                             userInfo: nil
                                                              repeats: YES];
         
-        self.eventStreamTimer = [NSTimer scheduledTimerWithTimeInterval: 2
+        self.eventStreamTimer = [NSTimer scheduledTimerWithTimeInterval: 6
                                              target: self
                                            selector: @selector(sendEventStreamToServer)
                                            userInfo: nil
@@ -124,13 +129,15 @@
         || [Gleap sharedInstance].apiUrl == NULL
         || [[Gleap sharedInstance].apiUrl isEqualToString: @""]
         || GleapSessionHelper.sharedInstance.currentSession == nil
-        || self.streamedLog == nil || self.streamedLog.count <= 0
+        || self.streamedLog == nil
     ) {
         return;
     }
     
     NSDictionary *data = @{
-        @"events": self.streamedLog
+        @"time": [NSNumber numberWithDouble: [[GleapMetaDataHelper sharedInstance] sessionDuration]],
+        @"events": self.streamedLog,
+        @"opened": @([Gleap isOpened])
     };
     
     NSError *error;
@@ -143,7 +150,7 @@
     
     NSMutableURLRequest *request = [NSMutableURLRequest new];
     request.HTTPMethod = @"POST";
-    [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/sessions/stream", [Gleap sharedInstance].apiUrl]]];
+    [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/sessions/ping", [Gleap sharedInstance].apiUrl]]];
     [GleapSessionHelper injectSessionInRequest: request];
     [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
     [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
@@ -164,20 +171,35 @@
         }
         
         NSError *jsonError;
-        NSDictionary *action = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
+        NSDictionary *actionData = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
         if (jsonError) {
             return;
         }
         
-        if ([action objectForKey: @"actionType"] != nil && [action objectForKey: @"outbound"] != nil) {
-            GleapAction *gleapAction = [[GleapAction alloc] init];
-            gleapAction.actionType = [action objectForKey: @"actionType"];
-            gleapAction.outbound = [action objectForKey: @"outbound"];
+        @try {
+            NSArray *actions = [actionData objectForKey: @"a"];
+            if (actions != nil) {
+                for (int i = 0; i < actions.count; i++) {
+                    NSDictionary *action = [actions objectAtIndex: i];
+                    if ([[action objectForKey: @"actionType"] isEqualToString: @"notification"]) {
+                        [GleapNotificationHelper showNotification: action];
+                    } else {
+                        if ([action objectForKey: @"actionType"] != nil && [action objectForKey: @"outbound"] != nil) {
+                            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                                [Gleap.sharedInstance startFeedbackFlow: [action objectForKey: @"actionType"] withOptions: @{
+                                    @"actionOutboundId": [action objectForKey: @"outbound"],
+                                    @"hideBackButton": @YES
+                                }];
+                            });
+                        }
+                    }
+                }
+            }
             
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-                [Gleap.sharedInstance performAction: gleapAction];
-            });
+            int unreadCount = [[actionData objectForKey: @"u"] intValue];
+            [GleapNotificationHelper updateNotificationCount: unreadCount];
         }
+        @catch(id exception) {}
     }];
     [task resume];
     

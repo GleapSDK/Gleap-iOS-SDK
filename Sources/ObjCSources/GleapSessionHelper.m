@@ -279,4 +279,21 @@ static id ObjectOrNull(id object)
     return NO;
 }
 
+- (NSString *)getSessionName {
+    if (self.currentSession == nil) {
+        return @"";
+    }
+    
+    if (self.currentSession.name == nil) {
+        return @"";
+    }
+    
+    NSArray *nameParts = [self.currentSession.name componentsSeparatedByString: @"@"];
+    nameParts = [[nameParts objectAtIndex: 0] componentsSeparatedByString: @"."];
+    nameParts = [[nameParts objectAtIndex: 0] componentsSeparatedByString: @"+"];
+    nameParts = [[nameParts objectAtIndex: 0] componentsSeparatedByString: @" "];
+    
+    return [[nameParts objectAtIndex: 0] capitalizedString];
+}
+
 @end

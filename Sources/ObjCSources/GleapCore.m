@@ -61,7 +61,7 @@
 - (void)initHelper {
     self.token = @"";
     self.apiUrl = @"https://api.gleap.io";
-    self.frameUrl = @"https://frame.gleap.io/app.html";
+    self.frameUrl = @"https://messenger.gleap.io/app.html";
     self.initialized = NO;
     self.applicationType = NATIVE;
     
@@ -276,7 +276,7 @@
         }
         
         // Send crash report.
-        [feedback send:^(bool success) {
+        [feedback send:^(bool success, NSDictionary* data) {
             completion(success);
         }];
     });
@@ -356,13 +356,6 @@
  */
 + (void)setApplicationType: (GleapApplicationType)applicationType {
     Gleap.sharedInstance.applicationType = applicationType;
-}
-
-- (void)performAction:(GleapAction *)action {
-    [self startFeedbackFlow: action.actionType withOptions: @{
-        @"actionOutboundId": action.outbound,
-        @"hideBackButton": @YES
-    }];
 }
 
 @end

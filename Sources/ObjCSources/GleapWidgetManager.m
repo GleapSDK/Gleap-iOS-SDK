@@ -10,6 +10,7 @@
 #import "GleapReplayHelper.h"
 #import "GleapMetaDataHelper.h"
 #import "GleapScreenshotManager.h"
+#import "GleapNotificationHelper.h"
 #import "GleapCore.h"
 
 @implementation GleapWidgetManager
@@ -80,6 +81,8 @@
                 completion();
             }
             
+            [GleapNotificationHelper updateUI];
+            
             if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetClosed)]) {
                 [Gleap.sharedInstance.delegate widgetClosed];
             }
@@ -114,7 +117,10 @@
         
         self.gleapWidget = [[GleapFrameManagerViewController alloc] init];
         self.gleapWidget.delegate = self;
-        
+    
+        // Clear all notifications.
+        [GleapNotificationHelper updateUI];
+    
         UINavigationController * navController = [[UINavigationController alloc] initWithRootViewController: self.gleapWidget];
         navController.navigationBar.barStyle = UIBarStyleBlack;
         [navController.navigationBar setTranslucent: NO];
@@ -122,8 +128,11 @@
         [navController.navigationBar setTitleTextAttributes:
            @{NSForegroundColorAttributeName:[UIColor blackColor]}];
         navController.navigationBar.hidden = YES;
-        navController.modalPresentationStyle = UIModalPresentationCustom;
-        navController.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
+        
+        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
+        {
+            [navController setModalPresentationStyle: UIModalPresentationCustom];
+        }
         
         // Show on top of all viewcontrollers.
         UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];

@@ -11,6 +11,7 @@
 #import "GleapHttpTrafficRecorder.h"
 #import "GleapReplayHelper.h"
 #import "GleapWidgetManager.h"
+#import "GleapNotificationHelper.h"
 
 @implementation GleapConfigHelper
 
@@ -108,6 +109,9 @@
     
     // Update widget config
     [[GleapWidgetManager sharedInstance] sendConfigUpdate];
+    
+    // Update notification UI components.
+    [GleapNotificationHelper updateUI];
     
     // Config loaded delegate
     if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(configLoaded:)]) {

@@ -13,7 +13,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface GleapFeedback : NSObject
 
-- (void)send: (void (^)(bool success))completion;
+- (void)send: (void (^)(bool success, NSDictionary *data))completion;
 - (NSDictionary *)getFormData;
 - (void)appendData:(NSDictionary *)data;
 
