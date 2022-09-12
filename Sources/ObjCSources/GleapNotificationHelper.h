@@ -17,6 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)sharedInstance;
 + (void)showNotification:(NSDictionary *)notification;
 + (void)updateNotificationCount:(int)notificationCount;
++ (void)clear;
 + (void)updateUI;
 
 @property (nonatomic, assign) int notificationCount;

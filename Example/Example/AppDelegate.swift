@@ -22,11 +22,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         // Attach custom data sample.
         Gleap.attachCustomData(["value": "Unicorn", "type": "Demo", "ExtraInfo": ["Age": "28", "City": "San Francisco"]])
         
+        // Gleap.clearIdentity()
         let userProps = GleapUserProperty()
-        userProps.email = "lukas@gleap.io"
-        userProps.name = "Luki"
-        userProps.value = 343
-        Gleap.identifyUser(with: "user_1293", andData: userProps)
+        userProps.email = "lukas3+test@gleap.io"
+        userProps.name = "Franz A"
+        userProps.value = 344
+        Gleap.identifyUser(with: "user_132933", andData: userProps)
         
         // Testing file attachments.
         if let data = "Dies ist ein test.".data(using: String.Encoding.utf8) {

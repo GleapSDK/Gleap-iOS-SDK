@@ -93,7 +93,7 @@
                                                             userInfo: nil
                                                              repeats: YES];
         
-        self.eventStreamTimer = [NSTimer scheduledTimerWithTimeInterval: 6
+        self.eventStreamTimer = [NSTimer scheduledTimerWithTimeInterval: 7.5
                                              target: self
                                            selector: @selector(sendEventStreamToServer)
                                            userInfo: nil

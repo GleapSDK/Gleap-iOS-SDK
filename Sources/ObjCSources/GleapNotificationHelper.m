@@ -33,6 +33,19 @@
     });
 }
 
++ (void)clear {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        GleapNotificationHelper *instance = [GleapNotificationHelper sharedInstance];
+        instance.notifications = [[NSMutableArray alloc] init];
+        
+        if (instance.uiOverlayViewController != nil) {
+            [instance.uiOverlayViewController setNotifications: instance.notifications];
+            [instance.uiOverlayViewController updateNotificationCount: 0];
+            [instance.uiOverlayViewController updateUI];
+        }
+    });
+}
+
 - (void)initializeUI {
     self.notifications = [[NSMutableArray alloc] init];
     self.notificationCount = 0;
