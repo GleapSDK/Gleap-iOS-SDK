@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Gleap
 
 class ImageViewController: UIViewController {
     @IBOutlet weak var button: UIButton!
@@ -17,11 +18,15 @@ class ImageViewController: UIViewController {
         
         self.button.layer.cornerRadius = 25
         
+        Gleap.showFeedbackButton(false)
+        
         NSLog("Test log :)")
     }
     
     @IBAction func buttonClicked(_ sender: Any) {
         NSLog("Demo button clicked :)")
+        
+        Gleap.showFeedbackButton(true)
     }
     
     /*

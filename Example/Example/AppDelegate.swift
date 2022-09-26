@@ -15,7 +15,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         Gleap.enableDebugConsoleLog()
         // Gleap.setApiUrl("http://192.168.200.16:9000")
         // Gleap.setFrameUrl("http://192.168.200.16:3001/app.html")
-        Gleap.initialize(withToken: "KProDXhMS0V3UUku2iNnrZ4XsBnAYzxt")
+        Gleap.initialize(withToken: "DUPaIr7s689BBblcFI4pc5aBgYJTm7Sc")
         
         Gleap.sharedInstance().delegate = self
         

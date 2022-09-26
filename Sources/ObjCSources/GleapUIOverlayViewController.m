@@ -91,8 +91,7 @@
     }
     
     NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
-    
-    CGFloat currentNotificationHeight = 20.0;
+    CGFloat currentNotificationHeight = [[GleapConfigHelper sharedInstance] getButtonY];
     if (@available(iOS 11.0, *)) {
         UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
         currentNotificationHeight += window.safeAreaInsets.bottom;
@@ -107,20 +106,21 @@
         [[self.notificationViews objectAtIndex: i] removeFromSuperview];
     }
     
+    int buttonX = [[GleapConfigHelper sharedInstance] getButtonX];
     // Create new notifications.
     for (int i = 0; i < self.internalNotifications.count; i++) {
         NSDictionary * notification = [self.internalNotifications objectAtIndex: i];
         UIView *notificationView = [self createNotificationViewFor: notification onWindow: self.view];
         notificationView.tag = i;
         
-        float x = self.view.frame.size.width - notificationView.frame.size.width;
+        float x = self.view.frame.size.width - notificationView.frame.size.width - buttonX;
         if (
             [feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"] ||
             [feedbackButtonPosition isEqualToString: @"BOTTOM_LEFT"]
         ) {
-            x = 0;
+            x = buttonX;
         }
-        notificationView.frame = CGRectMake(x, self.view.frame.size.height - notificationView.frame.size.height - 20 - currentNotificationHeight, notificationView.frame.size.width, notificationView.frame.size.height);
+        notificationView.frame = CGRectMake(x, self.view.frame.size.height - notificationView.frame.size.height - 20.0 - currentNotificationHeight, notificationView.frame.size.width, notificationView.frame.size.height);
         
         [self.view addSubview: notificationView];
         [self.notificationViews addObject: notificationView];
@@ -133,12 +133,12 @@
     NSDictionary *notificationData = [notification objectForKey: @"data"];
     NSDictionary * sender = [notificationData objectForKey: @"sender"];
     
-    CGFloat width = view.frame.size.width;
-    if (width > 360) {
-        width = 360;
+    CGFloat width = (view.frame.size.width * 0.9);
+    if (width > 300) {
+        width = 300;
     }
     
-    CGFloat chatBubbleViewWidth = width - 88.0;
+    CGFloat chatBubbleViewWidth = width - 48.0;
     
     NSString *userName = [[GleapSessionHelper sharedInstance] getSessionName];
     NSString *textContent = [notificationData objectForKey: @"text"];
@@ -152,7 +152,7 @@
                                                                 }
                                                       context:nil].size;
     
-    UIView * chatBubbleView = [[UIView alloc] initWithFrame: CGRectMake(68.0, 0.0, chatBubbleViewWidth, 52.0 + contentLabelSize.height)];
+    UIView * chatBubbleView = [[UIView alloc] initWithFrame: CGRectMake(48.0, 0.0, chatBubbleViewWidth, 52.0 + contentLabelSize.height)];
     chatBubbleView.layer.cornerRadius = 8.0;
     chatBubbleView.layer.shadowRadius  = 8.0;
     chatBubbleView.layer.shadowColor   = [UIColor blackColor].CGColor;
@@ -167,7 +167,7 @@
         chatBubbleView.backgroundColor = [UIColor whiteColor];
     }
     
-    UIView * senderOuterImageView = [[UIView alloc] initWithFrame: CGRectMake(20.0, 8.0, 36.0, 36.0)];
+    UIView * senderOuterImageView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 8.0, 36.0, 36.0)];
     senderOuterImageView.layer.cornerRadius = 18.0;
     senderOuterImageView.layer.shadowRadius  = 8.0;
     senderOuterImageView.layer.shadowColor   = [UIColor blackColor].CGColor;

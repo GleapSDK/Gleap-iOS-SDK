@@ -7,6 +7,7 @@
 
 #import "GleapFeedbackButton.h"
 #import "GleapConfigHelper.h"
+#import "GleapNotificationHelper.h"
 #import "GleapUIHelper.h"
 #import "Gleap.h"
 
@@ -62,10 +63,11 @@
         return;
     }
     
-    NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
-    if ([feedbackButtonPosition isEqualToString: @"BUTTON_NONE"]) {
+    if (![GleapNotificationHelper sharedInstance].showButton) {
         self.hidden = YES;
         return;
+    } else {
+        self.hidden = NO;
     }
     
     self.layer.cornerRadius = self.frame.size.height / 2.0;
@@ -76,6 +78,7 @@
     self.layer.masksToBounds = NO;
     self.clipsToBounds = NO;
     
+    NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
     NSString *buttonColor = [config objectForKey: @"buttonColor"];
     if (buttonColor != nil && buttonColor.length > 0) {
         self.backgroundColor = [GleapUIHelper colorFromHexString: buttonColor];
@@ -105,17 +108,20 @@
         });
     }
     
+    float buttonX = [[GleapConfigHelper sharedInstance] getButtonX];
+    float buttonY = [[GleapConfigHelper sharedInstance] getButtonY];
+    
     float buttonSize = 52.0;
     if (self.superview != nil) {
-        float x = self.superview.frame.size.width - buttonSize - 20.0;
+        float x = self.superview.frame.size.width - buttonSize - buttonX;
         if (
             [feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"] ||
             [feedbackButtonPosition isEqualToString: @"BOTTOM_LEFT"]
         ) {
-            x = 20.0;
+            x = buttonX;
         }
         
-        CGFloat borderBottom = 20.0;
+        CGFloat borderBottom = buttonY;
         if (@available(iOS 11.0, *)) {
             UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
             borderBottom += window.safeAreaInsets.bottom;

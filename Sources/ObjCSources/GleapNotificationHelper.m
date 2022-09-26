@@ -46,9 +46,15 @@
     });
 }
 
++ (void)showFeedbackButton:(bool)show {
+    [GleapNotificationHelper sharedInstance].showButton = show;
+    [GleapNotificationHelper updateUI];
+}
+
 - (void)initializeUI {
     self.notifications = [[NSMutableArray alloc] init];
     self.notificationCount = 0;
+    self.showButton = NO;
     
     dispatch_async(dispatch_get_main_queue(), ^{
         UIWindow * currentKeyWindow = [[UIApplication sharedApplication] keyWindow];

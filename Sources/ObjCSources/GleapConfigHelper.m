@@ -110,6 +110,14 @@
     // Update widget config
     [[GleapWidgetManager sharedInstance] sendConfigUpdate];
     
+    // Set the initial feedback button status.
+    NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
+    if ([feedbackButtonPosition isEqualToString: @"BUTTON_NONE"]) {
+        [GleapNotificationHelper sharedInstance].showButton = NO;
+    } else {
+        [GleapNotificationHelper sharedInstance].showButton = YES;
+    }
+    
     // Update notification UI components.
     [GleapNotificationHelper updateUI];
     
@@ -117,6 +125,22 @@
     if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(configLoaded:)]) {
         [Gleap.sharedInstance.delegate configLoaded: config];
     }
+}
+
+- (int)getButtonX {
+    if (_config != nil && [_config objectForKey: @"buttonX"] != nil) {
+        return [[_config objectForKey: @"buttonX"] intValue];
+    }
+    
+    return 20;
+}
+
+- (int)getButtonY {
+    if (_config != nil && [_config objectForKey: @"buttonY"] != nil) {
+        return [[_config objectForKey: @"buttonY"] intValue];
+    }
+    
+    return 20;
 }
 
 @end

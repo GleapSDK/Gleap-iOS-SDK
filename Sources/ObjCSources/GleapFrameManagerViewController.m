@@ -96,7 +96,7 @@
             [[headerView.topAnchor constraintEqualToAnchor: loadingView.topAnchor] setActive:YES];
             [[headerView.trailingAnchor constraintEqualToAnchor: loadingView.trailingAnchor] setActive:YES];
             [[headerView.leadingAnchor constraintEqualToAnchor: loadingView.leadingAnchor] setActive:YES];
-            [[headerView.heightAnchor constraintEqualToConstant: 250] setActive:YES];
+            [[headerView.heightAnchor constraintEqualToConstant: 210] setActive:YES];
         }
     }
 
@@ -131,7 +131,7 @@
 }
 
 - (void)closeWidget: (void (^)(void))completion {
-    self.connected = false;
+    self.connected = NO;
     
     [[GleapWidgetManager sharedInstance] closeWidget:^{
         if (completion != nil) {

@@ -17,9 +17,11 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)sharedInstance;
 + (void)showNotification:(NSDictionary *)notification;
 + (void)updateNotificationCount:(int)notificationCount;
++ (void)showFeedbackButton:(bool)show;
 + (void)clear;
 + (void)updateUI;
 
+@property (nonatomic, assign) bool showButton;
 @property (nonatomic, assign) int notificationCount;
 @property (nonatomic, retain) GleapUIWindow *uiWindow;
 @property (nonatomic, retain) GleapUIOverlayViewController *uiOverlayViewController;

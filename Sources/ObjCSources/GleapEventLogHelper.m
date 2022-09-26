@@ -93,7 +93,7 @@
                                                             userInfo: nil
                                                              repeats: YES];
         
-        self.eventStreamTimer = [NSTimer scheduledTimerWithTimeInterval: 7.5
+        self.eventStreamTimer = [NSTimer scheduledTimerWithTimeInterval: 10.0
                                              target: self
                                            selector: @selector(sendEventStreamToServer)
                                            userInfo: nil
@@ -178,6 +178,7 @@
         
         @try {
             NSArray *actions = [actionData objectForKey: @"a"];
+            NSLog(@"actions %@", actions);
             if (actions != nil) {
                 for (int i = 0; i < actions.count; i++) {
                     NSDictionary *action = [actions objectAtIndex: i];

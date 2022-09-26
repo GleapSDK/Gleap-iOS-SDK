@@ -20,6 +20,7 @@
 #import "GleapActivationMethodHelper.h"
 #import "GleapScreenshotListener.h"
 #import "GleapUIHelper.h"
+#import "GleapNotificationHelper.h"
 #import "GleapCustomDataHelper.h"
 #import "GleapAttachmentHelper.h"
 #import "GleapTranslationHelper.h"
@@ -181,6 +182,10 @@
     Gleap.sharedInstance.apiUrl = apiUrl;
 }
 
++ (void)showFeedbackButton:(BOOL)show {
+    [GleapNotificationHelper showFeedbackButton: show];
+}
+
 + (void)setFrameUrl: (NSString *)frameUrl {
     Gleap.sharedInstance.frameUrl = frameUrl;
 }
@@ -225,7 +230,7 @@
     // Start a feedback flow.
     if (feedbackFlow != nil) {
         NSMutableDictionary *startFeedbackFlowData = [[NSMutableDictionary alloc] initWithDictionary: @{
-            @"flow": feedbackFlow
+            @" ": feedbackFlow
         }];
         if (options != nil) {
             [startFeedbackFlowData addEntriesFromDictionary: options];
