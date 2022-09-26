@@ -41,11 +41,11 @@
 /*
  Sends a bugreport to our backend.
  */
-- (void)send: (void (^)(bool success))completion {
+- (void)send: (void (^)(bool success, NSDictionary *data))completion {
     [self optionallyUploadReplaySteps:^(bool success) {
         [self optionallyUploadAttachments:^(bool success) {
             [self optionallyUploadScreenshot:^(bool success) {
-                [self prepareDataAndSend:^(bool success) {
+                [self prepareDataAndSend:^(bool success, NSDictionary *data) {
                     // Handle Gleap delegate.
                     if (success) {
                         if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSent:)]) {
@@ -58,7 +58,7 @@
                     }
                     
                     // Notify completion.
-                    completion(success);
+                    completion(success, data);
                 }];
             }];
         }];
@@ -145,7 +145,7 @@
     }
 }
 
-- (void)prepareDataAndSend: (void (^)(bool success))completion {
+- (void)prepareDataAndSend: (void (^)(bool success, NSDictionary *data))completion {
     // Fetch additional metadata.
     [self attachData: @{ @"metaData": [[GleapMetaDataHelper sharedInstance] getMetaData] }];
     
@@ -191,8 +191,8 @@
     [self excludeExcludedData];
     
     // Sending report to server.
-    return [self sendReportToServer:^(bool success) {
-        completion(success);
+    return [self sendReportToServer:^(bool success, NSDictionary *data) {
+        completion(success, data);
     }];
 }
 
@@ -212,9 +212,9 @@
 /*
  Sends a bugreport to our backend.
  */
-- (void)sendReportToServer: (void (^)(bool success))completion {
+- (void)sendReportToServer: (void (^)(bool success, NSDictionary * data))completion {
     if (Gleap.sharedInstance.token == NULL || [Gleap.sharedInstance.token isEqualToString: @""]) {
-        return completion(false);
+        return completion(false, nil);
     }
     
     @try {
@@ -223,7 +223,7 @@
         
         // Check for parsing error.
         if (error != nil) {
-            return completion(false);
+            return completion(false, nil);
         }
         
         NSMutableURLRequest *request = [NSMutableURLRequest new];
@@ -243,14 +243,21 @@
                                                                     NSURLResponse * _Nullable response,
                                                                     NSError * _Nullable error) {
             if (error != nil) {
-                return completion(false);
+                return completion(false, nil);
             }
-            return completion(true);
+            
+            NSError *parseError = nil;
+            NSDictionary *responseDict = [NSJSONSerialization JSONObjectWithData: data options: 0 error:&parseError];
+            if (!parseError) {
+                return completion(true, responseDict);
+            } else {
+                return completion(false, nil);
+            }
         }];
         [task resume];
     } @catch (NSException *exp) {
         NSLog(@"Failed sending feedback: %@", NSThread.callStackSymbols);
-        return completion(false);
+        return completion(false, nil);
     }
 }
 

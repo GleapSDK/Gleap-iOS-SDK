@@ -23,6 +23,35 @@
 }
 
 /*
+ Returns the UIColor for a given hex string.
+ */
++ (UIColor *)colorFromHexString:(NSString *)hexString {
+    unsigned rgbValue = 0;
+    NSScanner *scanner = [NSScanner scannerWithString:hexString];
+    [scanner setScanLocation:1]; // bypass '#' character
+    [scanner scanHexInt:&rgbValue];
+    return [UIColor colorWithRed:((rgbValue & 0xFF0000) >> 16)/255.0 green:((rgbValue & 0xFF00) >> 8)/255.0 blue:(rgbValue & 0xFF)/255.0 alpha:1.0];
+}
+
++ (UIColor *)contrastColorFrom:(UIColor *)color {
+    size_t count = CGColorGetNumberOfComponents(color.CGColor);
+    const CGFloat *componentColors = CGColorGetComponents(color.CGColor);
+
+    CGFloat darknessScore = 0;
+    if (count == 2) {
+        darknessScore = (((componentColors[0]*255) * 299) + ((componentColors[0]*255) * 587) + ((componentColors[0]*255) * 114)) / 1000;
+    } else if (count == 4) {
+        darknessScore = (((componentColors[0]*255) * 299) + ((componentColors[1]*255) * 587) + ((componentColors[2]*255) * 114)) / 1000;
+    }
+
+    if (darknessScore >= 125) {
+        return [UIColor blackColor];
+    }
+
+    return [UIColor whiteColor];
+}
+
+/*
  Returns the top most view controller.
  */
 + (UIViewController *)getTopMostViewController {

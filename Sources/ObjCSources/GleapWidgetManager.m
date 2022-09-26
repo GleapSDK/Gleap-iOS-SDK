@@ -10,6 +10,7 @@
 #import "GleapReplayHelper.h"
 #import "GleapMetaDataHelper.h"
 #import "GleapScreenshotManager.h"
+#import "GleapNotificationHelper.h"
 #import "GleapCore.h"
 
 @implementation GleapWidgetManager
@@ -37,11 +38,11 @@
 }
 
 - (BOOL)isOpened {
-    return self.gleapWidget != nil;
+    return self.widgetOpened;
 }
 
 - (BOOL)isConnected {
-    return self.gleapWidget != nil && self.gleapWidget.connected;
+    return self.widgetOpened && self.gleapWidget != nil && self.gleapWidget.connected;
 }
 
 - (void)sendMessageWithData:(NSDictionary *)data {
@@ -76,11 +77,14 @@
         }
         
         [self.gleapWidget dismissViewControllerAnimated: YES completion:^{
+            self.widgetOpened = NO;
             self.gleapWidget = nil;
             self.widgetOpened = NO;
             if (completion != nil) {
                 completion();
             }
+            
+            [GleapNotificationHelper updateUI];
             
             if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetClosed)]) {
                 [Gleap.sharedInstance.delegate widgetClosed];
@@ -108,6 +112,7 @@
     if (self.widgetOpened) {
         return;
     }
+    self.widgetOpened = YES;
     
     self.widgetOpened = YES;
     
@@ -118,6 +123,9 @@
         
         self.gleapWidget = [[GleapFrameManagerViewController alloc] init];
         self.gleapWidget.delegate = self;
+    
+        // Clear all notifications.
+        [GleapNotificationHelper updateUI];
         
         UINavigationController * navController = [[UINavigationController alloc] initWithRootViewController: self.gleapWidget];
         navController.navigationBar.barStyle = UIBarStyleBlack;
@@ -126,8 +134,14 @@
         [navController.navigationBar setTitleTextAttributes:
            @{NSForegroundColorAttributeName:[UIColor blackColor]}];
         navController.navigationBar.hidden = YES;
-        navController.modalPresentationStyle = UIModalPresentationCustom;
-        navController.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
+        if (@available(iOS 13.0, *)) {
+            [navController setModalInPresentation: YES];
+        }
+        
+        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
+        {
+            [navController setModalPresentationStyle: UIModalPresentationCustom];
+        }
         
         // Show on top of all viewcontrollers.
         UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];

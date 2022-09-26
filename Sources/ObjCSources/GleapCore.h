@@ -70,6 +70,13 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR 
 + (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow showBackButton:(BOOL)showBackButton;
 
 /**
+ * Set the visibility of the feedback button.
+ * @author Gleap
+ *
+ */
++ (void)showFeedbackButton:(BOOL)show;
+
+/**
  * Sends a silent crash report.
  * @author Gleap
  *
@@ -280,7 +287,6 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR 
 + (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod;
 + (void)shakeInvocation;
 + (void)setAutoActivationMethodsDisabled;
-- (void)performAction:(GleapAction *)action;
 - (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options;
 
 @property (nonatomic, retain) NSString* token;

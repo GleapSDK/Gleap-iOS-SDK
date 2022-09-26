@@ -20,6 +20,7 @@
 #import "GleapActivationMethodHelper.h"
 #import "GleapScreenshotListener.h"
 #import "GleapUIHelper.h"
+#import "GleapNotificationHelper.h"
 #import "GleapCustomDataHelper.h"
 #import "GleapAttachmentHelper.h"
 #import "GleapTranslationHelper.h"
@@ -61,7 +62,7 @@
 - (void)initHelper {
     self.token = @"";
     self.apiUrl = @"https://api.gleap.io";
-    self.frameUrl = @"https://frame.gleap.io/app.html";
+    self.frameUrl = @"https://messenger.gleap.io/app.html";
     self.initialized = NO;
     self.applicationType = NATIVE;
     
@@ -181,6 +182,10 @@
     Gleap.sharedInstance.apiUrl = apiUrl;
 }
 
++ (void)showFeedbackButton:(BOOL)show {
+    [GleapNotificationHelper showFeedbackButton: show];
+}
+
 + (void)setFrameUrl: (NSString *)frameUrl {
     Gleap.sharedInstance.frameUrl = frameUrl;
 }
@@ -219,6 +224,10 @@
         NSLog(@"[GLEAP_SDK] Please provide a valid Gleap project TOKEN!");
         return;
     }
+    
+    if ([[GleapWidgetManager sharedInstance] isOpened]) {
+        return;
+    }
 
     [[GleapWidgetManager sharedInstance] showWidget];
     
@@ -231,8 +240,13 @@
             [startFeedbackFlowData addEntriesFromDictionary: options];
         }
         
+        NSString *command = @"start-feedbackflow";
+        if (options != nil && [options objectForKey: @"isSurvey"] != nil && [[options objectForKey: @"isSurvey"] boolValue]) {
+            command = @"start-survey";
+        }
+        
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"start-feedbackflow",
+            @"name": command,
             @"data": startFeedbackFlowData,
         }];
     }
@@ -276,7 +290,7 @@
         }
         
         // Send crash report.
-        [feedback send:^(bool success) {
+        [feedback send:^(bool success, NSDictionary* data) {
             completion(success);
         }];
     });
@@ -356,13 +370,6 @@
  */
 + (void)setApplicationType: (GleapApplicationType)applicationType {
     Gleap.sharedInstance.applicationType = applicationType;
-}
-
-- (void)performAction:(GleapAction *)action {
-    [self startFeedbackFlow: action.actionType withOptions: @{
-        @"actionOutboundId": action.outbound,
-        @"hideBackButton": @YES
-    }];
 }
 
 @end

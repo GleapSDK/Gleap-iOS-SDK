@@ -67,9 +67,9 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="pexels-michael-block-3225517" translatesAutoresizingMaskIntoConstraints="NO" id="doF-CX-Gug">
-                                <rect key="frame" x="0.0" y="0.0" width="414" height="518"/>
+                                <rect key="frame" x="0.0" y="0.0" width="414" height="300"/>
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="518" id="AIc-xt-Aog"/>
+                                    <constraint firstAttribute="height" constant="300" id="AIc-xt-Aog"/>
                                 </constraints>
                             </imageView>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ru4-FV-kfb">
@@ -89,7 +89,7 @@
                                 </connections>
                             </button>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Demo screen" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="WBd-CM-Aqo">
-                                <rect key="frame" x="20" y="545" width="374" height="21"/>
+                                <rect key="frame" x="20" y="327" width="374" height="21"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="21" id="h4l-Tk-gfI"/>
                                 </constraints>
@@ -98,7 +98,7 @@
                                 <nil key="highlightedColor"/>
                             </label>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="This is a demo 🎉" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="4aH-KN-9rd">
-                                <rect key="frame" x="20" y="584" width="374" height="32"/>
+                                <rect key="frame" x="20" y="366" width="374" height="32"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="32" id="xXX-qL-5tL"/>
                                 </constraints>

@@ -13,6 +13,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (instancetype)sharedInstance;
 - (void)run;
+- (int)getButtonX;
+- (int)getButtonY;
 
 @property (nonatomic, retain) NSDictionary* config;
 @property (nonatomic, retain) NSDictionary* projectActions;
