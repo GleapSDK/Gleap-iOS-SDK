@@ -114,8 +114,6 @@
     }
     self.widgetOpened = YES;
     
-    self.widgetOpened = YES;
-    
     dispatch_async(dispatch_get_main_queue(), ^{
         // Pre widget open hook.
         [GleapScreenshotManager takeScreenshot];
@@ -125,6 +123,7 @@
         self.gleapWidget.delegate = self;
     
         // Clear all notifications.
+        [GleapNotificationHelper clear];
         [GleapNotificationHelper updateUI];
         
         UINavigationController * navController = [[UINavigationController alloc] initWithRootViewController: self.gleapWidget];

@@ -58,7 +58,6 @@
     
     dispatch_async(dispatch_get_main_queue(), ^{
         UIWindow * currentKeyWindow = [[UIApplication sharedApplication] keyWindow];
-        
         if (@available(iOS 13.0, *)) {
             UIScene *scene = [[[[UIApplication sharedApplication] connectedScenes] allObjects] firstObject];
             self.uiWindow = [[GleapUIWindow alloc] initWithWindowScene: (UIWindowScene *)scene];

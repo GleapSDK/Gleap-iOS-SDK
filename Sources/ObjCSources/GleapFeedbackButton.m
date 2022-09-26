@@ -11,6 +11,8 @@
 #import "GleapUIHelper.h"
 #import "Gleap.h"
 
+const double BUTTON_SIZE = 56.0;
+
 @implementation GleapFeedbackButton
 
 - (id)initWithFrame:(CGRect)aRect
@@ -22,8 +24,8 @@
 }
 
 - (void)commonInit {
-    float padding = 10.0;
-    self.logoView = [[UIImageView alloc] initWithFrame: CGRectMake(padding, 8.0, self.frame.size.width - (padding * 2), self.frame.size.height - (padding * 2))];
+    float padding = (BUTTON_SIZE - (BUTTON_SIZE * 0.64)) / 2.0;
+    self.logoView = [[UIImageView alloc] initWithFrame: CGRectMake(padding, padding, BUTTON_SIZE - (padding * 2), BUTTON_SIZE - (padding * 2))];
     self.logoView.contentMode = UIViewContentModeScaleAspectFit;
     [self addSubview: self.logoView];
     
@@ -111,9 +113,8 @@
     float buttonX = [[GleapConfigHelper sharedInstance] getButtonX];
     float buttonY = [[GleapConfigHelper sharedInstance] getButtonY];
     
-    float buttonSize = 52.0;
     if (self.superview != nil) {
-        float x = self.superview.frame.size.width - buttonSize - buttonX;
+        float x = self.superview.frame.size.width - BUTTON_SIZE - buttonX;
         if (
             [feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"] ||
             [feedbackButtonPosition isEqualToString: @"BOTTOM_LEFT"]
@@ -127,7 +128,7 @@
             borderBottom += window.safeAreaInsets.bottom;
         }
         
-        self.frame = CGRectMake(x, self.superview.frame.size.height - buttonSize - borderBottom, buttonSize, buttonSize);
+        self.frame = CGRectMake(x, self.superview.frame.size.height - BUTTON_SIZE - borderBottom, BUTTON_SIZE, BUTTON_SIZE);
     }
 }
 
