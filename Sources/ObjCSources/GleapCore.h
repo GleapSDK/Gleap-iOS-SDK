@@ -221,6 +221,25 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR 
 + (void)logEvent: (NSString *)name withData: (NSDictionary *)data;
 
 /**
+ * Logs a custom event
+ * @author Gleap
+ *
+ * @param name Name of the event
+ *
+ */
++ (void)trackEvent: (NSString *)name;
+
+/**
+ * Logs a custom event with data
+ * @author Gleap
+ *
+ * @param name Name of the event
+ * @param data Data passed with the event.
+ *
+ */
++ (void)trackEvent: (NSString *)name withData: (NSDictionary *)data;
+
+/**
  * Attaches a file to the bug report
  * @author Gleap
  *

@@ -115,6 +115,14 @@
     [[GleapEventLogHelper sharedInstance] logEvent: name withData: data];
 }
 
++ (void)trackEvent: (NSString *)name {
+    [[GleapEventLogHelper sharedInstance] logEvent: name];
+}
+
++ (void)trackEvent: (NSString *)name withData: (NSDictionary *)data {
+    [[GleapEventLogHelper sharedInstance] logEvent: name withData: data];
+}
+
 + (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod {
     return [GleapActivationMethodHelper isActivationMethodActive: activationMethod];
 }
