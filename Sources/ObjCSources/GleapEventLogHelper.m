@@ -178,7 +178,6 @@
         
         @try {
             NSArray *actions = [actionData objectForKey: @"a"];
-            NSLog(@"actions %@", actions);
             if (actions != nil) {
                 for (int i = 0; i < actions.count; i++) {
                     NSDictionary *action = [actions objectAtIndex: i];

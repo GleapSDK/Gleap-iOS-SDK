@@ -37,11 +37,11 @@
 }
 
 - (BOOL)isOpened {
-    return self.gleapWidget != nil;
+    return self.widgetOpened;
 }
 
 - (BOOL)isConnected {
-    return self.gleapWidget != nil && self.gleapWidget.connected;
+    return self.widgetOpened && self.gleapWidget != nil && self.gleapWidget.connected;
 }
 
 - (void)sendMessageWithData:(NSDictionary *)data {
@@ -76,6 +76,7 @@
         }
         
         [self.gleapWidget dismissViewControllerAnimated: YES completion:^{
+            self.widgetOpened = NO;
             self.gleapWidget = nil;
             if (completion != nil) {
                 completion();
@@ -106,9 +107,10 @@
 }
 
 - (void)showWidget {
-    if (self.gleapWidget != nil) {
+    if (self.widgetOpened) {
         return;
     }
+    self.widgetOpened = YES;
     
     dispatch_async(dispatch_get_main_queue(), ^{
         // Pre widget open hook.

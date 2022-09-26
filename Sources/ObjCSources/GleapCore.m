@@ -224,13 +224,17 @@
         NSLog(@"[GLEAP_SDK] Please provide a valid Gleap project TOKEN!");
         return;
     }
+    
+    if ([[GleapWidgetManager sharedInstance] isOpened]) {
+        return;
+    }
 
     [[GleapWidgetManager sharedInstance] showWidget];
     
     // Start a feedback flow.
     if (feedbackFlow != nil) {
         NSMutableDictionary *startFeedbackFlowData = [[NSMutableDictionary alloc] initWithDictionary: @{
-            @" ": feedbackFlow
+            @"flow": feedbackFlow
         }];
         if (options != nil) {
             [startFeedbackFlowData addEntriesFromDictionary: options];
