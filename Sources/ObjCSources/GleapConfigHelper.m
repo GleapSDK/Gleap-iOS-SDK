@@ -111,11 +111,13 @@
     [[GleapWidgetManager sharedInstance] sendConfigUpdate];
     
     // Set the initial feedback button status.
-    NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
-    if ([feedbackButtonPosition isEqualToString: @"BUTTON_NONE"]) {
-        [GleapNotificationHelper sharedInstance].showButton = NO;
-    } else {
-        [GleapNotificationHelper sharedInstance].showButton = YES;
+    if ([GleapNotificationHelper sharedInstance].showButtonExternalOverwrite == NO) {
+        NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
+        if ([feedbackButtonPosition isEqualToString: @"BUTTON_NONE"]) {
+            [GleapNotificationHelper sharedInstance].showButton = NO;
+        } else {
+            [GleapNotificationHelper sharedInstance].showButton = YES;
+        }
     }
     
     // Update notification UI components.

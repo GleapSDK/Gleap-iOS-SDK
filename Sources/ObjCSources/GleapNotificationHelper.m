@@ -47,6 +47,7 @@
 }
 
 + (void)showFeedbackButton:(bool)show {
+    [GleapNotificationHelper sharedInstance].showButtonExternalOverwrite = YES;
     [GleapNotificationHelper sharedInstance].showButton = show;
     [GleapNotificationHelper updateUI];
 }
@@ -55,6 +56,7 @@
     self.notifications = [[NSMutableArray alloc] init];
     self.notificationCount = 0;
     self.showButton = NO;
+    self.showButtonExternalOverwrite = NO;
     
     dispatch_async(dispatch_get_main_queue(), ^{
         UIWindow * currentKeyWindow = [[UIApplication sharedApplication] keyWindow];

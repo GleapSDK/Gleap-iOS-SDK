@@ -22,6 +22,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)updateUI;
 
 @property (nonatomic, assign) bool showButton;
+@property (nonatomic, assign) bool showButtonExternalOverwrite;
 @property (nonatomic, assign) int notificationCount;
 @property (nonatomic, retain) GleapUIWindow *uiWindow;
 @property (nonatomic, retain) GleapUIOverlayViewController *uiOverlayViewController;

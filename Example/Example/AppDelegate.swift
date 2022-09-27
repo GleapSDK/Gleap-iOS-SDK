@@ -15,6 +15,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         Gleap.enableDebugConsoleLog()
         Gleap.initialize(withToken: "DUPaIr7s689BBblcFI4pc5aBgYJTm7Sc")
         
+        Gleap.showFeedbackButton(true)
+        
         Gleap.sharedInstance().delegate = self
         
         Gleap.trackEvent("asfasdfasdf")
