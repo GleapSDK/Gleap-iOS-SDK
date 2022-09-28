@@ -16,7 +16,7 @@
     
     for (int i = 0; i < self.rootViewController.view.subviews.count; i++) {
         UIView *view = [self.rootViewController.view.subviews objectAtIndex: i];
-        if (view != nil) {
+        if (view != nil && !view.isHidden) {
             CGPoint pointInView = [self convertPoint: point toView: view];
             Boolean pointInside = [view pointInside: pointInView withEvent: event];
             if(pointInside && self.delegate != nil && [self.delegate respondsToSelector:@selector(pressedView:)]) {
