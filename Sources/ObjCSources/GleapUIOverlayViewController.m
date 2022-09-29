@@ -179,6 +179,7 @@
     UIImageView * senderImageView = [[UIImageView alloc] initWithFrame: CGRectMake(0.0, 0.0, 36.0, 36.0)];
     senderImageView.backgroundColor = [UIColor grayColor];
     senderImageView.layer.cornerRadius = 18.0;
+    senderImageView.contentMode = UIViewContentModeScaleAspectFill;
     senderImageView.clipsToBounds = YES;
     [senderOuterImageView addSubview: senderImageView];
     

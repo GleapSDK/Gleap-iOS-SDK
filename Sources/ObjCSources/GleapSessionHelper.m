@@ -174,6 +174,9 @@ static id ObjectOrNull(id object)
         }
         
         [self updateLocalSessionWith: jsonResponse andCompletion:^(bool success) {}];
+        
+        // Clear local messages.
+        [GleapNotificationHelper clear];
     }];
     [task resume];
 }
