@@ -21,6 +21,8 @@ class ImageViewController: UIViewController {
         Gleap.showFeedbackButton(false)
         
         NSLog("Test log :)")
+        
+        Gleap.openNews()
     }
     
     @IBAction func buttonClicked(_ sender: Any) {

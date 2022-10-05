@@ -13,9 +13,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         Gleap.enableDebugConsoleLog()
+        
+        Gleap.setFrameUrl("http://localhost:3001/app.html")
+        Gleap.setApiUrl("http://localhost:9000")
+        
         Gleap.initialize(withToken: "DUPaIr7s689BBblcFI4pc5aBgYJTm7Sc")
         
-        Gleap.showFeedbackButton(false)
+        Gleap.showFeedbackButton(true)
         
         Gleap.sharedInstance().delegate = self
         
@@ -25,11 +29,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         Gleap.attachCustomData(["value": "Unicorn", "type": "Demo", "ExtraInfo": ["Age": "28", "City": "San Francisco"]])
         
         // Gleap.clearIdentity()
-        let userProps = GleapUserProperty()
+        /*let userProps = GleapUserProperty()
         userProps.email = "lukas3+test@gleap.io"
         userProps.name = "Franz A"
         userProps.value = 344
-        Gleap.identifyUser(with: "user_132933", andData: userProps)
+        Gleap.identifyUser(with: "user_132933", andData: userProps)*/
+        
+        //Gleap.clearIdentity()
         
         // Testing file attachments.
         if let data = "Dies ist ein test.".data(using: String.Encoding.utf8) {

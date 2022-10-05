@@ -140,70 +140,74 @@
         @"opened": @([Gleap isOpened])
     };
     
-    NSError *error;
-    NSData *jsonBodyData = [NSJSONSerialization dataWithJSONObject: data options:kNilOptions error: &error];
-    
-    // Check for parsing error.
-    if (error != nil) {
-        return;
-    }
-    
-    NSMutableURLRequest *request = [NSMutableURLRequest new];
-    request.HTTPMethod = @"POST";
-    [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/sessions/ping", [Gleap sharedInstance].apiUrl]]];
-    [GleapSessionHelper injectSessionInRequest: request];
-    [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
-    [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
-    [request setHTTPBody: jsonBodyData];
-    
-    NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:config
-                                                          delegate:nil
-                                                     delegateQueue:[NSOperationQueue mainQueue]];
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                            completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+    @try {
+        NSError *error;
+        NSData *jsonBodyData = [NSJSONSerialization dataWithJSONObject: data options:kNilOptions error: &error];
+        
+        // Check for parsing error.
         if (error != nil) {
             return;
         }
         
-        if (![response isKindOfClass:[NSHTTPURLResponse class]]) {
-            return;
-        }
+        NSMutableURLRequest *request = [NSMutableURLRequest new];
+        request.HTTPMethod = @"POST";
+        [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/sessions/ping", [Gleap sharedInstance].apiUrl]]];
+        [GleapSessionHelper injectSessionInRequest: request];
+        [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
+        [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
+        [request setHTTPBody: jsonBodyData];
         
-        NSError *jsonError;
-        NSDictionary *actionData = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-        if (jsonError) {
-            return;
-        }
-        
-        @try {
-            NSArray *actions = [actionData objectForKey: @"a"];
-            if (actions != nil) {
-                for (int i = 0; i < actions.count; i++) {
-                    NSDictionary *action = [actions objectAtIndex: i];
-                    if ([[action objectForKey: @"actionType"] isEqualToString: @"notification"]) {
-                        [GleapNotificationHelper showNotification: action];
-                    } else {
-                        if ([action objectForKey: @"actionType"] != nil && [action objectForKey: @"outbound"] != nil) {
-                            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-                                [Gleap.sharedInstance startFeedbackFlow: [action objectForKey: @"actionType"] withOptions: @{
-                                    @"actionOutboundId": [action objectForKey: @"outbound"],
-                                    @"isSurvey": @YES,
-                                    @"format": [action objectForKey: @"format"],
-                                    @"hideBackButton": @YES
-                                }];
-                            });
+        NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
+        NSURLSession *session = [NSURLSession sessionWithConfiguration:config
+                                                              delegate:nil
+                                                         delegateQueue:[NSOperationQueue mainQueue]];
+        NSURLSessionDataTask *task = [session dataTaskWithRequest:request
+                                                completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+            if (error != nil) {
+                return;
+            }
+            
+            if (![response isKindOfClass:[NSHTTPURLResponse class]]) {
+                return;
+            }
+            
+            NSError *jsonError;
+            NSDictionary *actionData = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
+            if (jsonError) {
+                return;
+            }
+            
+            @try {
+                NSArray *actions = [actionData objectForKey: @"a"];
+                if (actions != nil) {
+                    for (int i = 0; i < actions.count; i++) {
+                        NSDictionary *action = [actions objectAtIndex: i];
+                        if ([[action objectForKey: @"actionType"] isEqualToString: @"notification"]) {
+                            [GleapNotificationHelper showNotification: action];
+                        } else {
+                            if ([action objectForKey: @"actionType"] != nil && [action objectForKey: @"outbound"] != nil) {
+                                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                                    [Gleap.sharedInstance startFeedbackFlow: [action objectForKey: @"actionType"] withOptions: @{
+                                        @"actionOutboundId": [action objectForKey: @"outbound"],
+                                        @"isSurvey": @YES,
+                                        @"format": [action objectForKey: @"format"],
+                                        @"hideBackButton": @YES
+                                    }];
+                                });
+                            }
                         }
                     }
                 }
+                
+                int unreadCount = [[actionData objectForKey: @"u"] intValue];
+                [GleapNotificationHelper updateNotificationCount: unreadCount];
             }
-            
-            int unreadCount = [[actionData objectForKey: @"u"] intValue];
-            [GleapNotificationHelper updateNotificationCount: unreadCount];
-        }
-        @catch(id exception) {}
-    }];
-    [task resume];
+            @catch(id exception) {}
+        }];
+        [task resume];
+    } @catch(id exception) {
+        
+    }
     
     // Clear items.
     [self.streamedLog removeAllObjects];

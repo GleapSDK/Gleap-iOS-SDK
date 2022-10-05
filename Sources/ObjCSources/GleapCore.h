@@ -56,6 +56,13 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR 
 + (void)open;
 
 /**
+ * Manually shows the news list.
+ * @author Gleap
+ *
+ */
++ (void)openNews;
+
+/**
  * Manually close the feedback.
  * @author Gleap
  *

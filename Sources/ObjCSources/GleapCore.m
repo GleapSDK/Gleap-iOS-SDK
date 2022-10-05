@@ -206,6 +206,13 @@
     [[Gleap sharedInstance] startFeedbackFlow: nil withOptions: nil];
 }
 
++ (void)openNews {
+    [Gleap open];
+    [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+        @"name": @"open-news"
+    }];
+}
+
 + (void)close {
     [[GleapWidgetManager sharedInstance] closeWidget:^{}];
 }

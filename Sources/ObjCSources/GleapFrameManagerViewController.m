@@ -230,15 +230,15 @@
                 [self stopLoading];
             });
             
-            if (self.delegate != nil && [self.delegate respondsToSelector:@selector(connected)]) {
-                [self.delegate connected];
-            }
-            
             [self sendWidgetStatusUpdate];
             [self sendConfigUpdate];
             [self sendSessionUpdate];
             [self sendPreFillData];
             [self sendScreenshotUpdate];
+            
+            if (self.delegate != nil && [self.delegate respondsToSelector:@selector(connected)]) {
+                [self.delegate connected];
+            }
         }
         
         if ([name isEqualToString: @"cleanup-drawings"]) {

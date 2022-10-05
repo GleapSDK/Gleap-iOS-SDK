@@ -89,12 +89,21 @@
         } else {
             NSDictionary *notification = [self.notifications objectAtIndex: view.tag];
             NSString *shareToken = [notification valueForKeyPath: @"data.conversation.shareToken"];
+            NSString *newsId = [notification valueForKeyPath: @"data.news.id"];
             if (shareToken != nil) {
                 [Gleap open];
                 [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
                     @"name": @"open-conversation",
                     @"data": @{
                         @"shareToken": shareToken
+                    },
+                }];
+            } else if (newsId != nil) {
+                [Gleap open];
+                [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+                    @"name": @"open-news-article",
+                    @"data": @{
+                        @"id": newsId
                     },
                 }];
             } else {
