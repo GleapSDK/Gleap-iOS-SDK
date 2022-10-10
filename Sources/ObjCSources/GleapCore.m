@@ -213,6 +213,13 @@
     }];
 }
 
++ (void)openFeatureRequests {
+    [Gleap open];
+    [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+        @"name": @"open-feature-requests"
+    }];
+}
+
 + (void)close {
     [[GleapWidgetManager sharedInstance] closeWidget:^{}];
 }

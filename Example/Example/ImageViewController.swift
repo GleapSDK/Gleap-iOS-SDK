@@ -28,7 +28,7 @@ class ImageViewController: UIViewController {
     @IBAction func buttonClicked(_ sender: Any) {
         NSLog("Demo button clicked :)")
         
-        Gleap.showFeedbackButton(true)
+        Gleap.openFeatureRequests()
     }
     
     /*
