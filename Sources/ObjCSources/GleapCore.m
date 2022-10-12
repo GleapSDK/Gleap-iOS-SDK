@@ -186,6 +186,17 @@
     [GleapSessionHelper.sharedInstance clearSession];
 }
 
++ (NSDictionary *)getIdentity {
+    return [GleapSessionHelper.sharedInstance.currentSession toDictionary];
+}
+
++ (BOOL)isUserIdentified {
+    if (GleapSessionHelper.sharedInstance.currentSession != nil && GleapSessionHelper.sharedInstance.currentSession.userId != nil && GleapSessionHelper.sharedInstance.currentSession.userId.length > 0) {
+        return YES;
+    }
+    return NO;
+}
+
 + (void)setApiUrl: (NSString *)apiUrl {
     Gleap.sharedInstance.apiUrl = apiUrl;
 }

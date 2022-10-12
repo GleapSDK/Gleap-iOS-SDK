@@ -139,6 +139,18 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR 
 + (void)clearIdentity;
 
 /**
+ * Returns the user's identity.
+ * @author Gleap
+ */
++ (NSDictionary *)getIdentity;
+
+/**
+ * Returns the user's identity state.
+ * @author Gleap
+ */
++ (BOOL)isUserIdentified;
+
+/**
  * Prefills the widget form with data.
  * @author Gleap
  *

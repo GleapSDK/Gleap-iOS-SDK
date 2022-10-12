@@ -209,6 +209,7 @@ static id ObjectOrNull(id object)
 
 - (void)clearSession {
     self.currentSession = nil;
+    self.openIdentityAction = nil;
     [[NSUserDefaults standardUserDefaults] removeObjectForKey: @"gleapId"];
     [[NSUserDefaults standardUserDefaults] removeObjectForKey: @"gleapHash"];
     

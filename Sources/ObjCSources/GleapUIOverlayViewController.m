@@ -24,11 +24,21 @@
 
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations
 {
+    UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
+    if (topMostViewController != nil) {
+        return topMostViewController.supportedInterfaceOrientations;
+    }
+    
     return UIInterfaceOrientationMaskAll;
 }
 
 - (BOOL)shouldAutorotate
 {
+    UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
+    if (topMostViewController != nil) {
+        return topMostViewController.shouldAutorotate;
+    }
+    
     return YES;
 }
 
