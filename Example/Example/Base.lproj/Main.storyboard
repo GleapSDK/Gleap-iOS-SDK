@@ -63,9 +63,9 @@
         <!--Test-->
         <scene sceneID="YUe-fI-2S5">
             <objects>
-                <viewController title="Test" id="2wY-OI-ygZ" customClass="ImageViewController" customModule="Example" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController title="Test" modalPresentationStyle="fullScreen" id="2wY-OI-ygZ" customClass="ImageViewController" customModule="Example" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="Xy1-7i-YVC">
-                        <rect key="frame" x="0.0" y="0.0" width="414" height="838"/>
+                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="pexels-michael-block-3225517" translatesAutoresizingMaskIntoConstraints="NO" id="doF-CX-Gug">
@@ -75,7 +75,7 @@
                                 </constraints>
                             </imageView>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ru4-FV-kfb">
-                                <rect key="frame" x="20" y="764" width="374" height="54"/>
+                                <rect key="frame" x="20" y="788" width="374" height="54"/>
                                 <color key="backgroundColor" red="0.29803922770000002" green="0.35294118520000001" blue="0.96470588450000005" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="54" id="5Vk-gc-RHf"/>

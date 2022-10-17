@@ -146,18 +146,22 @@
         bool needsRotationRefresh = NO;
         
         bool isModal = [self isModal: topMostViewController];
+        UIInterfaceOrientationMask newOrientation = UIInterfaceOrientationMaskAll;
+        bool newShouldAutoRotate = YES;
         if (!isModal) {
             UIViewController *rotationViewController = [self getRotationViewController: topMostViewController];
-            
-            if (_lastOrientation != rotationViewController.supportedInterfaceOrientations) {
-                _lastOrientation = rotationViewController.supportedInterfaceOrientations;
-                needsRotationRefresh = YES;
-            }
-            if (_lastShouldAutoRotate != rotationViewController.shouldAutorotate) {
-                _lastShouldAutoRotate = rotationViewController.shouldAutorotate;
-                needsRotationRefresh = YES;
-            }
+            newOrientation = rotationViewController.supportedInterfaceOrientations;
+            newShouldAutoRotate = rotationViewController.shouldAutorotate;
         }
+        if (_lastOrientation != newOrientation) {
+            _lastOrientation = newOrientation;
+            needsRotationRefresh = YES;
+        }
+        if (_lastShouldAutoRotate != newShouldAutoRotate) {
+            _lastShouldAutoRotate = newShouldAutoRotate;
+            needsRotationRefresh = YES;
+        }
+        
         if (needsRotationRefresh && !isInit) {
             if (@available(iOS 16.0, *)) {
                 [self setNeedsUpdateOfSupportedInterfaceOrientations];
