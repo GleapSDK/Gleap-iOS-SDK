@@ -16,30 +16,27 @@
 
 @implementation GleapUIOverlayViewController
 
+- (void)viewWillAppear:(BOOL)animated {
+    [self checkIfUpdateNeeded: NO];
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
-    
     [self initializeUI];
+}
+
+- (UIStatusBarStyle)preferredStatusBarStyle {
+    return _lastStatusBarStyle;
 }
 
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations
 {
-    UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
-    if (topMostViewController != nil) {
-        return topMostViewController.supportedInterfaceOrientations;
-    }
-    
-    return UIInterfaceOrientationMaskAll;
+    return _lastOrientation;
 }
 
 - (BOOL)shouldAutorotate
 {
-    UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
-    if (topMostViewController != nil) {
-        return topMostViewController.shouldAutorotate;
-    }
-    
-    return YES;
+    return _lastShouldAutoRotate;
 }
 
 - (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
@@ -51,6 +48,8 @@
 }
 
 - (void)initializeUI {
+    self.modalPresentationStyle = UIModalPresentationOverFullScreen;
+    self.modalPresentationCapturesStatusBarAppearance = NO;
     self.internalNotifications = [[NSMutableArray alloc] init];
     self.notificationViews = [[NSMutableArray alloc] init];
     
@@ -60,6 +59,126 @@
     
     [self.feedbackButton applyConfig];
     [self.feedbackButton setNotificationCount: 0];
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        self.topMostViewControllerTimer = [NSTimer scheduledTimerWithTimeInterval: 0.1
+                                             target: self
+                                           selector: @selector(checkIfUpdateNeeded)
+                                           userInfo: nil
+                                            repeats: YES];
+    });
+}
+
+- (void)checkIfUpdateNeeded {
+    [self checkIfUpdateNeeded: NO];
+}
+
+- (BOOL)isModal {
+    UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
+    
+     if([topMostViewController presentingViewController])
+         return YES;
+     if([[[topMostViewController navigationController] presentingViewController] presentedViewController] == [topMostViewController navigationController])
+         return YES;
+     if([[[topMostViewController tabBarController] presentingViewController] isKindOfClass:[UITabBarController class]])
+         return YES;
+
+    return NO;
+ }
+
+- (BOOL)isModalStyle:(UIViewController *)vc {
+    if (
+        vc.modalPresentationStyle == UIModalPresentationFormSheet ||
+        vc.modalPresentationStyle == UIModalPresentationPageSheet ||
+        vc.modalPresentationStyle == UIModalPresentationPopover
+    ) {
+        return YES;
+    }
+    
+    if (@available(iOS 13.0, *)) {
+        if (
+            vc.modalPresentationStyle == UIModalPresentationAutomatic
+        ) {
+            return YES;
+        }
+    }
+    
+    return NO;
+}
+
+- (BOOL)isModal:(UIViewController *)vc {
+    if (vc.presentingViewController == nil) {
+        return NO;
+    }
+    
+    if(vc.navigationController != nil && [[[vc navigationController] presentingViewController] presentedViewController] == [vc navigationController]) {
+        return [self isModalStyle: vc.navigationController];
+    }
+    
+    if(vc.tabBarController != nil) {
+        return [self isModalStyle: vc.tabBarController];
+    }
+    
+    return [self isModalStyle: vc];
+}
+
+- (UIViewController *)getRotationViewController:(UIViewController *)vc {
+    if (vc.presentingViewController == nil) {
+        return vc;
+    }
+    
+    if(vc.navigationController != nil && [[[vc navigationController] presentingViewController] presentedViewController] == [vc navigationController]) {
+        return vc.navigationController;
+    }
+    
+    if(vc.tabBarController != nil) {
+        return vc.tabBarController;
+    }
+    
+    return vc;
+}
+
+- (void)checkIfUpdateNeeded:(Boolean)isInit {
+    UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
+    
+    UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
+    if (topMostViewController != nil) {
+        bool needsRotationRefresh = NO;
+        
+        bool isModal = [self isModal: topMostViewController];
+        if (!isModal) {
+            UIViewController *rotationViewController = [self getRotationViewController: topMostViewController];
+            
+            if (_lastOrientation != rotationViewController.supportedInterfaceOrientations) {
+                _lastOrientation = rotationViewController.supportedInterfaceOrientations;
+                needsRotationRefresh = YES;
+            }
+            if (_lastShouldAutoRotate != rotationViewController.shouldAutorotate) {
+                _lastShouldAutoRotate = rotationViewController.shouldAutorotate;
+                needsRotationRefresh = YES;
+            }
+        }
+        if (needsRotationRefresh && !isInit) {
+            if (@available(iOS 16.0, *)) {
+                [self setNeedsUpdateOfSupportedInterfaceOrientations];
+            } else {
+                [UIViewController attemptRotationToDeviceOrientation];
+            }
+        }
+        
+        if (!isInit) {
+            UIStatusBarStyle newStatusBarStyle = topMostViewController.preferredStatusBarStyle;
+            if (newStatusBarStyle == UIStatusBarStyleDefault && isModal) {
+                newStatusBarStyle = UIStatusBarStyleLightContent;
+            }
+            
+            if (_lastStatusBarStyle != newStatusBarStyle) {
+                _lastStatusBarStyle = newStatusBarStyle;
+                [topMostViewController setNeedsStatusBarAppearanceUpdate];
+                [self setNeedsStatusBarAppearanceUpdate];
+            }
+        }
+    }
 }
 
 - (void)setNotifications:(NSMutableArray *)notifications {

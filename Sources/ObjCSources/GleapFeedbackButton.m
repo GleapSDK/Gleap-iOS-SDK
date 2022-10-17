@@ -73,10 +73,10 @@ const double BUTTON_SIZE = 56.0;
     }
     
     self.layer.cornerRadius = self.frame.size.height / 2.0;
-    self.layer.shadowRadius  = 10.0;
+    self.layer.shadowRadius  = 6.0;
     self.layer.shadowColor   = [UIColor blackColor].CGColor;
     self.layer.shadowOffset  = CGSizeMake(0.0f, 0.0f);
-    self.layer.shadowOpacity = 0.3;
+    self.layer.shadowOpacity = 0.2;
     self.layer.masksToBounds = NO;
     self.clipsToBounds = NO;
     

@@ -17,6 +17,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)updateNotificationCount:(int)notificationCount;
 - (void)updateUI;
 
+@property (nonatomic, assign) UIInterfaceOrientationMask lastOrientation;
+@property (nonatomic, assign) bool lastShouldAutoRotate;
+@property (nonatomic, assign) UIStatusBarStyle lastStatusBarStyle;
+@property (nonatomic, retain) NSTimer *topMostViewControllerTimer;
 @property (nonatomic, retain) NSMutableArray *internalNotifications;
 @property (nonatomic, retain) GleapFeedbackButton *feedbackButton;
 @property (nonatomic, retain) NSMutableArray *notificationViews;

@@ -65,7 +65,6 @@
             self.uiWindow = [[GleapUIWindow alloc] initWithWindowScene: (UIWindowScene *)scene];
         }
         if (self.uiWindow == nil) {
-            // Fallback initialization.
             self.uiWindow = [[GleapUIWindow alloc] init];
         }
         [self.uiWindow setFrame: UIScreen.mainScreen.bounds];

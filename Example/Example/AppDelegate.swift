@@ -13,11 +13,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         Gleap.enableDebugConsoleLog()
-        
-        Gleap.setFrameUrl("http://localhost:3001/app.html")
-        Gleap.setApiUrl("http://localhost:9000")
-        
-        Gleap.initialize(withToken: "DUPaIr7s689BBblcFI4pc5aBgYJTm7Sc")
+        Gleap.initialize(withToken: "ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV")
         
         Gleap.showFeedbackButton(true)
         

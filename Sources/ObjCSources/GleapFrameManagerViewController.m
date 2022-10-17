@@ -87,16 +87,14 @@
         NSString *headerColor = [config objectForKey: @"headerColor"];
         if (headerColor != nil && headerColor.length > 0) {
             UIColor *color = [GleapUIHelper colorFromHexString: headerColor];
-            UIView *headerView = [UIView new];
-            headerView.backgroundColor = color;
-                        
-            headerView.translatesAutoresizingMaskIntoConstraints = NO;
-            [loadingView addSubview: headerView];
             
-            [[headerView.topAnchor constraintEqualToAnchor: loadingView.topAnchor] setActive:YES];
-            [[headerView.trailingAnchor constraintEqualToAnchor: loadingView.trailingAnchor] setActive:YES];
-            [[headerView.leadingAnchor constraintEqualToAnchor: loadingView.leadingAnchor] setActive:YES];
-            [[headerView.heightAnchor constraintEqualToConstant: 210] setActive:YES];
+            CGFloat width = [UIScreen mainScreen].bounds.size.width;
+            CAGradientLayer *gradient = [CAGradientLayer layer];
+            gradient.frame = CGRectMake(0, 0, width, 380);
+            gradient.colors = @[(id)[color CGColor], (id)[loadingView.backgroundColor CGColor]];
+            gradient.startPoint = CGPointMake(0, 0.6);
+            gradient.endPoint = CGPointMake(0, 1);
+            [loadingView.layer addSublayer: gradient];
         }
     }
 
@@ -109,7 +107,9 @@
     loadingActivityView.translatesAutoresizingMaskIntoConstraints = NO;
     [loadingView addSubview: loadingActivityView];
     [[loadingActivityView.centerXAnchor constraintEqualToAnchor: loadingView.centerXAnchor] setActive:YES];
-    [[loadingActivityView.centerYAnchor constraintEqualToAnchor: loadingView.centerYAnchor] setActive:YES];
+    NSLayoutConstraint* constraint = [loadingActivityView.topAnchor constraintEqualToAnchor: loadingView.topAnchor];
+    [constraint setConstant: 410];
+    [constraint setActive:YES];
     
     self.loadingView = loadingView;
     self.loadingActivityView = loadingActivityView;
@@ -374,8 +374,9 @@
     self.webView.navigationDelegate = self;
     self.webView.UIDelegate = self;
     self.webView.alpha = 0;
-    
     self.webView.scrollView.bounces = NO;
+    self.webView.scrollView.alwaysBounceVertical = NO;
+    self.webView.scrollView.alwaysBounceHorizontal = NO;
     self.webView.allowsBackForwardNavigationGestures = NO;
     if (@available(iOS 11.0, *)) {
         [self.webView.scrollView setContentInsetAdjustmentBehavior: UIScrollViewContentInsetAdjustmentNever];

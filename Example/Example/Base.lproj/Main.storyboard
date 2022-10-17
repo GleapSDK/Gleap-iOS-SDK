@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="20037" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21225" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
     <device id="retina6_1" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="20020"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21207"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -37,12 +38,12 @@
                                 </buttonConfiguration>
                                 <connections>
                                     <action selector="sendData:" destination="BYZ-38-t0r" eventType="touchUpInside" id="woT-fp-wWR"/>
-                                    <segue destination="2wY-OI-ygZ" kind="presentation" id="uMd-jG-73o"/>
+                                    <segue destination="2wY-OI-ygZ" kind="presentation" id="EIH-5r-5a4"/>
                                 </connections>
                             </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
-                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
                             <constraint firstItem="xob-OO-vdL" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="CFT-EB-OsH"/>
                             <constraint firstItem="S1J-0x-V21" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="T6D-GB-8zW"/>
@@ -59,22 +60,22 @@
             </objects>
             <point key="canvasLocation" x="121.73913043478262" y="79.6875"/>
         </scene>
-        <!--Image View Controller-->
+        <!--Test-->
         <scene sceneID="YUe-fI-2S5">
             <objects>
-                <viewController id="2wY-OI-ygZ" customClass="ImageViewController" customModule="Example" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController title="Test" id="2wY-OI-ygZ" customClass="ImageViewController" customModule="Example" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="Xy1-7i-YVC">
-                        <rect key="frame" x="0.0" y="0.0" width="414" height="842"/>
+                        <rect key="frame" x="0.0" y="0.0" width="414" height="838"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="pexels-michael-block-3225517" translatesAutoresizingMaskIntoConstraints="NO" id="doF-CX-Gug">
-                                <rect key="frame" x="0.0" y="0.0" width="414" height="300"/>
+                                <rect key="frame" x="0.0" y="20" width="414" height="300"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="300" id="AIc-xt-Aog"/>
                                 </constraints>
                             </imageView>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ru4-FV-kfb">
-                                <rect key="frame" x="20" y="768" width="374" height="54"/>
+                                <rect key="frame" x="20" y="764" width="374" height="54"/>
                                 <color key="backgroundColor" red="0.29803922770000002" green="0.35294118520000001" blue="0.96470588450000005" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="54" id="5Vk-gc-RHf"/>
@@ -84,13 +85,9 @@
                                 <buttonConfiguration key="configuration" style="plain" title="Magic function" cornerStyle="large">
                                     <fontDescription key="titleFontDescription" type="boldSystem" pointSize="21"/>
                                 </buttonConfiguration>
-                                <connections>
-                                    <action selector="buttonClicked:" destination="2wY-OI-ygZ" eventType="touchUpInside" id="ZqJ-Ad-2Rb"/>
-                                    <action selector="sendData:" destination="BYZ-38-t0r" eventType="touchUpInside" id="EOo-1Y-Q73"/>
-                                </connections>
                             </button>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Demo screen" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="WBd-CM-Aqo">
-                                <rect key="frame" x="20" y="327" width="374" height="21"/>
+                                <rect key="frame" x="20" y="347" width="374" height="21"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="21" id="h4l-Tk-gfI"/>
                                 </constraints>
@@ -99,7 +96,7 @@
                                 <nil key="highlightedColor"/>
                             </label>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="This is a demo 🎉" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="4aH-KN-9rd">
-                                <rect key="frame" x="20" y="366" width="374" height="32"/>
+                                <rect key="frame" x="20" y="386" width="374" height="32"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="32" id="xXX-qL-5tL"/>
                                 </constraints>
@@ -109,7 +106,7 @@
                             </label>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="Zca-vq-hGg"/>
-                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
                             <constraint firstItem="4aH-KN-9rd" firstAttribute="leading" secondItem="Zca-vq-hGg" secondAttribute="leading" constant="20" id="5NF-gW-c8A"/>
                             <constraint firstItem="ru4-FV-kfb" firstAttribute="leading" secondItem="Zca-vq-hGg" secondAttribute="leading" constant="20" id="E4Z-FY-P2K"/>
@@ -119,24 +116,28 @@
                             <constraint firstItem="4aH-KN-9rd" firstAttribute="top" secondItem="WBd-CM-Aqo" secondAttribute="bottom" constant="18" id="O5n-oE-dbc"/>
                             <constraint firstItem="Zca-vq-hGg" firstAttribute="trailing" secondItem="4aH-KN-9rd" secondAttribute="trailing" constant="20" id="gQ5-cV-t9l"/>
                             <constraint firstItem="doF-CX-Gug" firstAttribute="leading" secondItem="Zca-vq-hGg" secondAttribute="leading" id="kEa-8w-qTf"/>
-                            <constraint firstItem="doF-CX-Gug" firstAttribute="top" secondItem="Xy1-7i-YVC" secondAttribute="top" id="nc0-lW-ftp"/>
+                            <constraint firstItem="doF-CX-Gug" firstAttribute="top" secondItem="Xy1-7i-YVC" secondAttribute="top" constant="20" id="nc0-lW-ftp"/>
                             <constraint firstItem="ru4-FV-kfb" firstAttribute="bottom" secondItem="Zca-vq-hGg" secondAttribute="bottom" constant="-20" id="q4n-fB-wni"/>
                             <constraint firstItem="WBd-CM-Aqo" firstAttribute="top" secondItem="doF-CX-Gug" secondAttribute="bottom" constant="27" id="qek-v9-eA3"/>
                             <constraint firstItem="WBd-CM-Aqo" firstAttribute="leading" secondItem="Zca-vq-hGg" secondAttribute="leading" constant="20" id="vr3-Lm-VVG"/>
                         </constraints>
                     </view>
-                    <navigationItem key="navigationItem" id="xJU-Bg-9zf"/>
+                    <tabBarItem key="tabBarItem" title="Item" id="i5b-gJ-ddb"/>
+                    <navigationItem key="navigationItem" title="Test" id="xJU-Bg-9zf"/>
                     <connections>
                         <outlet property="button" destination="ru4-FV-kfb" id="258-QB-H5U"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="asx-GK-5vI" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="805.79710144927537" y="79.6875"/>
+            <point key="canvasLocation" x="855" y="80"/>
         </scene>
     </scenes>
     <resources>
         <image name="Logo" width="674" height="682"/>
         <image name="pexels-michael-block-3225517" width="1554.6666259765625" height="1943.3333740234375"/>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
     </resources>
 </document>
