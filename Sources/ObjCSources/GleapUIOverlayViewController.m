@@ -61,7 +61,7 @@
     [self.feedbackButton setNotificationCount: 0];
     
     dispatch_async(dispatch_get_main_queue(), ^{
-        self.topMostViewControllerTimer = [NSTimer scheduledTimerWithTimeInterval: 0.1
+        self.topMostViewControllerTimer = [NSTimer scheduledTimerWithTimeInterval: 0.25
                                              target: self
                                            selector: @selector(checkIfUpdateNeeded)
                                            userInfo: nil
@@ -201,16 +201,16 @@
         [UIView animateWithDuration:0.3f animations:^{
             self.feedbackButton.alpha = 0.0;
         } completion:^(BOOL finished) {
-            self.view.window.hidden = YES;
+            self.view.hidden = YES;
         }];
     } else {
-        if (self.view.window.hidden) {
+        if (self.view.hidden) {
             self.feedbackButton.alpha = 0.0;
             [UIView animateWithDuration:0.3f animations:^{
                 self.feedbackButton.alpha = 1.0;
             }];
         }
-        self.view.window.hidden = NO;
+        self.view.hidden = NO;
     }
     
     [self.feedbackButton applyConfig];
