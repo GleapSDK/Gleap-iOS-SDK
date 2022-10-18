@@ -5,7 +5,7 @@
 //  Created by Lukas Boehler on 25.05.22.
 //
 
-#define SDK_VERSION @"8.1.0"
+#define SDK_VERSION @"8.2.3"
 
 #import "GleapMetaDataHelper.h"
 #import <sys/utsname.h>
