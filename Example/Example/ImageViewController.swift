@@ -12,7 +12,7 @@ class ImageViewController: UIViewController, UINavigationControllerDelegate, UIT
     @IBOutlet weak var button: UIButton!
     
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        return .portrait
+        return .landscape
     }
     
     override var shouldAutorotate: Bool {

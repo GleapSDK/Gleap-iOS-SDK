@@ -22,7 +22,13 @@
 
 @implementation DemoViewController
 
+- (BOOL)shouldAutorotate {
+    return YES;
+}
 
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+    return UIInterfaceOrientationMaskPortrait;
+}
 
 - (void)viewDidLoad {
     [super viewDidLoad];
