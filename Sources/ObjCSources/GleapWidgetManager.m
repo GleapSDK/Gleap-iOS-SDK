@@ -129,6 +129,7 @@
         UINavigationController * navController = [[UINavigationController alloc] initWithRootViewController: self.gleapWidget];
         navController.navigationBar.barStyle = UIBarStyleBlack;
         [navController.navigationBar setTranslucent: NO];
+        navController.modalPresentationStyle = UIModalPresentationFormSheet;
         [navController.navigationBar setBarTintColor: [UIColor whiteColor]];
         [navController.navigationBar setTitleTextAttributes:
            @{NSForegroundColorAttributeName:[UIColor blackColor]}];

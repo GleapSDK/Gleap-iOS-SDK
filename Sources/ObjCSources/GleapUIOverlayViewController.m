@@ -61,7 +61,7 @@
     [self.feedbackButton setNotificationCount: 0];
     
     dispatch_async(dispatch_get_main_queue(), ^{
-        self.topMostViewControllerTimer = [NSTimer scheduledTimerWithTimeInterval: 0.25
+        self.topMostViewControllerTimer = [NSTimer scheduledTimerWithTimeInterval: 0.4
                                              target: self
                                            selector: @selector(checkIfUpdateNeeded)
                                            userInfo: nil
@@ -138,6 +138,19 @@
     return vc;
 }
 
+- (UIViewController *)getNonModalVC:(UIViewController *)vc {
+    if (vc.presentingViewController != nil) {
+        bool isModal = [self isModal: vc.presentingViewController];
+        if (isModal) {
+            return [self getNonModalVC: vc.presentingViewController];
+        }
+        
+        return vc.presentingViewController;
+    }
+    
+    return nil;
+}
+
 - (void)checkIfUpdateNeeded:(Boolean)isInit {
     UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
     
@@ -147,11 +160,18 @@
         
         bool isModal = [self isModal: topMostViewController];
         UIInterfaceOrientationMask newOrientation = UIInterfaceOrientationMaskAll;
+        UIViewController *rotationViewController = [self getRotationViewController: topMostViewController];
         bool newShouldAutoRotate = YES;
         if (!isModal) {
-            UIViewController *rotationViewController = [self getRotationViewController: topMostViewController];
             newOrientation = rotationViewController.supportedInterfaceOrientations;
             newShouldAutoRotate = rotationViewController.shouldAutorotate;
+        } else {
+            // Try to get orientation from parent.
+            UIViewController * nonModalParent = [self getNonModalVC: rotationViewController];
+            if (nonModalParent != nil) {
+                newOrientation = nonModalParent.supportedInterfaceOrientations;
+                newShouldAutoRotate = nonModalParent.shouldAutorotate;
+            }
         }
         if (_lastOrientation != newOrientation) {
             _lastOrientation = newOrientation;
@@ -163,11 +183,10 @@
         }
         
         if (needsRotationRefresh && !isInit) {
-            if (@available(iOS 16.0, *)) {
+            /*if (@available(iOS 16.0, *)) {
                 [self setNeedsUpdateOfSupportedInterfaceOrientations];
-            } else {
-                [UIViewController attemptRotationToDeviceOrientation];
-            }
+            }*/
+            [UIViewController attemptRotationToDeviceOrientation];
         }
         
         if (!isInit) {
