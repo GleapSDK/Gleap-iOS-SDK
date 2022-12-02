@@ -217,17 +217,105 @@
     [[Gleap sharedInstance] startFeedbackFlow: nil withOptions: nil];
 }
 
-+ (void)openNews {
++ (void)openNewsArticle:(NSString *)articleId {
+    [self openNewsArticle: articleId andShowBackButton: NO];
+}
+
++ (void)openNewsArticle:(NSString *)articleId andShowBackButton:(Boolean)showBackButton {
     [Gleap open];
     [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-        @"name": @"open-news"
+        @"name": @"open-news-article",
+        @"data": @{
+          @"id": articleId,
+          @"hideBackButton": @(!showBackButton)
+        }
+    }];
+}
+
++ (void)openNews {
+    [self openNews: NO];
+}
+
++ (void)openNews:(Boolean)showBackButton {
+    [Gleap open];
+    [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+        @"name": @"open-news",
+        @"data": @{
+          @"hideBackButton": @(!showBackButton)
+        }
     }];
 }
 
 + (void)openFeatureRequests {
+    [self openFeatureRequests: NO];
+}
+
++ (void)openFeatureRequests:(Boolean)showBackButton {
     [Gleap open];
     [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-        @"name": @"open-feature-requests"
+        @"name": @"open-feature-requests",
+        @"data": @{
+            @"hideBackButton": @(!showBackButton)
+        }
+    }];
+}
+
++ (void)openHelpCenterCollection:(NSString *)collectionId {
+    [self openHelpCenterCollection: collectionId andShowBackButton: NO];
+}
+
++ (void)openHelpCenterCollection:(NSString *)collectionId andShowBackButton:(Boolean)showBackButton {
+    [Gleap open];
+    [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+        @"name": @"open-help-collection",
+        @"data": @{
+            @"collectionId": collectionId,
+            @"hideBackButton": @(!showBackButton)
+        }
+    }];
+}
+
++ (void)openHelpCenterArticle:(NSString *)articleId {
+    [self openHelpCenterArticle: articleId andShowBackButton: NO];
+}
+
++ (void)openHelpCenterArticle:(NSString *)articleId andShowBackButton:(Boolean)showBackButton {
+    [Gleap open];
+    [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+        @"name": @"open-help-article",
+        @"data": @{
+            @"articleId": articleId,
+            @"hideBackButton": @(!showBackButton)
+        }
+    }];
+}
+
++ (void)openHelpCenter {
+    [self openHelpCenter: NO];
+}
+
++ (void)openHelpCenter:(Boolean)showBackButton {
+    [Gleap open];
+    [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+        @"name": @"open-helpcenter",
+        @"data": @{
+            @"hideBackButton": @(!showBackButton)
+        }
+    }];
+}
+
++ (void)searchHelpCenter:(NSString *)searchTerm {
+    [self searchHelpCenter: searchTerm andShowBackButton: NO];
+}
+
++ (void)searchHelpCenter:(NSString *)searchTerm andShowBackButton:(Boolean)showBackButton {
+    [Gleap open];
+    [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+        @"name": @"open-helpcenter-search",
+        @"data": @{
+            @"term": searchTerm,
+            @"hideBackButton": @(!showBackButton)
+        }
     }];
 }
 
