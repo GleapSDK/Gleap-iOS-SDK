@@ -152,8 +152,6 @@
 }
 
 - (void)checkIfUpdateNeeded:(Boolean)isInit {
-    UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
-    
     UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
     if (topMostViewController != nil) {
         bool needsRotationRefresh = NO;
