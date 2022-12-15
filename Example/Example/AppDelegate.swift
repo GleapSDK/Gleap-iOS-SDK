@@ -13,7 +13,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         Gleap.enableDebugConsoleLog()
-        Gleap.initialize(withToken: "ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV")
+        Gleap.initialize(withToken: "DUPaIr7s689BBblcFI4pc5aBgYJTm7Sc")
         
         Gleap.showFeedbackButton(true)
         
@@ -25,11 +25,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         Gleap.attachCustomData(["value": "Unicorn", "type": "Demo", "ExtraInfo": ["Age": "28", "City": "San Francisco"]])
         
         // Gleap.clearIdentity()
-        /*let userProps = GleapUserProperty()
-        userProps.email = "lukas3+test@gleap.io"
+        let userProps = GleapUserProperty()
+        userProps.email = "lukas9+test@gleap.io"
         userProps.name = "Franz A"
-        userProps.value = 344
-        Gleap.identifyUser(with: "user_132933", andData: userProps)*/
+        userProps.value = 394
+        userProps.customData = ["xxaa": "Isabella"]
+        Gleap.identifyUser(with: "user_132933", andData: userProps)
         
         //Gleap.clearIdentity()
         

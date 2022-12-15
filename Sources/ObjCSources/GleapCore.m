@@ -213,8 +213,8 @@
     return [[GleapWidgetManager sharedInstance] isOpened];
 }
 
-+ (void)open {
-    [[Gleap sharedInstance] startFeedbackFlow: nil withOptions: nil];
++ (Boolean)open {
+    return [[Gleap sharedInstance] startFeedbackFlow: nil withOptions: nil];
 }
 
 + (void)openNewsArticle:(NSString *)articleId {
@@ -222,14 +222,15 @@
 }
 
 + (void)openNewsArticle:(NSString *)articleId andShowBackButton:(Boolean)showBackButton {
-    [Gleap open];
-    [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-        @"name": @"open-news-article",
-        @"data": @{
-          @"id": articleId,
-          @"hideBackButton": @(!showBackButton)
-        }
-    }];
+    if ([Gleap open]) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": @"open-news-article",
+            @"data": @{
+              @"id": articleId,
+              @"hideBackButton": @(!showBackButton)
+            }
+        }];
+    }
 }
 
 + (void)openNews {
@@ -237,13 +238,14 @@
 }
 
 + (void)openNews:(Boolean)showBackButton {
-    [Gleap open];
-    [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-        @"name": @"open-news",
-        @"data": @{
-          @"hideBackButton": @(!showBackButton)
-        }
-    }];
+    if ([Gleap open]) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": @"open-news",
+            @"data": @{
+              @"hideBackButton": @(!showBackButton)
+            }
+        }];
+    }
 }
 
 + (void)openFeatureRequests {
@@ -251,13 +253,14 @@
 }
 
 + (void)openFeatureRequests:(Boolean)showBackButton {
-    [Gleap open];
-    [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-        @"name": @"open-feature-requests",
-        @"data": @{
-            @"hideBackButton": @(!showBackButton)
-        }
-    }];
+    if ([Gleap open]) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": @"open-feature-requests",
+            @"data": @{
+                @"hideBackButton": @(!showBackButton)
+            }
+        }];
+    }
 }
 
 + (void)openHelpCenterCollection:(NSString *)collectionId {
@@ -265,14 +268,15 @@
 }
 
 + (void)openHelpCenterCollection:(NSString *)collectionId andShowBackButton:(Boolean)showBackButton {
-    [Gleap open];
-    [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-        @"name": @"open-help-collection",
-        @"data": @{
-            @"collectionId": collectionId,
-            @"hideBackButton": @(!showBackButton)
-        }
-    }];
+    if ([Gleap open]) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": @"open-help-collection",
+            @"data": @{
+                @"collectionId": collectionId,
+                @"hideBackButton": @(!showBackButton)
+            }
+        }];
+    }
 }
 
 + (void)openHelpCenterArticle:(NSString *)articleId {
@@ -280,14 +284,15 @@
 }
 
 + (void)openHelpCenterArticle:(NSString *)articleId andShowBackButton:(Boolean)showBackButton {
-    [Gleap open];
-    [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-        @"name": @"open-help-article",
-        @"data": @{
-            @"articleId": articleId,
-            @"hideBackButton": @(!showBackButton)
-        }
-    }];
+    if ([Gleap open]) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": @"open-help-article",
+            @"data": @{
+                @"articleId": articleId,
+                @"hideBackButton": @(!showBackButton)
+            }
+        }];
+    }
 }
 
 + (void)openHelpCenter {
@@ -295,13 +300,14 @@
 }
 
 + (void)openHelpCenter:(Boolean)showBackButton {
-    [Gleap open];
-    [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-        @"name": @"open-helpcenter",
-        @"data": @{
-            @"hideBackButton": @(!showBackButton)
-        }
-    }];
+    if ([Gleap open]) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": @"open-helpcenter",
+            @"data": @{
+                @"hideBackButton": @(!showBackButton)
+            }
+        }];
+    }
 }
 
 + (void)searchHelpCenter:(NSString *)searchTerm {
@@ -309,14 +315,15 @@
 }
 
 + (void)searchHelpCenter:(NSString *)searchTerm andShowBackButton:(Boolean)showBackButton {
-    [Gleap open];
-    [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-        @"name": @"open-helpcenter-search",
-        @"data": @{
-            @"term": searchTerm,
-            @"hideBackButton": @(!showBackButton)
-        }
-    }];
+    if ([Gleap open]) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": @"open-helpcenter-search",
+            @"data": @{
+                @"term": searchTerm,
+                @"hideBackButton": @(!showBackButton)
+            }
+        }];
+    }
 }
 
 + (void)close {
@@ -326,8 +333,8 @@
 /**
     Starts the specified feedback flow.
  */
-+ (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow showBackButton:(BOOL)showBackButton {
-    [[Gleap sharedInstance] startFeedbackFlow: feedbackFlow withOptions: @{
++ (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow showBackButton:(BOOL)showBackButton {
+    return [[Gleap sharedInstance] startFeedbackFlow: feedbackFlow withOptions: @{
         @"hideBackButton": @(!showBackButton)
     }];
 }
@@ -335,19 +342,19 @@
 /**
  Starts the bug reporting flow, when a SDK key has been assigned.
  */
-- (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options {
+- (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options {
     if (GleapSessionHelper.sharedInstance.currentSession == nil) {
         NSLog(@"[GLEAP_SDK] Gleap session not ready.");
-        return;
+        return NO;
     }
     
     if (Gleap.sharedInstance.token == nil || Gleap.sharedInstance.token.length == 0) {
         NSLog(@"[GLEAP_SDK] Please provide a valid Gleap project TOKEN!");
-        return;
+        return NO;
     }
     
     if ([[GleapWidgetManager sharedInstance] isOpened]) {
-        return;
+        return NO;
     }
 
     [[GleapWidgetManager sharedInstance] showWidget];
@@ -371,6 +378,8 @@
             @"data": startFeedbackFlowData,
         }];
     }
+    
+    return YES;
 }
 
 /*

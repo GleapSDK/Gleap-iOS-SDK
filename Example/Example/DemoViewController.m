@@ -43,7 +43,7 @@
 }
 
 - (IBAction)sendData:(id)sender {
-    [Gleap openHelpCenterArticle: @"9"];
+    [Gleap openHelpCenter: NO];
 }
 
 @end

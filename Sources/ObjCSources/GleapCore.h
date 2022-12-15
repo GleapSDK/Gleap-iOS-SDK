@@ -53,7 +53,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR 
  * @author Gleap
  *
  */
-+ (void)open;
++ (Boolean)open;
 
 /**
  * Show the news list.
@@ -123,7 +123,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR 
  * @author Gleap
  *
  */
-+ (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow showBackButton:(BOOL)showBackButton;
++ (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow showBackButton:(BOOL)showBackButton;
 
 /**
  * Set the visibility of the feedback button.
@@ -374,7 +374,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR 
 + (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod;
 + (void)shakeInvocation;
 + (void)setAutoActivationMethodsDisabled;
-- (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options;
+- (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options;
 
 @property (nonatomic, retain) NSString* token;
 @property (nonatomic, retain) NSString* apiUrl;
