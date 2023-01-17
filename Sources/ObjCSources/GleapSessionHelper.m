@@ -210,6 +210,9 @@ static id ObjectOrNull(id object)
         }
         
         if (jsonResponse != nil && [jsonResponse objectForKey: @"errors"] == nil) {
+            // Send unregister of previous group.
+            [self sendPushMessageUnregister];
+            
             [self updateLocalSessionWith: jsonResponse andCompletion:^(bool success) {}];
             
             // Clear local messages.
@@ -295,10 +298,14 @@ static id ObjectOrNull(id object)
     return completion(true);
 }
 
-- (void)clearSession {
+- (void)sendPushMessageUnregister {
     if (self.currentSession != nil && self.currentSession.gleapHash != nil && self.currentSession.gleapHash.length > 0 && [Gleap sharedInstance].delegate != nil && [Gleap.sharedInstance.delegate respondsToSelector: @selector(unregisterPushMessageGroup:)]) {
         [[Gleap sharedInstance].delegate unregisterPushMessageGroup: [NSString stringWithFormat: @"gleapuser-%@", self.currentSession.gleapHash]];
     }
+}
+
+- (void)clearSession {
+    [self sendPushMessageUnregister];
     
     self.currentSession = nil;
     self.openIdentityAction = nil;

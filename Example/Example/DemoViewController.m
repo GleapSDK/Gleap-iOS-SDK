@@ -8,13 +8,6 @@
 #import "DemoViewController.h"
 @import Gleap;
 
-/*inline void NSLog(NSString *format, ...) {
-    va_list arg_list;
-    va_start(arg_list, format);
-    [Gleap log: @"Test"];
-    va_end(arg_list);
-}*/
-
 @interface DemoViewController ()
 @property (weak, nonatomic) IBOutlet UIButton *button;
 
