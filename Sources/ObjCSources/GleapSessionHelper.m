@@ -118,7 +118,7 @@ static id ObjectOrNull(id object)
             [Gleap openNewsArticle: itemId];
         }
         if ([type isEqualToString: @"conversation"]) {
-            [Gleap openNewsArticle: itemId];
+            [Gleap openConversation: itemId];
         }
     }
     return;
