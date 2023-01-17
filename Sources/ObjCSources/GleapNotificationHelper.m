@@ -90,21 +90,9 @@
             NSString *shareToken = [notification valueForKeyPath: @"data.conversation.shareToken"];
             NSString *newsId = [notification valueForKeyPath: @"data.news.id"];
             if (shareToken != nil) {
-                [Gleap open];
-                [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-                    @"name": @"open-conversation",
-                    @"data": @{
-                        @"shareToken": shareToken
-                    },
-                }];
+                [Gleap openConversation: shareToken];
             } else if (newsId != nil) {
-                [Gleap open];
-                [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-                    @"name": @"open-news-article",
-                    @"data": @{
-                        @"id": newsId
-                    },
-                }];
+                [Gleap openNewsArticle: newsId];
             } else {
                 [Gleap open];
             }

@@ -96,6 +96,32 @@ static id ObjectOrNull(id object)
         @"data": data
     };
     [self processOpenIdentityAction];
+    [self processOpenPushAction];
+}
+
++ (void)handlePushNotification:(NSDictionary *)notificationData {
+    [GleapSessionHelper sharedInstance].openPushAction = notificationData;
+    [[GleapSessionHelper sharedInstance] processOpenPushAction];
+}
+
+- (void)processOpenPushAction {
+    if (self.openPushAction == nil || self.currentSession == nil) {
+        return;
+    }
+    
+    NSString *type = [self.openPushAction objectForKey: @"type"];
+    NSString *itemId = [self.openPushAction objectForKey: @"id"];
+    self.openPushAction = nil;
+    
+    if (itemId != nil && itemId.length > 0) {
+        if ([type isEqualToString: @"news"]) {
+            [Gleap openNewsArticle: itemId];
+        }
+        if ([type isEqualToString: @"conversation"]) {
+            [Gleap openNewsArticle: itemId];
+        }
+    }
+    return;
 }
 
 - (void)processOpenIdentityAction {
@@ -257,6 +283,11 @@ static id ObjectOrNull(id object)
     
     // Process any open identity actions.
     [self processOpenIdentityAction];
+    [self processOpenPushAction];
+    
+    if (self.currentSession != nil && self.currentSession.gleapHash != nil && self.currentSession.gleapHash.length > 0 && [Gleap sharedInstance].delegate != nil && [Gleap.sharedInstance.delegate respondsToSelector: @selector(registerPushMessageGroup:)]) {
+        [[Gleap sharedInstance].delegate registerPushMessageGroup: [NSString stringWithFormat: @"gleapuser-%@", self.currentSession.gleapHash]];
+    }
     
     // Update widget session
     [[GleapWidgetManager sharedInstance] sendSessionUpdate];
@@ -265,6 +296,10 @@ static id ObjectOrNull(id object)
 }
 
 - (void)clearSession {
+    if (self.currentSession != nil && self.currentSession.gleapHash != nil && self.currentSession.gleapHash.length > 0 && [Gleap sharedInstance].delegate != nil && [Gleap.sharedInstance.delegate respondsToSelector: @selector(unregisterPushMessageGroup:)]) {
+        [[Gleap sharedInstance].delegate unregisterPushMessageGroup: [NSString stringWithFormat: @"gleapuser-%@", self.currentSession.gleapHash]];
+    }
+    
     self.currentSession = nil;
     self.openIdentityAction = nil;
     [[NSUserDefaults standardUserDefaults] removeObjectForKey: @"gleapId"];

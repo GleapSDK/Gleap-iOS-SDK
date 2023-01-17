@@ -190,6 +190,10 @@
     return [GleapSessionHelper.sharedInstance.currentSession toDictionary];
 }
 
++ (void)handlePushNotification:(NSDictionary *)notificationData {
+    [GleapSessionHelper handlePushNotification: notificationData];
+}
+
 + (BOOL)isUserIdentified {
     if (GleapSessionHelper.sharedInstance.currentSession != nil && GleapSessionHelper.sharedInstance.currentSession.userId != nil && GleapSessionHelper.sharedInstance.currentSession.userId.length > 0) {
         return YES;
@@ -229,6 +233,17 @@
               @"id": articleId,
               @"hideBackButton": @(!showBackButton)
             }
+        }];
+    }
+}
+
++ (void)openConversation:(NSString *)shareToken {
+    if ([Gleap open]) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": @"open-conversation",
+            @"data": @{
+                @"shareToken": shareToken
+            },
         }];
     }
 }

@@ -22,13 +22,16 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (instancetype)sharedInstance;
 + (void)injectSessionInRequest:(NSMutableURLRequest *)request;
++ (void)handlePushNotification:(NSDictionary *)notificationData;
 
 - (void)startSessionWith:(void (^)(bool success))completion;
 - (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString * _Nullable)userHash;
+- (void)processOpenPushAction;
 - (void)clearSession;
 - (NSString *)getSessionName;
 
 @property (nonatomic, retain, nullable) GleapSession* currentSession;
+@property (nonatomic, retain, nullable) NSDictionary* openPushAction;
 @property (nonatomic, retain, nullable) NSDictionary* openIdentityAction;
 
 @end

@@ -27,6 +27,8 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR 
 - (void) configLoaded: (NSDictionary *)config;
 - (void) widgetOpened;
 - (void) widgetClosed;
+- (void) registerPushMessageGroup: (NSString *)pushMessageGroup;
+- (void) unregisterPushMessageGroup: (NSString *)pushMessageGroup;
 @required
 @end
 
@@ -62,6 +64,13 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR 
  */
 + (void)openNews;
 + (void)openNews:(Boolean)showBackButton;
+
+/**
+ * Open a conversation.
+ * @author Gleap
+ *
+ */
++ (void)openConversation:(NSString *)shareToken;
 
 /**
  * Show a news article.
@@ -146,6 +155,14 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR 
  * @param msg The logged message
  */
 + (void)log:(NSString *)msg;
+
+/**
+ * Handels a push notification tap.
+ * @author Gleap
+ *
+ * @param notificationData The push notification data.
+ */
++ (void)handlePushNotification:(NSDictionary *)notificationData;
 
 /**
  * Logs a message with a given log level to the Gleap activity log

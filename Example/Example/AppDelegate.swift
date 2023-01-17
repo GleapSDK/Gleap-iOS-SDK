@@ -32,6 +32,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         userProps.customData = ["xxaa": "Isabella"]
         Gleap.identifyUser(with: "user_132933", andData: userProps)
         
+        Gleap.handlePushNotification([
+            "type": "news",
+            "id": "12"
+        ])
         //Gleap.clearIdentity()
         
         // Testing file attachments.
@@ -44,6 +48,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         print("User logged in.")
         
         return true
+    }
+    
+    func registerPushMessageGroup(_ pushMessageGroup: String) {
+        NSLog("Register: " + pushMessageGroup)
+    }
+    
+    func unregisterPushMessageGroup(_ pushMessageGroup: String) {
+        NSLog("Unregister: " + pushMessageGroup)
     }
     
     func widgetClosed() {

@@ -43,7 +43,8 @@
 }
 
 - (IBAction)sendData:(id)sender {
-    [Gleap openHelpCenter: NO];
+    //[Gleap openHelpCenter: NO];
+    [Gleap clearIdentity];
 }
 
 @end
