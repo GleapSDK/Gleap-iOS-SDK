@@ -49,39 +49,81 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR 
 + (void)initializeWithToken: (NSString *)token;
 
 /**
- * Manually shows the feedback menu or default feedback flow. This is used, when you use the activation method "NONE".
+ * Show the Gleap widget.
  * @author Gleap
  *
  */
-+ (void)open;
++ (Boolean)open;
 
 /**
- * Manually show the news list.
+ * Show the news list.
  * @author Gleap
  *
  */
 + (void)openNews;
++ (void)openNews:(Boolean)showBackButton;
 
 /**
- * Manually show the feature requests.
+ * Show a news article.
+ * @author Gleap
+ *
+ */
++ (void)openNewsArticle:(NSString *)articleId;
++ (void)openNewsArticle:(NSString *)articleId andShowBackButton:(Boolean)showBackButton;
+
+/**
+ * Show the feature requests.
  * @author Gleap
  *
  */
 + (void)openFeatureRequests;
++ (void)openFeatureRequests:(Boolean)showBackButton;
 
 /**
- * Manually close the feedback.
+ * Show the help center.
+ * @author Gleap
+ *
+ */
++ (void)openHelpCenter;
++ (void)openHelpCenter:(Boolean)showBackButton;
+
+/**
+ * Show the help center collection.
+ * @author Gleap
+ *
+ */
++ (void)openHelpCenterCollection:(NSString *)collectionId andShowBackButton:(Boolean)showBackButton;
++ (void)openHelpCenterCollection:(NSString *)collectionId;
+
+/**
+ * Show the help center article.
+ * @author Gleap
+ *
+ */
++ (void)openHelpCenterArticle:(NSString *)articleId;
++ (void)openHelpCenterArticle:(NSString *)articleId andShowBackButton:(Boolean)showBackButton;
+
+/**
+ * Search the help center.
+ * @author Gleap
+ *
+ */
++ (void)searchHelpCenter:(NSString *)searchTerm;
++ (void)searchHelpCenter:(NSString *)searchTerm andShowBackButton:(Boolean)showBackButton;
+
+/**
+ * Close the Gleap widget.
  * @author Gleap
  *
  */
 + (void)close;
 
 /**
- * Manually start a feedback flow.
+ * Start a feedback flow.
  * @author Gleap
  *
  */
-+ (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow showBackButton:(BOOL)showBackButton;
++ (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow showBackButton:(BOOL)showBackButton;
 
 /**
  * Set the visibility of the feedback button.
@@ -332,7 +374,7 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR 
 + (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod;
 + (void)shakeInvocation;
 + (void)setAutoActivationMethodsDisabled;
-- (void)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options;
+- (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options;
 
 @property (nonatomic, retain) NSString* token;
 @property (nonatomic, retain) NSString* apiUrl;

@@ -124,7 +124,17 @@ static id ObjectOrNull(id object)
         [sessionRequestData setValue: data.value forKey: @"value"];
     }
     
-    if (![self sessionUpgradeWithDataNeeded: sessionRequestData]) {
+    @try {
+        if (data != nil && data.customData != nil && [[data.customData allKeys] count] > 0) {
+            [sessionRequestData addEntriesFromDictionary: data.customData];
+        }
+    } @catch (id exp) {
+        
+    }
+    
+    bool needsUpdate = [self sessionUpgradeWithDataNeeded: sessionRequestData];
+    bool hasCustomData = data.customData != nil;
+    if (!needsUpdate && !hasCustomData) {
         return;
     }
     
@@ -173,15 +183,52 @@ static id ObjectOrNull(id object)
             return;
         }
         
-        [self updateLocalSessionWith: jsonResponse andCompletion:^(bool success) {}];
-        
-        // Clear local messages.
-        [GleapNotificationHelper clear];
+        if (jsonResponse != nil && [jsonResponse objectForKey: @"errors"] == nil) {
+            [self updateLocalSessionWith: jsonResponse andCompletion:^(bool success) {}];
+            
+            // Clear local messages.
+            [GleapNotificationHelper clear];
+        } else {
+            // Clear session due to an error.
+            [self clearSession];
+        }
     }];
     [task resume];
 }
 
+- (BOOL)sessionUpgradeWithDataNeeded:(NSDictionary *)newData {
+    if (self.currentSession == nil) {
+        return YES;
+    }
+    
+    if ([self sessionDataItemNeedsUpgrade: self.currentSession.name compareTo: [newData objectForKey: @"name"]]) {
+        return YES;
+    }
+    
+    if ([self sessionDataItemNeedsUpgrade: self.currentSession.email compareTo: [newData objectForKey: @"email"]]) {
+        return YES;
+    }
+    
+    if ([self sessionDataItemNeedsUpgrade: self.currentSession.phone compareTo: [newData objectForKey: @"phone"]]) {
+        return YES;
+    }
+    
+    if ([self sessionDataItemNeedsUpgrade: self.currentSession.userId compareTo: [newData objectForKey: @"userId"]]) {
+        return YES;
+    }
+    
+    if ([self sessionDataNumberItemNeedsUpgrade: self.currentSession.value compareTo: [newData objectForKey: @"value"]]) {
+        return YES;
+    }
+    
+    return NO;
+}
+
 - (void)updateLocalSessionWith:(NSDictionary *)data andCompletion:(void (^)(bool success))completion {
+    if (data == nil) {
+        return completion(false);
+    }
+    
     // Save session data from server.
     NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
     [userDefaults setValue: [data objectForKey: @"gleapId"] forKey: @"gleapId"];
@@ -189,12 +236,22 @@ static id ObjectOrNull(id object)
     
     // Create session and assign it.
     GleapSession *gleapSession = [[GleapSession alloc] init];
-    gleapSession.gleapId = [data objectForKey: @"gleapId"];
-    gleapSession.gleapHash = [data objectForKey: @"gleapHash"];
-    gleapSession.userId = [data objectForKey: @"userId"];
-    gleapSession.email = [data objectForKey: @"email"];
-    gleapSession.phone = [data objectForKey: @"phone"];
-    gleapSession.name = [data objectForKey: @"name"];
+    @try {
+        gleapSession.gleapId = [data objectForKey: @"gleapId"];
+        gleapSession.gleapHash = [data objectForKey: @"gleapHash"];
+        gleapSession.userId = [data objectForKey: @"userId"];
+    } @catch (id exp) {
+        
+    }
+    
+    @try {
+        gleapSession.email = [data objectForKey: @"email"];
+        gleapSession.phone = [data objectForKey: @"phone"];
+        gleapSession.name = [data objectForKey: @"name"];
+        gleapSession.value = [data objectForKey: @"value"];
+    } @catch (id exp) {
+        
+    }
     
     self.currentSession = gleapSession;
     
@@ -255,34 +312,6 @@ static id ObjectOrNull(id object)
     }
     
     return !(data == newData);
-}
-
-- (BOOL)sessionUpgradeWithDataNeeded:(NSDictionary *)newData {
-    if (self.currentSession == nil) {
-        return YES;
-    }
-    
-    if ([self sessionDataItemNeedsUpgrade: self.currentSession.name compareTo: [newData objectForKey: @"name"]]) {
-        return YES;
-    }
-    
-    if ([self sessionDataItemNeedsUpgrade: self.currentSession.email compareTo: [newData objectForKey: @"email"]]) {
-        return YES;
-    }
-    
-    if ([self sessionDataItemNeedsUpgrade: self.currentSession.phone compareTo: [newData objectForKey: @"phone"]]) {
-        return YES;
-    }
-    
-    if ([self sessionDataItemNeedsUpgrade: self.currentSession.userId compareTo: [newData objectForKey: @"userId"]]) {
-        return YES;
-    }
-    
-    if ([self sessionDataNumberItemNeedsUpgrade: self.currentSession.value compareTo: [newData objectForKey: @"value"]]) {
-        return YES;
-    }
-    
-    return NO;
 }
 
 - (NSString *)getSessionName {

@@ -49,7 +49,7 @@ class ImageViewController: UIViewController, UINavigationControllerDelegate, UIT
     @IBAction func buttonClicked(_ sender: Any) {
         NSLog("Demo button clicked :)")
         
-        Gleap.openFeatureRequests()
+        Gleap.openFeatureRequests(false)
     }
     
     /*
