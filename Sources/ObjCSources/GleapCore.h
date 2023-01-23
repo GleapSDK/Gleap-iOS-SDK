@@ -17,6 +17,7 @@ typedef enum activationMethodTypes { NONE, SHAKE, SCREENSHOT } GleapActivationMe
 typedef enum bugSeverityTypes { LOW, MEDIUM, HIGH } GleapBugSeverity;
 typedef enum gleapLogLevel { INFO, WARNING, ERROR } GleapLogLevel;
 typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR } GleapApplicationType;
+typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 
 @protocol GleapDelegate <NSObject>
 @optional
@@ -49,6 +50,15 @@ typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR 
  * @param token The SDK key, which can be found on dashboard.bugbattle.io
  */
 + (void)initializeWithToken: (NSString *)token;
+
+/**
+ * Shows the survey with ID.
+ * @author Gleap
+ *
+ * @param surveyId The ID of the survey
+ */
++ (Boolean)showSurvey:(NSString * _Nullable)surveyId;
++ (Boolean)showSurvey:(NSString * _Nullable)surveyId andFormat:(GleapSurveyFormat)format;
 
 /**
  * Show the Gleap widget.

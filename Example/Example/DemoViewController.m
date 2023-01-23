@@ -36,8 +36,8 @@
 }
 
 - (IBAction)sendData:(id)sender {
-    //[Gleap openHelpCenter: NO];
-    [Gleap clearIdentity];
+    // [Gleap openHelpCenter: NO];
+    // [Gleap showSurvey: @"1g9pym"];
 }
 
 @end
