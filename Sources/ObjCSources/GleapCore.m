@@ -357,14 +357,14 @@
 /**
     Starts a survey.
  */
-+ (Boolean)showSurvey:(NSString * _Nullable)surveyId {
++ (void)showSurvey:(NSString * _Nullable)surveyId {
     [Gleap showSurvey: surveyId andFormat: SURVEY];
 }
 
 /**
     Starts a survey with format.
  */
-+ (Boolean)showSurvey:(NSString * _Nullable)surveyId andFormat:(GleapSurveyFormat)format {
++ (void)showSurvey:(NSString * _Nullable)surveyId andFormat:(GleapSurveyFormat)format {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
         [Gleap.sharedInstance startFeedbackFlow: surveyId withOptions: @{
             @"isSurvey": @YES,

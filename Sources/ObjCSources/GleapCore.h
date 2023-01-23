@@ -57,8 +57,8 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
  *
  * @param surveyId The ID of the survey
  */
-+ (Boolean)showSurvey:(NSString * _Nullable)surveyId;
-+ (Boolean)showSurvey:(NSString * _Nullable)surveyId andFormat:(GleapSurveyFormat)format;
++ (void)showSurvey:(NSString * _Nullable)surveyId;
++ (void)showSurvey:(NSString * _Nullable)surveyId andFormat:(GleapSurveyFormat)format;
 
 /**
  * Show the Gleap widget.
