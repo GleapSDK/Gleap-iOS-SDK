@@ -21,21 +21,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.trackEvent("asfasdfasdf")
         
+        // Gleap.clearIdentity()
+        
         // Attach custom data sample.
         Gleap.attachCustomData(["value": "Unicorn", "type": "Demo", "ExtraInfo": ["Age": "28", "City": "San Francisco"]])
         
-        // Gleap.clearIdentity()
-        let userProps = GleapUserProperty()
-        userProps.email = "lukas9+test@gleap.io"
-        userProps.name = "Franz A"
-        userProps.value = 394
-        userProps.customData = ["xxaa": "Isabella"]
-        Gleap.identifyUser(with: "user_132933", andData: userProps)
-        
-        Gleap.handlePushNotification([
+        /*Gleap.handlePushNotification([
             "type": "news",
             "id": "12"
-        ])
+        ])*/
         //Gleap.clearIdentity()
         
         // Testing file attachments.
