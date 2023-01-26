@@ -83,7 +83,9 @@
 
 - (void)pressedView:(UIView *)view {
     @try {
-        if (view.tag == INT_MAX) {
+        if (view.tag == 999) {
+            [GleapNotificationHelper clear];
+        } else if (view.tag == INT_MAX) {
             [Gleap open];
         } else {
             NSDictionary *notification = [self.notifications objectAtIndex: view.tag];

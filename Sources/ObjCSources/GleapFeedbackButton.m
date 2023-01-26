@@ -12,6 +12,7 @@
 #import "Gleap.h"
 
 const double BUTTON_SIZE = 56.0;
+const float NOTIFICATION_BADGE_SIZE = 22.0;
 
 @implementation GleapFeedbackButton
 
@@ -24,21 +25,27 @@ const double BUTTON_SIZE = 56.0;
 }
 
 - (void)commonInit {
+    self.autoresizingMask = UIViewAutoresizingNone;
+    
     float padding = (BUTTON_SIZE - (BUTTON_SIZE * 0.64)) / 2.0;
     self.logoView = [[UIImageView alloc] initWithFrame: CGRectMake(padding, padding, BUTTON_SIZE - (padding * 2), BUTTON_SIZE - (padding * 2))];
     self.logoView.contentMode = UIViewContentModeScaleAspectFit;
     [self addSubview: self.logoView];
     
+    self.buttonTextLabel = [[UILabel alloc] initWithFrame: CGRectMake(0, 0, self.frame.size.width, self.frame.size.height)];
+    self.buttonTextLabel.font = [UIFont systemFontOfSize: 15 weight: UIFontWeightMedium];
+    self.buttonTextLabel.textColor = [UIColor whiteColor];
+    [self addSubview: self.buttonTextLabel];
+    
     self.tag = INT_MAX;
     
-    float notificationBadgeSize = 22.0;
-    self.notificationBadgeView = [[UIView alloc] initWithFrame: CGRectMake(self.frame.size.width - (notificationBadgeSize - 5.0), -5.0, notificationBadgeSize, notificationBadgeSize)];
+    self.notificationBadgeView = [[UIView alloc] initWithFrame: CGRectMake(self.frame.size.width - (NOTIFICATION_BADGE_SIZE - 5.0), -5.0, NOTIFICATION_BADGE_SIZE, NOTIFICATION_BADGE_SIZE)];
     self.notificationBadgeView.backgroundColor = [UIColor redColor];
-    self.notificationBadgeView.layer.cornerRadius = notificationBadgeSize / 2.0;
+    self.notificationBadgeView.layer.cornerRadius = NOTIFICATION_BADGE_SIZE / 2.0;
     [self addSubview: self.notificationBadgeView];
     self.notificationBadgeView.hidden = YES;
     
-    self.notificationBadgeLabel = [[UILabel alloc] initWithFrame: CGRectMake(0, 0, notificationBadgeSize, notificationBadgeSize)];
+    self.notificationBadgeLabel = [[UILabel alloc] initWithFrame: CGRectMake(0, 0, NOTIFICATION_BADGE_SIZE, NOTIFICATION_BADGE_SIZE)];
     self.notificationBadgeLabel.font = [UIFont systemFontOfSize: 11 weight: UIFontWeightBold];
     self.notificationBadgeLabel.textColor = [UIColor whiteColor];
     self.notificationBadgeLabel.textAlignment = NSTextAlignmentCenter;
@@ -72,7 +79,6 @@ const double BUTTON_SIZE = 56.0;
         self.hidden = NO;
     }
     
-    self.layer.cornerRadius = self.frame.size.height / 2.0;
     self.layer.shadowRadius  = 6.0;
     self.layer.shadowColor   = [UIColor blackColor].CGColor;
     self.layer.shadowOffset  = CGSizeMake(0.0f, 0.0f);
@@ -87,6 +93,119 @@ const double BUTTON_SIZE = 56.0;
     } else {
         self.backgroundColor = [GleapUIHelper colorFromHexString: @"#485bff"];
     }
+    
+    if ([feedbackButtonPosition containsString: @"CLASSIC"]) {
+        [self setupClassicButton];
+    } else {
+        [self setupModernButton];
+    }
+}
+
+- (void)setupClassicButton {
+    NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+    if (config == nil) {
+        self.hidden = YES;
+        return;
+    }
+    
+    self.transform = CGAffineTransformIdentity;
+    self.notificationBadgeView.transform = CGAffineTransformIdentity;
+    self.logoView.hidden = YES;
+    
+    NSString *widgetButtonText = [GleapTranslationHelper localizedString: [config objectForKey: @"widgetButtonText"]];
+    NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
+    
+    self.layer.cornerRadius = 8.0;
+    self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner;
+    
+    self.buttonTextLabel.text = widgetButtonText;
+    [self.buttonTextLabel setTextAlignment: NSTextAlignmentCenter];
+    
+    UIFont *feedbackButtonFont = [UIFont systemFontOfSize: 15 weight: UIFontWeightMedium];
+    
+    int buttonHeight = 42;
+    CGSize frameSize = CGSizeMake(160, buttonHeight);
+    CGRect feedbackButtonFrame = [widgetButtonText boundingRectWithSize:frameSize
+                                           options:NSStringDrawingUsesLineFragmentOrigin
+                                        attributes:@{ NSFontAttributeName: feedbackButtonFont }
+                                           context:nil];
+    int buttonWidth = feedbackButtonFrame.size.width + 40;
+    
+    // Set the anchor point.
+    self.layer.anchorPoint = CGPointMake(0, 0);
+    
+    // Find the perfect position.
+    UIDeviceOrientation orientation = [[UIDevice currentDevice] orientation];
+    float rotation = -90;
+    int x = self.superview.frame.size.width - buttonHeight;
+    int y = (self.superview.frame.size.height / 2) + (buttonWidth / 2);
+    self.notificationBadgeView.frame = CGRectMake(buttonWidth-6-(NOTIFICATION_BADGE_SIZE / 2), 6-(NOTIFICATION_BADGE_SIZE / 2), NOTIFICATION_BADGE_SIZE, NOTIFICATION_BADGE_SIZE);
+    if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"]) {
+        rotation = 90;
+        x = buttonHeight;
+        
+        if (@available(iOS 11.0, *)) {
+            UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
+            if (orientation == UIDeviceOrientationLandscapeLeft && window.safeAreaInsets.left && window.safeAreaInsets.left > 0) {
+                x += window.safeAreaInsets.left;
+                self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner | kCALayerMaxXMaxYCorner | kCALayerMinXMaxYCorner;
+            }
+        }
+        
+        y = (self.superview.frame.size.height / 2) - (buttonWidth / 2);
+        self.notificationBadgeView.frame = CGRectMake(6-(NOTIFICATION_BADGE_SIZE/2), 6-(NOTIFICATION_BADGE_SIZE / 2), NOTIFICATION_BADGE_SIZE, NOTIFICATION_BADGE_SIZE);
+    } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_BOTTOM"]) {
+        rotation = 0;
+        x = self.superview.frame.size.width - buttonWidth - 16;
+        if (@available(iOS 11.0, *)) {
+            UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
+            if (orientation == UIDeviceOrientationLandscapeRight && window.safeAreaInsets.right && window.safeAreaInsets.right > 0) {
+                x -= window.safeAreaInsets.right;
+            }
+        }
+        
+        y = self.superview.frame.size.height - buttonHeight;
+        if (@available(iOS 11.0, *)) {
+            UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
+            if (window.safeAreaInsets.bottom && window.safeAreaInsets.bottom > 0) {
+                y -= window.safeAreaInsets.bottom;
+                self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner | kCALayerMaxXMaxYCorner | kCALayerMinXMaxYCorner;
+            }
+        }
+        
+        self.notificationBadgeView.frame = CGRectMake(buttonWidth - (NOTIFICATION_BADGE_SIZE - 5.0), -5.0, NOTIFICATION_BADGE_SIZE, NOTIFICATION_BADGE_SIZE);
+    } else {
+        if (@available(iOS 11.0, *)) {
+            UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
+            if (orientation == UIDeviceOrientationLandscapeRight && window.safeAreaInsets.right && window.safeAreaInsets.right > 0) {
+                x -= window.safeAreaInsets.right;
+                self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner | kCALayerMaxXMaxYCorner | kCALayerMinXMaxYCorner;
+            }
+        }
+    }
+    
+    self.notificationBadgeView.layer.anchorPoint = CGPointMake(0.5, 0.5);
+    self.notificationBadgeView.transform = CGAffineTransformMakeRotation(rotation * -1 * M_PI/180);
+    
+    self.frame = CGRectMake(x, y, buttonWidth, buttonHeight);
+    
+    // Update feedback text label frame.
+    self.buttonTextLabel.frame = CGRectMake(16, 0, self.frame.size.width - 32, self.frame.size.height);
+    
+    self.transform = CGAffineTransformMakeRotation(rotation * M_PI/180);
+}
+
+- (void)setupModernButton {
+    NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+    if (config == nil) {
+        self.hidden = YES;
+        return;
+    }
+    
+    self.layer.cornerRadius = self.frame.size.height / 2.0;
+    
+    NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
+    NSString *widgetButtonText = [config objectForKey: @"widgetButtonText"];
     
     NSString *buttonLogo = [config objectForKey: @"buttonLogo"];
     if (buttonLogo == nil || buttonLogo.length == 0) {
@@ -103,6 +222,7 @@ const double BUTTON_SIZE = 56.0;
             
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (self.logoView != nil) {
+                    self.logoView.hidden = NO;
                     self.logoView.image = [UIImage imageWithData: data];
                     self.hidden = NO;
                 }
@@ -112,14 +232,29 @@ const double BUTTON_SIZE = 56.0;
     
     float buttonX = [[GleapConfigHelper sharedInstance] getButtonX];
     float buttonY = [[GleapConfigHelper sharedInstance] getButtonY];
+    UIDeviceOrientation orientation = [[UIDevice currentDevice] orientation];
     
     if (self.superview != nil) {
         float x = self.superview.frame.size.width - BUTTON_SIZE - buttonX;
+        
         if (
-            [feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"] ||
             [feedbackButtonPosition isEqualToString: @"BOTTOM_LEFT"]
         ) {
             x = buttonX;
+            
+            if (@available(iOS 11.0, *)) {
+                UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
+                if (orientation == UIDeviceOrientationLandscapeLeft && window.safeAreaInsets.left && window.safeAreaInsets.left > 0) {
+                    x += window.safeAreaInsets.left;
+                }
+            }
+        } else {
+            if (@available(iOS 11.0, *)) {
+                UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
+                if (orientation == UIDeviceOrientationLandscapeRight && window.safeAreaInsets.right && window.safeAreaInsets.right > 0) {
+                    x -= window.safeAreaInsets.right;
+                }
+            }
         }
         
         CGFloat borderBottom = buttonY;

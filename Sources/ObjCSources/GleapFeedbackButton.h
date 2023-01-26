@@ -16,9 +16,11 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)applyConfig;
 - (void)setNotificationCount:(int)notificationCount;
 
+@property (nonatomic, assign) bool showButton;
 @property (nonatomic, retain) NSString *currentButtonUrl;
 @property (nonatomic, retain) UIView *notificationBadgeView;
 @property (nonatomic, retain) UILabel *notificationBadgeLabel;
+@property (nonatomic, retain) UILabel *buttonTextLabel;
 
 @end
 

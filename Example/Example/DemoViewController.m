@@ -20,7 +20,7 @@
 }
 
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
-    return UIInterfaceOrientationMaskPortrait;
+    return UIInterfaceOrientationMaskAll;
 }
 
 - (void)viewDidLoad {
@@ -38,6 +38,8 @@
 - (IBAction)sendData:(id)sender {
     // [Gleap openHelpCenter: NO];
     // [Gleap showSurvey: @"1g9pym"];
+    
+    [Gleap clearIdentity];
 }
 
 @end

@@ -7,6 +7,7 @@
 
 #import "GleapTranslationHelper.h"
 #import "GleapWidgetManager.h"
+#import "GleapConfigHelper.h"
 
 @implementation GleapTranslationHelper
 
@@ -38,71 +39,32 @@
     [[GleapWidgetManager sharedInstance] sendConfigUpdate];
 }
 
-+ (NSDictionary *)getTranslation {
-    NSString *lang = [[GleapTranslationHelper sharedInstance].language lowercaseString];
-    if (lang.length > 2) {
-        lang = [lang substringToIndex: 2];
-    }
-    
-    if ([lang isEqualToString: @"es"]) {
-        return @{
-            @"ok": @"Ok",
-            @"report_failed": @"Se ha producido un error.",
-            @"report_failed_title": @"Error de conexión 🤕",
-        };
-    }
-    
-    if ([lang isEqualToString: @"it"]) {
-        return @{
-            @"ok": @"Ok",
-            @"report_failed": @"Qualcosa è andato storto.",
-            @"report_failed_title": @"Errore di connessione 🤕",
-        };
-    }
-    
-    if ([lang isEqualToString: @"fr"]) {
-        return @{
-            @"ok": @"Ok",
-            @"report_failed": @"Oups, il y a eu un problème.",
-            @"report_failed_title": @"Erreur de connexion 🤕",
-        };
-    }
-    
-    if ([lang isEqualToString: @"de"]) {
-        return @{
-            @"ok": @"Ok",
-            @"report_failed": @"Ups, da ist etwas schief gelaufen.",
-            @"report_failed_title": @"Verbindungsfehler 🤕",
-        };
-    }
-    
-    if ([lang isEqualToString: @"nl"]) {
-        return @{
-            @"ok": @"Ok",
-            @"report_failed": @"Oeps, er gaat helaas iets mis",
-            @"report_failed_title": @"Verbindingsfout 🤕",
-        };
-    }
-    
-    if ([lang isEqualToString: @"cz"]) {
-        return @{
-            @"ok": @"Ok",
-            @"report_failed": @"Ups, něco se pokazilo.",
-            @"report_failed_title": @"Chyba připojení 🤕",
-        };
-    }
-    
-    return @{
-        @"ok": @"Ok",
-        @"report_failed": @"Ups, something went wrong.",
-        @"report_failed_title": @"Connection error 🤕",
-    };
-}
-
 + (NSString *)localizedString:(NSString *)string {
-    NSDictionary *translation = [GleapTranslationHelper getTranslation];
+    NSMutableDictionary *translation = [[NSMutableDictionary alloc] init];
+    
+    NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+    if (config != nil) {
+        NSDictionary *configCustomTranslations = [config objectForKey: @"customTranslations"];
+        if (configCustomTranslations != nil) {
+            NSString *lang = [[GleapTranslationHelper sharedInstance].language lowercaseString];
+            NSDictionary *customTranslationTable = [configCustomTranslations objectForKey: lang];
+            if (customTranslationTable != nil) {
+                [translation addEntriesFromDictionary: customTranslationTable];
+            }
+            
+            // Try extended search.
+            if (lang.length > 2 && customTranslationTable == nil) {
+                lang = [lang substringToIndex: 2];
+                NSDictionary *extendedCustomTranslationTable = [configCustomTranslations objectForKey: lang];
+                if (extendedCustomTranslationTable != nil) {
+                    [translation addEntriesFromDictionary: extendedCustomTranslationTable];
+                }
+            }
+        }
+    }
+    
     NSString *translatedString = [translation objectForKey: string];
-    if (translatedString) {
+    if (translatedString != nil) {
         return translatedString;
     }
     

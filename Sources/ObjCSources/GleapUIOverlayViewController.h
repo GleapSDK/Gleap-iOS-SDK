@@ -22,6 +22,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, assign) UIStatusBarStyle lastStatusBarStyle;
 @property (nonatomic, retain) NSTimer *topMostViewControllerTimer;
 @property (nonatomic, retain) NSMutableArray *internalNotifications;
+@property (nonatomic, retain) UIView *closeButton;
 @property (nonatomic, retain) GleapFeedbackButton *feedbackButton;
 @property (nonatomic, retain) NSMutableArray *notificationViews;
 

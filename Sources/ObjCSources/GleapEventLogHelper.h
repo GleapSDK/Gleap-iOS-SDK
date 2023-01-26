@@ -22,6 +22,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)sharedInstance;
 
 - (void)start;
+- (void)stop;
 - (void)logEvent: (NSString *)name;
 - (void)logEvent: (NSString *)name withData: (NSDictionary *)data;
 - (void)clear;
@@ -31,7 +32,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, retain) NSMutableArray* streamedLog;
 @property (nonatomic, retain) NSString* lastPageName;
 @property (nonatomic, retain) NSTimer* pageNameTimer;
-@property (nonatomic, retain) NSTimer* eventStreamTimer;
+@property (nonatomic, retain, nullable) NSTimer* eventStreamTimer;
 
 @end
 

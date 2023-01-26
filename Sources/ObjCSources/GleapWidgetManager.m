@@ -145,11 +145,13 @@
         
         // Show on top of all viewcontrollers.
         UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
-        [topMostViewController presentViewController: navController animated: YES completion:^{
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetOpened)]) {
-                [Gleap.sharedInstance.delegate widgetOpened];
-            }
-        }];
+        if (topMostViewController != nil) {
+            [topMostViewController presentViewController: navController animated: YES completion:^{
+                if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetOpened)]) {
+                    [Gleap.sharedInstance.delegate widgetOpened];
+                }
+            }];
+        }
     });
 }
 

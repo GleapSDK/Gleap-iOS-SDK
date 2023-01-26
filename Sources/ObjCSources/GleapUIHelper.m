@@ -56,6 +56,10 @@
  */
 + (UIViewController *)getTopMostViewController {
     UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
+    if (keyWindow == nil) {
+        return nil;
+    }
+    
     return [self topViewControllerWith: keyWindow.rootViewController];
 }
 

@@ -10,6 +10,7 @@
 #import "GleapWidgetManager.h"
 #import "GleapNotificationHelper.h"
 #import "GleapCore.h"
+#import "GleapEventLogHelper.h"
 
 @implementation GleapSessionHelper
 
@@ -83,7 +84,11 @@ static id ObjectOrNull(id object)
         if (jsonError) {
             return completion(false);
         }
-        
+    
+        [Gleap logEvent: @"sessionStarted"];
+        [[GleapEventLogHelper sharedInstance] stop];
+        [[GleapEventLogHelper sharedInstance] start];
+    
         return [self updateLocalSessionWith: jsonResponse andCompletion: completion];
     }];
     [task resume];

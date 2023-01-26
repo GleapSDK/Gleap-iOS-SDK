@@ -149,9 +149,7 @@
     [[GleapConsoleLogHelper sharedInstance] start];
     [[GleapScreenshotListener sharedInstance] start];
     [[GleapSessionHelper sharedInstance] startSessionWith:^(bool success) {
-        [Gleap logEvent: @"sessionStarted"];
         [[GleapConfigHelper sharedInstance] run];
-        [[GleapEventLogHelper sharedInstance] start];
     }];
 }
 

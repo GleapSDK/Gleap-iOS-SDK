@@ -78,6 +78,13 @@
     
 }
 
+- (void)stop {
+    if (self.eventStreamTimer != nil) {
+        [self.eventStreamTimer invalidate];
+        self.eventStreamTimer = nil;
+    }
+}
+
 - (void)start {
     if (self.eventStreamTimer != nil) {
         return;
