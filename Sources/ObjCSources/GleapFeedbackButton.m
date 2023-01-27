@@ -213,7 +213,6 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
     self.layer.cornerRadius = self.frame.size.height / 2.0;
     
     NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
-    NSString *widgetButtonText = [config objectForKey: @"widgetButtonText"];
     
     NSString *buttonLogo = [config objectForKey: @"buttonLogo"];
     if (buttonLogo == nil || buttonLogo.length == 0) {
