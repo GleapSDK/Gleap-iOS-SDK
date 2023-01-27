@@ -116,7 +116,9 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
     NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
     
     self.layer.cornerRadius = 8.0;
-    self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner;
+    if (@available(iOS 11.0, *)) {
+        self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner;
+    }
     
     self.buttonTextLabel.text = widgetButtonText;
     [self.buttonTextLabel setTextAlignment: NSTextAlignmentCenter];
@@ -148,7 +150,9 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
             UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
             if (orientation == UIDeviceOrientationLandscapeLeft && window.safeAreaInsets.left && window.safeAreaInsets.left > 0) {
                 x += window.safeAreaInsets.left;
-                self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner | kCALayerMaxXMaxYCorner | kCALayerMinXMaxYCorner;
+                if (@available(iOS 11.0, *)) {
+                    self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner | kCALayerMaxXMaxYCorner | kCALayerMinXMaxYCorner;
+                }
             }
         }
         
@@ -169,7 +173,9 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
             UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
             if (window.safeAreaInsets.bottom && window.safeAreaInsets.bottom > 0) {
                 y -= window.safeAreaInsets.bottom;
-                self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner | kCALayerMaxXMaxYCorner | kCALayerMinXMaxYCorner;
+                if (@available(iOS 11.0, *)) {
+                    self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner | kCALayerMaxXMaxYCorner | kCALayerMinXMaxYCorner;
+                }
             }
         }
         
@@ -179,7 +185,9 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
             UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
             if (orientation == UIDeviceOrientationLandscapeRight && window.safeAreaInsets.right && window.safeAreaInsets.right > 0) {
                 x -= window.safeAreaInsets.right;
-                self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner | kCALayerMaxXMaxYCorner | kCALayerMinXMaxYCorner;
+                if (@available(iOS 11.0, *)) {
+                    self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner | kCALayerMaxXMaxYCorner | kCALayerMinXMaxYCorner;
+                }
             }
         }
     }

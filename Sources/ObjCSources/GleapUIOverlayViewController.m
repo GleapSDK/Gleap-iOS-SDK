@@ -415,7 +415,9 @@
         UIImageView * newsImageView = [[UIImageView alloc] initWithFrame: CGRectMake(0.0, 0.0, chatBubbleView.frame.size.width, 155.0)];
         newsImageView.backgroundColor = [UIColor grayColor];
         newsImageView.layer.cornerRadius = 8.0;
-        newsImageView.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner;
+        if (@available(iOS 11.0, *)) {
+            newsImageView.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner;
+        }
         newsImageView.contentMode = UIViewContentModeScaleAspectFill;
         newsImageView.clipsToBounds = YES;
         [chatBubbleView addSubview: newsImageView];
