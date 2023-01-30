@@ -228,6 +228,14 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)preFillForm: (NSDictionary *)data;
 
 /**
+ * Sets tags that are used for new tickets created by the SDK.
+ * @author Gleap
+ *
+ * @param tags The tags array to set
+ */
++ (void)setTags: (NSArray *)tags;
+
+/**
  * Attaches custom data, which can be viewed in the Gleap dashboard. New data will be merged with existing custom data.
  * @author Gleap
  *

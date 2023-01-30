@@ -28,6 +28,7 @@
 #import "GleapFeedback.h"
 #import "GleapExternalDataHelper.h"
 #import "GleapPreFillHelper.h"
+#import "GleapTagHelper.h"
 
 @interface Gleap ()
 
@@ -504,6 +505,13 @@
  */
 + (void)clearCustomData {
     [GleapCustomDataHelper clearCustomData];
+}
+
+/*
+ Sets tags that are used for new tickets created by the SDK.
+ */
++ (void)setTags: (NSArray *)tags {
+    [GleapTagHelper setTags: tags];
 }
 
 /**

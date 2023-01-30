@@ -17,6 +17,7 @@
 #import "GleapCore.h"
 #import "GleapSessionHelper.h"
 #import "GleapExternalDataHelper.h"
+#import "GleapTagHelper.h"
 
 @implementation GleapFeedback
 
@@ -180,6 +181,12 @@
     // Add outbound ID if set.
     if (self.outboundId != nil) {
         [self attachData: @{ @"outbound": self.outboundId }];
+    }
+    
+    // Add tags.
+    NSArray *tags = [GleapTagHelper getTags];
+    if (tags != nil && tags.count > 0) {
+        [self attachData: @{ @"tags": tags }];
     }
     
     // Set the feedback type.
