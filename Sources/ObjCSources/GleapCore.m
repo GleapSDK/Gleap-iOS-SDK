@@ -62,7 +62,7 @@
 - (void)initHelper {
     self.token = @"";
     self.apiUrl = @"https://api.gleap.io";
-    self.frameUrl = @"https://messenger.gleap.io/app";
+    self.frameUrl = @"https://messenger.gleap.io/appnew";
     self.initialized = NO;
     self.applicationType = NATIVE;
     
@@ -340,7 +340,7 @@
 }
 
 + (void)close {
-    [[GleapWidgetManager sharedInstance] closeWidget:^{}];
+    [[GleapWidgetManager sharedInstance] closeWidgetWithAnimation: YES andCompletion:^{}];
 }
 
 /**
@@ -389,8 +389,18 @@
     if ([[GleapWidgetManager sharedInstance] isOpened]) {
         return NO;
     }
+    
+    bool isSurvey = options != nil && [options objectForKey: @"isSurvey"] != nil && [[options objectForKey: @"isSurvey"] boolValue];
 
-    [[GleapWidgetManager sharedInstance] showWidget];
+    if (isSurvey) {
+        NSString *surveyFormat = [options objectForKey: @"format"];
+        if (surveyFormat == nil) {
+            surveyFormat = @"survey";
+        }
+        [[GleapWidgetManager sharedInstance] showWidgetFor: surveyFormat];
+    } else {
+        [[GleapWidgetManager sharedInstance] showWidget];
+    }
     
     // Start a feedback flow.
     if (feedbackFlow != nil) {
@@ -402,7 +412,7 @@
         }
         
         NSString *command = @"start-feedbackflow";
-        if (options != nil && [options objectForKey: @"isSurvey"] != nil && [[options objectForKey: @"isSurvey"] boolValue]) {
+        if (isSurvey) {
             command = @"start-survey";
         }
         

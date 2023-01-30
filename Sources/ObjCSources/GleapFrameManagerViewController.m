@@ -30,24 +30,29 @@
 
 @implementation GleapFrameManagerViewController
 
-- (instancetype)init
+- (id)initWithFormat:(NSString *)format
 {
    self = [super initWithNibName: nil bundle:nil];
    if (self != nil)
    {
        self.connected = NO;
-       self.view.backgroundColor = [UIColor colorWithRed: 0.0 green: 0.0 blue: 0.0 alpha: 0.7];
+       self.isCardSurvey = [format isEqualToString: @"survey"];
        
-       NSDictionary *config = GleapConfigHelper.sharedInstance.config;
-       if (config != nil) {
-           NSString *backgroundColor = [config objectForKey: @"backgroundColor"];
-           if (backgroundColor != nil && backgroundColor.length > 0) {
-               self.view.backgroundColor = [GleapUIHelper colorFromHexString: backgroundColor];
-           } else {
-               if (@available(iOS 13.0, *)) {
-                   self.view.backgroundColor = [UIColor systemBackgroundColor];
+       // Apply preview only if not simple survey.
+       if (!self.isCardSurvey) {
+           self.view.backgroundColor = [UIColor colorWithRed: 0.0 green: 0.0 blue: 0.0 alpha: 0.7];
+           
+           NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+           if (config != nil) {
+               NSString *backgroundColor = [config objectForKey: @"backgroundColor"];
+               if (backgroundColor != nil && backgroundColor.length > 0) {
+                   self.view.backgroundColor = [GleapUIHelper colorFromHexString: backgroundColor];
                } else {
-                   self.view.backgroundColor = [UIColor whiteColor];
+                   if (@available(iOS 13.0, *)) {
+                       self.view.backgroundColor = [UIColor systemBackgroundColor];
+                   } else {
+                       self.view.backgroundColor = [UIColor whiteColor];
+                   }
                }
            }
        }
@@ -66,11 +71,16 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    self.view.userInteractionEnabled = NO;
     [self createWebView];
     [self setupLoadingView];
 }
 
 - (void)setupLoadingView {
+    if (self.isCardSurvey) {
+        return;
+    }
+    
     UIView *loadingView = [UIView new];
     UIActivityIndicatorView *loadingActivityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle: UIActivityIndicatorViewStyleWhiteLarge];
     [loadingActivityView startAnimating];
@@ -141,7 +151,7 @@
 - (void)closeWidget: (void (^)(void))completion {
     self.connected = NO;
     
-    [[GleapWidgetManager sharedInstance] closeWidget:^{
+    [[GleapWidgetManager sharedInstance] closeWidgetWithAnimation: !self.isCardSurvey andCompletion:^{
         if (completion != nil) {
             completion();
         }
@@ -206,7 +216,10 @@
 }
 
 - (void)stopLoading {
-    [self.loadingView setHidden: YES];
+    if (self.loadingView != nil) {
+        [self.loadingView setHidden: YES];
+    }
+    self.view.userInteractionEnabled = YES;
     self.webView.alpha = 1.0;
 }
 
@@ -381,7 +394,6 @@
     self.webView.scrollView.backgroundColor = UIColor.clearColor;
     self.webView.navigationDelegate = self;
     self.webView.UIDelegate = self;
-    self.webView.alpha = 0;
     self.webView.scrollView.bounces = NO;
     self.webView.scrollView.alwaysBounceVertical = NO;
     self.webView.scrollView.alwaysBounceHorizontal = NO;
@@ -454,6 +466,7 @@
 }
 
 - (void)loadingFailed:(NSError *)error {
+    self.view.userInteractionEnabled = YES;
     UIAlertController *alertController = [UIAlertController alertControllerWithTitle: error.localizedDescription
                                                                              message: nil
                                                                       preferredStyle: UIAlertControllerStyleAlert];

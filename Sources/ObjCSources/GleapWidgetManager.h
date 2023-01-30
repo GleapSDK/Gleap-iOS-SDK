@@ -15,8 +15,9 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)sharedInstance;
 
 - (BOOL)isOpened;
-- (void)closeWidget:(void (^)(void))completion;
+- (void)closeWidgetWithAnimation:(Boolean)animated andCompletion:(void (^)(void))completion;
 - (void)showWidget;
+- (void)showWidgetFor:(NSString *)type;
 - (void)sendMessageWithData:(NSDictionary *)data;
 - (void)sendSessionUpdate;
 - (void)sendConfigUpdate;

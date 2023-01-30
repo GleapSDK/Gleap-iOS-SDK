@@ -23,8 +23,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)sendMessageWithData:(NSDictionary *)data;
 - (void)sendSessionUpdate;
 - (void)sendConfigUpdate;
+- (id)initWithFormat:(NSString *)format;
 
 @property (nonatomic, retain, nullable) NSTimer* timeoutTimer;
+@property (nonatomic, assign) bool isCardSurvey;
 @property (nonatomic, assign) bool connected;
 @property (nonatomic, weak) id <GleapFrameManagerDelegate> delegate;
 

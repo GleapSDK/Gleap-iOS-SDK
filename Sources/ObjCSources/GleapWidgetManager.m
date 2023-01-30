@@ -65,7 +65,7 @@
     }
 }
 
-- (void)closeWidget:(void (^)(void))completion {
+- (void)closeWidgetWithAnimation:(Boolean)animated andCompletion:(void (^)(void))completion {
     [self.messageQueue removeAllObjects];
     
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -76,7 +76,7 @@
             return;
         }
         
-        [self.gleapWidget dismissViewControllerAnimated: YES completion:^{
+        [self.gleapWidget dismissViewControllerAnimated: animated completion:^{
             self.widgetOpened = NO;
             self.gleapWidget = nil;
             self.widgetOpened = NO;
@@ -109,6 +109,10 @@
 }
 
 - (void)showWidget {
+    [self showWidgetFor: @"widget"];
+}
+
+- (void)showWidgetFor:(NSString *)type {
     if (self.widgetOpened) {
         return;
     }
@@ -119,7 +123,7 @@
         [GleapScreenshotManager takeScreenshot];
         [[GleapMetaDataHelper sharedInstance] updateLastScreenName];
         
-        self.gleapWidget = [[GleapFrameManagerViewController alloc] init];
+        self.gleapWidget = [[GleapFrameManagerViewController alloc] initWithFormat: type];
         self.gleapWidget.delegate = self;
     
         // Clear all notifications.
@@ -141,6 +145,13 @@
         if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
         {
             [navController setModalPresentationStyle: UIModalPresentationCustom];
+        }
+        
+        // Bottom card survey.
+        if ([type isEqualToString: @"survey"]) {
+            [navController setModalPresentationStyle: UIModalPresentationCustom];
+            [navController setModalTransitionStyle: UIModalPresentationNone];
+            self.gleapWidget.view.backgroundColor = [UIColor clearColor];
         }
         
         // Show on top of all viewcontrollers.
