@@ -150,14 +150,14 @@
         // Bottom card survey.
         if ([type isEqualToString: @"survey"]) {
             [navController setModalPresentationStyle: UIModalPresentationCustom];
-            [navController setModalTransitionStyle: UIModalPresentationNone];
+            [navController setModalTransitionStyle: UIModalTransitionStyleCrossDissolve];
             self.gleapWidget.view.backgroundColor = [UIColor clearColor];
         }
         
         // Show on top of all viewcontrollers.
         UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
         if (topMostViewController != nil) {
-            [topMostViewController presentViewController: navController animated: YES completion:^{
+            [topMostViewController presentViewController: navController animated: ![type isEqualToString: @"survey"] completion:^{
                 if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetOpened)]) {
                     [Gleap.sharedInstance.delegate widgetOpened];
                 }
