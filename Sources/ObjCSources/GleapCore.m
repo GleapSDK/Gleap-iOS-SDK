@@ -221,7 +221,7 @@
 }
 
 + (void)openNewsArticle:(NSString *)articleId {
-    [self openNewsArticle: articleId andShowBackButton: NO];
+    [self openNewsArticle: articleId andShowBackButton: YES];
 }
 
 + (void)openNewsArticle:(NSString *)articleId andShowBackButton:(Boolean)showBackButton {

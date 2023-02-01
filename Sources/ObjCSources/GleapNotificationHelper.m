@@ -94,7 +94,7 @@
             if (shareToken != nil) {
                 [Gleap openConversation: shareToken];
             } else if (newsId != nil) {
-                [Gleap openNewsArticle: newsId];
+                [Gleap openNewsArticle: newsId andShowBackButton: YES];
             } else {
                 [Gleap open];
             }
