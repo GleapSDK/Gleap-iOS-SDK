@@ -37,6 +37,7 @@
 }
 
 - (void)initHelper {
+    self.disableInAppNotifications = NO;
     self.log = [[NSMutableArray alloc] init];
     self.streamedLog = [[NSMutableArray alloc] init];
 }
@@ -190,7 +191,9 @@
                     for (int i = 0; i < actions.count; i++) {
                         NSDictionary *action = [actions objectAtIndex: i];
                         if ([[action objectForKey: @"actionType"] isEqualToString: @"notification"]) {
-                            [GleapNotificationHelper showNotification: action];
+                            if (self.disableInAppNotifications == NO) {
+                                [GleapNotificationHelper showNotification: action];
+                            }
                         } else {
                             if ([action objectForKey: @"actionType"] != nil) {
                                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{

@@ -96,6 +96,10 @@
     }
 }
 
++ (void)setDisableInAppNotifications:(Boolean)disableInAppNotifications {
+    [GleapEventLogHelper sharedInstance].disableInAppNotifications = disableInAppNotifications;
+}
+
 + (void)startNetworkRecording {
     [[GleapHttpTrafficRecorder sharedRecorder] startRecording];
 }

@@ -37,8 +37,6 @@ class ImageViewController: UIViewController, UINavigationControllerDelegate, UIT
         
         self.button.layer.cornerRadius = 25
         
-        NSLog("Test log :)")
-        
         if #available(iOS 16.0, *) {
             self.setNeedsUpdateOfSupportedInterfaceOrientations()
         } else {

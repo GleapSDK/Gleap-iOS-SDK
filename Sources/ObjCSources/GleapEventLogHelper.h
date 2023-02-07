@@ -29,6 +29,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSArray *)getLogs;
 
 @property (nonatomic, retain) NSMutableArray* log;
+@property (nonatomic, assign) bool disableInAppNotifications;
 @property (nonatomic, retain) NSMutableArray* streamedLog;
 @property (nonatomic, retain) NSString* lastPageName;
 @property (nonatomic, retain) NSTimer* pageNameTimer;

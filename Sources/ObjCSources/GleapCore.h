@@ -76,6 +76,13 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)openNews:(Boolean)showBackButton;
 
 /**
+ * Disable in-app notifications.
+ * @author Gleap
+ *
+ */
++ (void)setDisableInAppNotifications:(Boolean)disableInAppNotifications;
+
+/**
  * Open a conversation.
  * @author Gleap
  *
