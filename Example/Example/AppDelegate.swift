@@ -14,7 +14,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         // Override point for customization after application launch.
         Gleap.enableDebugConsoleLog()
         
-        Gleap.setDisableInAppNotifications(true);
+        Gleap.setDisableInAppNotifications(false);
         
         //Gleap.setApiUrl("http://localhost:9000")
         //Gleap.setFrameUrl("http://localhost:3001/appnew.html")
