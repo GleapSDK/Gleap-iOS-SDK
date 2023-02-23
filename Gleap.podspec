@@ -14,7 +14,7 @@ Pod::Spec.new do |s|
   s.license      = { :type => 'Commercial', :file => 'LICENSE.md' }
   s.author       = { "Gleap" => "hello@gleap.io" }
 
-  s.platform     = :ios, '9.0'
+  s.platform     = :ios, '10.0'
   s.source       = { :git => "https://github.com/GleapSDK/Gleap-iOS-SDK", :tag => s.version.to_s }
   
   s.source_files = 'Sources/**/*.{h,m,c}'
