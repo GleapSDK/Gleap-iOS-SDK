@@ -113,22 +113,22 @@
 + (void)showNotification:(NSDictionary *)notification {
     GleapNotificationHelper *sharedInstance = [GleapNotificationHelper sharedInstance];
     // Prevent duplicates from showing up.
-    int removeAtIndex = -1;
+    int updateAtIndex = -1;
     for (int i = 0; i < sharedInstance.notifications.count; i++) {
         NSString * newOutbound = [notification objectForKey: @"outbound"];
         NSString * existingOutbound = [[sharedInstance.notifications objectAtIndex: i] objectForKey: @"outbound"];
         if (newOutbound != nil && existingOutbound != nil && [newOutbound isEqualToString: existingOutbound]) {
-            removeAtIndex = i;
+            updateAtIndex = i;
         }
     }
-    if (removeAtIndex >= 0) {
-        [sharedInstance.notifications removeObjectAtIndex: removeAtIndex];
+    if (updateAtIndex >= 0) {
+        [sharedInstance.notifications replaceObjectAtIndex: updateAtIndex withObject: notification];
+    } else {
+        if ([sharedInstance.notifications count] >= 2) {
+            [sharedInstance.notifications removeObjectAtIndex: 0];
+        }
+        [sharedInstance.notifications addObject: notification];
     }
-    
-    if ([sharedInstance.notifications count] >= 2) {
-        [sharedInstance.notifications removeObjectAtIndex: 0];
-    }
-    [sharedInstance.notifications addObject: notification];
     
     dispatch_async(dispatch_get_main_queue(), ^{
         if (sharedInstance.uiOverlayViewController != nil) {
