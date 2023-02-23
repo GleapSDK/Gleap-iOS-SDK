@@ -35,13 +35,21 @@
     [Gleap log: @"This is a test error." withLogLevel: ERROR];
     [Gleap log: @"This is a test info." withLogLevel: INFO];
     [Gleap log: @"This is a test warning." withLogLevel: WARNING];
+    
 }
 
 - (IBAction)sendData:(id)sender {
     // [Gleap openHelpCenter: NO];
     // [Gleap showSurvey: @"1g9pym"];
     
-    [Gleap clearIdentity];
+    GleapUserProperty * user = [[GleapUserProperty alloc] init];
+    user.name = @"Luko";
+    user.email = @"lukas@gleap.io";
+    user.customData = @{
+        @"test": @"gggg"
+    };
+    
+    [Gleap identifyUserWith: @"23939234" andData: user];
 }
 
 @end

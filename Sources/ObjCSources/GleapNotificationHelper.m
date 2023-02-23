@@ -112,6 +112,19 @@
 
 + (void)showNotification:(NSDictionary *)notification {
     GleapNotificationHelper *sharedInstance = [GleapNotificationHelper sharedInstance];
+    // Prevent duplicates from showing up.
+    int removeAtIndex = -1;
+    for (int i = 0; i < sharedInstance.notifications.count; i++) {
+        NSString * newOutbound = [notification objectForKey: @"outbound"];
+        NSString * existingOutbound = [[sharedInstance.notifications objectAtIndex: i] objectForKey: @"outbound"];
+        if (newOutbound != nil && existingOutbound != nil && [newOutbound isEqualToString: existingOutbound]) {
+            removeAtIndex = i;
+        }
+    }
+    if (removeAtIndex >= 0) {
+        [sharedInstance.notifications removeObjectAtIndex: removeAtIndex];
+    }
+    
     if ([sharedInstance.notifications count] >= 2) {
         [sharedInstance.notifications removeObjectAtIndex: 0];
     }

@@ -486,7 +486,7 @@
         [presentingViewController presentViewController:viewController animated:YES completion:nil];
     } else {
         if ([[UIApplication sharedApplication] canOpenURL: url]) {
-            [[UIApplication sharedApplication] openURL: url];
+            [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
         }
     }
 }
@@ -496,7 +496,7 @@
         NSURL *url = navigationAction.request.URL;
         if ([url.absoluteString hasPrefix: @"mailto:"]) {
             if ([[UIApplication sharedApplication] canOpenURL: url]) {
-                [[UIApplication sharedApplication] openURL: url];
+                [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
             }
         } else {
             [self openURLExternally: url fromViewController: self];

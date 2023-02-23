@@ -84,7 +84,7 @@ static id ObjectOrNull(id object)
         if (jsonError) {
             return completion(false);
         }
-    
+        
         [Gleap logEvent: @"sessionStarted"];
         [[GleapEventLogHelper sharedInstance] stop];
         [[GleapEventLogHelper sharedInstance] start];
@@ -159,9 +159,7 @@ static id ObjectOrNull(id object)
         if (data != nil && data.customData != nil && [[data.customData allKeys] count] > 0) {
             [sessionRequestData addEntriesFromDictionary: data.customData];
         }
-    } @catch (id exp) {
-        
-    }
+    } @catch (id exp) {}
     
     bool needsUpdate = [self sessionUpgradeWithDataNeeded: sessionRequestData];
     bool hasCustomData = data.customData != nil;
@@ -220,8 +218,10 @@ static id ObjectOrNull(id object)
             
             [self updateLocalSessionWith: jsonResponse andCompletion:^(bool success) {}];
             
-            // Clear local messages.
-            [GleapNotificationHelper clear];
+            // Restart logger.
+            [Gleap logEvent: @"sessionStarted"];
+            [[GleapEventLogHelper sharedInstance] stop];
+            [[GleapEventLogHelper sharedInstance] start];
         } else {
             // Clear session due to an error.
             [self clearSession];
@@ -350,6 +350,11 @@ static id ObjectOrNull(id object)
     
     // Both values are nil, no upgrade needed.
     if (data == nil && newData == nil) {
+        return NO;
+    }
+    
+    // Both values are nil, no upgrade needed.
+    if (data.intValue == 0 && newData == nil) {
         return NO;
     }
     
