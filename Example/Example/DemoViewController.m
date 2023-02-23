@@ -46,10 +46,11 @@
     user.name = @"Luko";
     user.email = @"lukas@gleap.io";
     user.customData = @{
-        @"test": @"gggg"
+        @"testaaa3": @"gg222gg",
+        @"test": @"gggg",
     };
     
-    [Gleap identifyUserWith: @"23939234" andData: user];
+    [Gleap identifyUserWith: @"23939233334" andData: user];
 }
 
 @end

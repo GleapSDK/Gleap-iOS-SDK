@@ -19,6 +19,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, retain, nullable) NSString* name;
 @property (nonatomic, retain, nullable) NSString* email;
 @property (nonatomic, retain, nullable) NSString* phone;
+@property (nonatomic, retain, nullable) NSDictionary* customData;
 @property (nonatomic, retain, nullable) NSNumber* value;
 
 @end

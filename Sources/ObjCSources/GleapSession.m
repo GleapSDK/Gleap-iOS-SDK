@@ -23,7 +23,8 @@ static id ObjectOrNull(id object)
         @"name": ObjectOrNull(self.name),
         @"email": ObjectOrNull(self.email),
         @"value": ObjectOrNull(self.value),
-        @"phone": ObjectOrNull(self.phone)
+        @"phone": ObjectOrNull(self.phone),
+        @"customData": ObjectOrNull(self.customData)
     };
 }
 

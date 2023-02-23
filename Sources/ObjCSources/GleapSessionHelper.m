@@ -151,6 +151,7 @@ static id ObjectOrNull(id object)
     if (data != nil && data.phone != nil) {
         [sessionRequestData setValue: data.phone forKey: @"phone"];
     }
+    
     if (data != nil && data.value != nil) {
         [sessionRequestData setValue: data.value forKey: @"value"];
     }
@@ -161,11 +162,27 @@ static id ObjectOrNull(id object)
         }
     } @catch (id exp) {}
     
-    bool needsUpdate = [self sessionUpgradeWithDataNeeded: sessionRequestData];
-    bool hasCustomData = data.customData != nil;
-    if (!needsUpdate && !hasCustomData) {
+    // Used to check for update.
+    NSMutableDictionary *sessionDataToCheckForUpdate = [sessionRequestData mutableCopy];
+    if (data != nil && data.customData != nil) {
+        [sessionDataToCheckForUpdate setValue: data.customData forKey: @"customData"];
+    }
+    
+    bool needsUpdate = [self sessionUpgradeWithDataNeeded: sessionDataToCheckForUpdate];
+    if (!needsUpdate) {
         return;
     }
+    
+    // If update is needed, also append all the custom data fields.
+    @try {
+        if (data != nil && data.customData != nil) {
+            NSArray *keys = data.customData.allKeys;
+            for (int i = 0; i < keys.count; i++) {
+                NSString *key = [keys objectAtIndex: i];
+                [sessionRequestData setValue: [data.customData objectForKey: key] forKey: key];
+            }
+        }
+    } @catch (id exp) {}
     
     NSError *error;
     NSData *jsonBodyData = [NSJSONSerialization dataWithJSONObject: sessionRequestData options:kNilOptions error: &error];
@@ -255,6 +272,10 @@ static id ObjectOrNull(id object)
         return YES;
     }
     
+    if ([self sessionCustomDataItemNeedsUpgrade: self.currentSession.customData compareTo: [newData objectForKey: @"customData"]]) {
+        return YES;
+    }
+    
     return NO;
 }
 
@@ -283,6 +304,12 @@ static id ObjectOrNull(id object)
         gleapSession.phone = [data objectForKey: @"phone"];
         gleapSession.name = [data objectForKey: @"name"];
         gleapSession.value = [data objectForKey: @"value"];
+    } @catch (id exp) {
+        
+    }
+    
+    @try {
+        gleapSession.customData = [data objectForKey: @"customData"];
     } @catch (id exp) {
         
     }
@@ -323,6 +350,24 @@ static id ObjectOrNull(id object)
     
     // Restart a session.
     [self startSessionWith:^(bool success) {}];
+}
+
+- (BOOL)sessionCustomDataItemNeedsUpgrade:(NSDictionary *)data compareTo:(NSDictionary *)newData {
+    if ([data isKindOfClass:[NSNull class]] || [newData isKindOfClass:[NSNull class]]) {
+        return YES;
+    }
+    
+    // Both values are nil, no upgrade needed.
+    if (data == nil && newData == nil) {
+        return NO;
+    }
+    
+    // One value is nil, upgrade needed.
+    if (data == nil || newData == nil) {
+        return YES;
+    }
+    
+    return ![data isEqualToDictionary: newData];
 }
 
 - (BOOL)sessionDataItemNeedsUpgrade:(NSString *)data compareTo:(NSString *)newData {
