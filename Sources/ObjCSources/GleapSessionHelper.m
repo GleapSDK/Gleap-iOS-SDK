@@ -135,6 +135,7 @@ static id ObjectOrNull(id object)
     }
     
     NSString *userId = [self.openIdentityAction objectForKey: @"userId"];
+    NSString *userHash = [self.openIdentityAction objectForKey: @"userHash"];
     GleapUserProperty *data = [self.openIdentityAction objectForKey: @"data"];
     self.openIdentityAction = nil;
     
@@ -151,9 +152,11 @@ static id ObjectOrNull(id object)
     if (data != nil && data.phone != nil) {
         [sessionRequestData setValue: data.phone forKey: @"phone"];
     }
-    
     if (data != nil && data.value != nil) {
         [sessionRequestData setValue: data.value forKey: @"value"];
+    }
+    if (userHash != nil) {
+        [sessionRequestData setValue: userHash forKey: @"userHash"];
     }
     
     @try {
