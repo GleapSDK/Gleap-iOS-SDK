@@ -11,6 +11,7 @@
 #import "GleapNotificationHelper.h"
 #import "GleapCore.h"
 #import "GleapEventLogHelper.h"
+#import "GleapTranslationHelper.h"
 
 @implementation GleapSessionHelper
 
@@ -63,6 +64,18 @@ static id ObjectOrNull(id object)
         [request setValue: gleapId forHTTPHeaderField: @"Gleap-Id"];
         [request setValue: gleapHash forHTTPHeaderField: @"Gleap-Hash"];
     }
+    
+    NSString *lang = [GleapTranslationHelper sharedInstance].language;
+    if (lang != nil) {
+        NSError *error;
+        NSData *jsonBodyData = [NSJSONSerialization dataWithJSONObject: @{
+            @"lang": lang
+        } options:kNilOptions error: &error];
+        if (error == nil) {
+            [request setHTTPBody: jsonBodyData];
+        }
+    }
+    
     NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
     NSURLSession *session = [NSURLSession sessionWithConfiguration:config
                                                           delegate:nil
@@ -157,6 +170,11 @@ static id ObjectOrNull(id object)
     }
     if (userHash != nil) {
         [sessionRequestData setValue: userHash forKey: @"userHash"];
+    }
+    
+    NSString *lang = [GleapTranslationHelper sharedInstance].language;
+    if (lang != nil) {
+        [sessionRequestData setValue: lang forKey: @"lang"];
     }
     
     @try {
@@ -255,6 +273,10 @@ static id ObjectOrNull(id object)
         return YES;
     }
     
+    if ([self sessionDataItemNeedsUpgrade: self.currentSession.lang compareTo: [newData objectForKey: @"lang"]]) {
+        return YES;
+    }
+    
     if ([self sessionDataItemNeedsUpgrade: self.currentSession.name compareTo: [newData objectForKey: @"name"]]) {
         return YES;
     }
@@ -307,6 +329,7 @@ static id ObjectOrNull(id object)
         gleapSession.phone = [data objectForKey: @"phone"];
         gleapSession.name = [data objectForKey: @"name"];
         gleapSession.value = [data objectForKey: @"value"];
+        gleapSession.lang = [data objectForKey: @"lang"];
     } @catch (id exp) {
         
     }
