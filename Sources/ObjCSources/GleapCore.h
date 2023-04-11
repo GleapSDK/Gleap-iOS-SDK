@@ -152,6 +152,13 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow showBackButton:(BOOL)showBackButton;
 
 /**
+ * Start the bot with the given id.
+ * @author Gleap
+ *
+ */
++ (void)startBot:(NSString * _Nullable)botId showBackButton:(BOOL)showBackButton;
+
+/**
  * Set the visibility of the feedback button.
  * @author Gleap
  *

@@ -16,8 +16,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.setDisableInAppNotifications(false);
         
-        Gleap.setApiUrl("http://localhost:9000")
-        Gleap.setFrameUrl("http://localhost:3001/appnew.html")
+        //Gleap.setApiUrl("http://localhost:9000")
+        //Gleap.setFrameUrl("http://localhost:3001/appnew.html")
         Gleap.initialize(withToken: "KProDXhMS0V3UUku2iNnrZ4XsBnAYzxt")
         
         Gleap.showFeedbackButton(true)

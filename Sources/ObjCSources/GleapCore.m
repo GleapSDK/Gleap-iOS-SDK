@@ -240,6 +240,18 @@
     }
 }
 
++ (void)startBot:(NSString * _Nullable)botId showBackButton:(BOOL)showBackButton {
+    if ([Gleap open]) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": @"start-bot",
+            @"data": @{
+              @"botId": botId,
+              @"hideBackButton": @(!showBackButton)
+            }
+        }];
+    }
+}
+
 + (void)openConversation:(NSString *)shareToken {
     if ([Gleap open]) {
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{

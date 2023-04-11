@@ -42,7 +42,7 @@
     // [Gleap openHelpCenter: NO];
     // [Gleap showSurvey: @"1g9pym"];
     
-    GleapUserProperty * user = [[GleapUserProperty alloc] init];
+    /*GleapUserProperty * user = [[GleapUserProperty alloc] init];
     user.name = @"Luko";
     user.email = @"lukas@gleap.io";
     user.customData = @{
@@ -50,7 +50,9 @@
         @"test": @"gggg",
     };
     
-    [Gleap identifyUserWith: @"23939233334" andData: user];
+    [Gleap identifyUserWith: @"23939233334" andData: user];*/
+    
+    [Gleap startBot: @"64350c6b39c89ea4650c36ae" showBackButton: YES];
 }
 
 @end
