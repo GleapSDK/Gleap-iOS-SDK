@@ -39,36 +39,4 @@
     [[GleapWidgetManager sharedInstance] sendConfigUpdate];
 }
 
-+ (NSString *)localizedString:(NSString *)string {
-    NSMutableDictionary *translation = [[NSMutableDictionary alloc] init];
-    
-    NSDictionary *config = GleapConfigHelper.sharedInstance.config;
-    if (config != nil) {
-        NSDictionary *configCustomTranslations = [config objectForKey: @"customTranslations"];
-        if (configCustomTranslations != nil) {
-            NSString *lang = [[GleapTranslationHelper sharedInstance].language lowercaseString];
-            NSDictionary *customTranslationTable = [configCustomTranslations objectForKey: lang];
-            if (customTranslationTable != nil) {
-                [translation addEntriesFromDictionary: customTranslationTable];
-            }
-            
-            // Try extended search.
-            if (lang.length > 2 && customTranslationTable == nil) {
-                lang = [lang substringToIndex: 2];
-                NSDictionary *extendedCustomTranslationTable = [configCustomTranslations objectForKey: lang];
-                if (extendedCustomTranslationTable != nil) {
-                    [translation addEntriesFromDictionary: extendedCustomTranslationTable];
-                }
-            }
-        }
-    }
-    
-    NSString *translatedString = [translation objectForKey: string];
-    if (translatedString != nil) {
-        return translatedString;
-    }
-    
-    return string;
-}
-
 @end

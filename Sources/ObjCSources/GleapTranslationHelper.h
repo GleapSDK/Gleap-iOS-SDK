@@ -12,7 +12,6 @@ NS_ASSUME_NONNULL_BEGIN
 @interface GleapTranslationHelper : NSObject
 
 + (instancetype)sharedInstance;
-+ (NSString *)localizedString:(NSString *)string;
 + (void)setLanguage: (NSString *)language;
 
 @property (nonatomic, retain) NSString* language;

@@ -112,7 +112,7 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
     self.notificationBadgeView.transform = CGAffineTransformIdentity;
     self.logoView.hidden = YES;
     
-    NSString *widgetButtonText = [GleapTranslationHelper localizedString: [config objectForKey: @"widgetButtonText"]];
+    NSString *widgetButtonText = [config objectForKey: @"widgetButtonText"];
     NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
     
     self.layer.cornerRadius = 8.0;

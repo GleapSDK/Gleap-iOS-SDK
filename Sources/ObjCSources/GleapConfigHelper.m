@@ -12,6 +12,7 @@
 #import "GleapReplayHelper.h"
 #import "GleapWidgetManager.h"
 #import "GleapNotificationHelper.h"
+#import "GleapTranslationHelper.h"
 
 @implementation GleapConfigHelper
 
@@ -34,7 +35,7 @@
 }
 
 - (void)run {
-    NSString *widgetConfigURL = [NSString stringWithFormat: @"%@/config/%@", Gleap.sharedInstance.apiUrl, Gleap.sharedInstance.token];
+    NSString *widgetConfigURL = [NSString stringWithFormat: @"%@/config/%@?lang=%@", Gleap.sharedInstance.apiUrl, Gleap.sharedInstance.token, GleapTranslationHelper.sharedInstance.language];
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
     [request setHTTPMethod:@"GET"];
     [request setURL: [NSURL URLWithString: widgetConfigURL]];
