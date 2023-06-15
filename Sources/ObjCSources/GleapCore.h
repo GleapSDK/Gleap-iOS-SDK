@@ -30,6 +30,7 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 - (void) widgetClosed;
 - (void) registerPushMessageGroup: (NSString *)pushMessageGroup;
 - (void) unregisterPushMessageGroup: (NSString *)pushMessageGroup;
+- (void) openExternalLink: (NSURL *)url;
 @required
 @end
 
