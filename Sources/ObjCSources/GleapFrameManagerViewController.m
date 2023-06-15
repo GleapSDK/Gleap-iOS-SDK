@@ -294,7 +294,11 @@
         if ([name isEqualToString: @"open-url"] && messageData != nil) {
             UIViewController *presentingViewController = self.presentingViewController;
             [self closeWidget:^{
-                [self openURLExternally: [NSURL URLWithString: (NSString *)messageData] fromViewController: presentingViewController];
+                if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(openExternalLink:)]) {
+                    [Gleap.sharedInstance.delegate openExternalLink: [NSURL URLWithString: (NSString *)messageData]];
+                } else {
+                    [self openURLExternally: [NSURL URLWithString: (NSString *)messageData] fromViewController: presentingViewController];
+                }
             }];
         }
         
