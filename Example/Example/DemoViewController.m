@@ -29,8 +29,6 @@
     
     self.button.layer.cornerRadius = 25;
     
-    [Gleap setTags: @[@"Test", @"GleapSDK"]];
-    
     [Gleap log: @"This is a test log."];
     [Gleap log: @"This is a test error." withLogLevel: ERROR];
     [Gleap log: @"This is a test info." withLogLevel: INFO];
@@ -52,7 +50,9 @@
     
     [Gleap identifyUserWith: @"23939233334" andData: user];*/
     
-    [Gleap startBot: @"64350c6b39c89ea4650c36ae" showBackButton: YES];
+    //[Gleap startBot: @"64350c6b39c89ea4650c36ae" showBackButton: YES];
+    
+    [Gleap clearIdentity];
 }
 
 @end

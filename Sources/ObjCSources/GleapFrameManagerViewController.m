@@ -28,6 +28,11 @@
 
 @end
 
+static id ObjectOrNull(id object)
+{
+  return object ?: [NSNull null];
+}
+
 @implementation GleapFrameManagerViewController
 
 - (id)initWithFormat:(NSString *)format
@@ -260,6 +265,24 @@
             if (self.delegate != nil && [self.delegate respondsToSelector:@selector(connected)]) {
                 [self.delegate connected];
             }
+        }
+        
+        if ([name isEqualToString: @"collect-ticket-data"]) {
+            // Create feedback object.
+            GleapFeedback *feedback = [[GleapFeedback alloc] init];
+            [feedback prepareData];
+            
+            [self sendMessageWithData: @{
+                @"name": @"collect-ticket-data",
+                @"data": @{
+                    @"customData": ObjectOrNull([feedback.data objectForKey: @"customData"]),
+                    @"metaData": ObjectOrNull([feedback.data objectForKey: @"metaData"]),
+                    @"consoleLog": ObjectOrNull([feedback.data objectForKey: @"consoleLog"]),
+                    @"networkLogs": ObjectOrNull([feedback.data objectForKey: @"networkLogs"]),
+                    @"customEventLog": ObjectOrNull([feedback.data objectForKey: @"customEventLog"]),
+                    @"tags": ObjectOrNull([feedback.data objectForKey: @"tags"])
+                }
+            }];
         }
         
         if ([name isEqualToString: @"cleanup-drawings"]) {

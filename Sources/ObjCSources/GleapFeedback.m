@@ -146,7 +146,7 @@
     }
 }
 
-- (void)prepareDataAndSend: (void (^)(bool success, NSDictionary *data))completion {
+- (void)prepareData {
     // Fetch additional metadata.
     [self attachData: @{ @"metaData": [[GleapMetaDataHelper sharedInstance] getMetaData] }];
     
@@ -196,6 +196,10 @@
     
     // Exclude data that should not be sent.
     [self excludeExcludedData];
+}
+
+- (void)prepareDataAndSend: (void (^)(bool success, NSDictionary *data))completion {
+    [self prepareData];
     
     // Sending report to server.
     return [self sendReportToServer:^(bool success, NSDictionary *data) {

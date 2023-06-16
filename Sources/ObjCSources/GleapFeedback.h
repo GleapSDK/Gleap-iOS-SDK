@@ -16,6 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)send: (void (^)(bool success, NSDictionary *data))completion;
 - (NSDictionary *)getFormData;
 - (void)appendData:(NSDictionary *)data;
+- (void)prepareData;
 
 @property (nonatomic, retain) NSDictionary* excludeData;
 @property (nonatomic, retain) NSMutableDictionary* data;

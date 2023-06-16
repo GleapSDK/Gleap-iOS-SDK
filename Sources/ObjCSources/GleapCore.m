@@ -63,7 +63,7 @@
 - (void)initHelper {
     self.token = @"";
     self.apiUrl = @"https://api.gleap.io";
-    self.frameUrl = @"https://messenger.gleap.io/appnew";
+    self.frameUrl = @"https://messenger-app.gleap.io/appnew";
     self.initialized = NO;
     self.applicationType = NATIVE;
     
