@@ -7,7 +7,7 @@
 
 #import "GleapFeedbackButton.h"
 #import "GleapConfigHelper.h"
-#import "GleapNotificationHelper.h"
+#import "GleapUIOverlayHelper.h"
 #import "GleapUIHelper.h"
 #import "Gleap.h"
 
@@ -72,7 +72,7 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
         return;
     }
     
-    if (![GleapNotificationHelper sharedInstance].showButton) {
+    if (![GleapUIOverlayHelper sharedInstance].showButton) {
         self.hidden = YES;
         return;
     } else {

@@ -8,6 +8,7 @@
 #import <UIKit/UIKit.h>
 #import "GleapUIWindow.h"
 #import "GleapFeedbackButton.h"
+#import "GleapBanner.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -16,6 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setNotifications:(NSMutableArray *)notifications;
 - (void)updateNotificationCount:(int)notificationCount;
 - (void)updateUI;
+- (void)showBanner:(NSDictionary *)bannerData;
 
 @property (nonatomic, assign) UIInterfaceOrientationMask lastOrientation;
 @property (nonatomic, assign) bool lastShouldAutoRotate;
@@ -24,6 +26,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, retain) NSMutableArray *internalNotifications;
 @property (nonatomic, retain) UIView *closeButton;
 @property (nonatomic, retain) GleapFeedbackButton *feedbackButton;
+@property (nonatomic, retain, nullable) GleapBanner *banner;
 @property (nonatomic, retain) NSMutableArray *notificationViews;
 
 @end

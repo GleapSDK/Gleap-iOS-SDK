@@ -6,6 +6,7 @@
 //
 
 #import "GleapUIWindow.h"
+#import "GleapBanner.h"
 
 @implementation GleapUIWindow
 
@@ -19,8 +20,15 @@
         if (view != nil && !view.isHidden) {
             CGPoint pointInView = [self convertPoint: point toView: view];
             Boolean pointInside = [view pointInside: pointInView withEvent: event];
-            if(pointInside && self.delegate != nil && [self.delegate respondsToSelector:@selector(pressedView:)]) {
-                [self.delegate pressedView: view];
+            if(pointInside) {
+                if ([view isKindOfClass: [GleapBanner class]]) {
+                    // Pass touch event to banner view.
+                    return YES;
+                } else {
+                    if (self.delegate != nil && [self.delegate respondsToSelector:@selector(pressedView:)]) {
+                        [self.delegate pressedView: view];
+                    }
+                }
             }
         }
     }

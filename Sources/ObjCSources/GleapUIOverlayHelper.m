@@ -1,27 +1,27 @@
 //
-//  GleapNotificationHelper.m
+//  GleapUIOverlayHelper.m
 //  
 //
 //  Created by Lukas Boehler on 29.08.22.
 //
 
-#import "GleapNotificationHelper.h"
+#import "GleapUIOverlayHelper.h"
 #import "Gleap.h"
 #import "GleapSessionHelper.h"
 #import "GleapWidgetManager.h"
 #import <UIKit/UIKit.h>
 
-@implementation GleapNotificationHelper
+@implementation GleapUIOverlayHelper
 
 /*
  Returns a shared instance (singleton).
  */
 + (instancetype)sharedInstance
 {
-    static GleapNotificationHelper *sharedInstance = nil;
+    static GleapUIOverlayHelper *sharedInstance = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        sharedInstance = [[GleapNotificationHelper alloc] init];
+        sharedInstance = [[GleapUIOverlayHelper alloc] init];
         [sharedInstance initializeUI];
     });
     return sharedInstance;
@@ -29,13 +29,13 @@
 
 + (void)updateUI {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[GleapNotificationHelper sharedInstance].uiOverlayViewController updateUI];
+        [[GleapUIOverlayHelper sharedInstance].uiOverlayViewController updateUI];
     });
 }
 
 + (void)clear {
     dispatch_async(dispatch_get_main_queue(), ^{
-        GleapNotificationHelper *instance = [GleapNotificationHelper sharedInstance];
+        GleapUIOverlayHelper *instance = [GleapUIOverlayHelper sharedInstance];
         instance.notifications = [[NSMutableArray alloc] init];
         
         if (instance.uiOverlayViewController != nil) {
@@ -46,10 +46,16 @@
     });
 }
 
++ (void)showBanner:(NSDictionary *)bannerData {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[GleapUIOverlayHelper sharedInstance].uiOverlayViewController showBanner: bannerData];
+    });
+}
+
 + (void)showFeedbackButton:(bool)show {
-    [GleapNotificationHelper sharedInstance].showButtonExternalOverwrite = YES;
-    [GleapNotificationHelper sharedInstance].showButton = show;
-    [GleapNotificationHelper updateUI];
+    [GleapUIOverlayHelper sharedInstance].showButtonExternalOverwrite = YES;
+    [GleapUIOverlayHelper sharedInstance].showButton = show;
+    [GleapUIOverlayHelper updateUI];
 }
 
 - (void)initializeUI {
@@ -84,7 +90,7 @@
 - (void)pressedView:(UIView *)view {
     @try {
         if (view.tag == 999) {
-            [GleapNotificationHelper clear];
+            [GleapUIOverlayHelper clear];
         } else if (view.tag == INT_MAX) {
             [Gleap open];
         } else {
@@ -104,14 +110,14 @@
 
 + (void)updateNotificationCount:(int)notificationCount {
     dispatch_async(dispatch_get_main_queue(), ^{
-        if ([GleapNotificationHelper sharedInstance].uiOverlayViewController != nil) {
-            [[GleapNotificationHelper sharedInstance].uiOverlayViewController updateNotificationCount: notificationCount];
+        if ([GleapUIOverlayHelper sharedInstance].uiOverlayViewController != nil) {
+            [[GleapUIOverlayHelper sharedInstance].uiOverlayViewController updateNotificationCount: notificationCount];
         }
     });
 }
 
 + (void)showNotification:(NSDictionary *)notification {
-    GleapNotificationHelper *sharedInstance = [GleapNotificationHelper sharedInstance];
+    GleapUIOverlayHelper *sharedInstance = [GleapUIOverlayHelper sharedInstance];
     // Prevent duplicates from showing up.
     int updateAtIndex = -1;
     for (int i = 0; i < sharedInstance.notifications.count; i++) {

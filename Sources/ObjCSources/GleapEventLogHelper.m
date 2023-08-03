@@ -11,7 +11,7 @@
 #import "GleapUIHelper.h"
 #import "GleapWidgetManager.h"
 #import "GleapMetaDataHelper.h"
-#import "GleapNotificationHelper.h"
+#import "GleapUIOverlayHelper.h"
 
 @implementation GleapEventLogHelper
 
@@ -145,7 +145,8 @@
     NSDictionary *data = @{
         @"time": [NSNumber numberWithDouble: [[GleapMetaDataHelper sharedInstance] sessionDuration]],
         @"events": self.streamedLog,
-        @"opened": @([Gleap isOpened])
+        @"opened": @([Gleap isOpened]),
+        @"sdkVersion": SDK_VERSION,
     };
     
     @try {
@@ -191,10 +192,16 @@
                     for (int i = 0; i < actions.count; i++) {
                         NSDictionary *action = [actions objectAtIndex: i];
                         if ([[action objectForKey: @"actionType"] isEqualToString: @"notification"]) {
+                            // NOTIFICATIONS
                             if (self.disableInAppNotifications == NO) {
-                                [GleapNotificationHelper showNotification: action];
+                                [GleapUIOverlayHelper showNotification: action];
                             }
+                        } else if ([[action objectForKey: @"actionType"] isEqualToString: @"banner"]) {
+                            // BANNER
+                            NSLog(@"BANNER");
+                            [GleapUIOverlayHelper showBanner: action];
                         } else {
+                            // FEEDBACK FORMS
                             if ([action objectForKey: @"actionType"] != nil) {
                                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
                                     [Gleap.sharedInstance startFeedbackFlow: [action objectForKey: @"actionType"] withOptions: @{
@@ -209,7 +216,7 @@
                 }
                 
                 int unreadCount = [[actionData objectForKey: @"u"] intValue];
-                [GleapNotificationHelper updateNotificationCount: unreadCount];
+                [GleapUIOverlayHelper updateNotificationCount: unreadCount];
             }
             @catch(id exception) {}
         }];

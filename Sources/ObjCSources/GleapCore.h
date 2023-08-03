@@ -429,6 +429,7 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 @property (nonatomic, retain) NSString* token;
 @property (nonatomic, retain) NSString* apiUrl;
 @property (nonatomic, retain) NSString* frameUrl;
+@property (nonatomic, retain) NSString* bannerUrl;
 @property (nonatomic, assign) int initialized;
 @property (nonatomic, assign) GleapApplicationType applicationType;
 @property (nonatomic, weak) id <GleapDelegate> delegate;

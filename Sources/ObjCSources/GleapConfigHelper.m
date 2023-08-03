@@ -11,7 +11,7 @@
 #import "GleapHttpTrafficRecorder.h"
 #import "GleapReplayHelper.h"
 #import "GleapWidgetManager.h"
-#import "GleapNotificationHelper.h"
+#import "GleapUIOverlayHelper.h"
 #import "GleapTranslationHelper.h"
 
 @implementation GleapConfigHelper
@@ -112,17 +112,17 @@
     [[GleapWidgetManager sharedInstance] sendConfigUpdate];
     
     // Set the initial feedback button status.
-    if ([GleapNotificationHelper sharedInstance].showButtonExternalOverwrite == NO) {
+    if ([GleapUIOverlayHelper sharedInstance].showButtonExternalOverwrite == NO) {
         NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
         if ([feedbackButtonPosition isEqualToString: @"BUTTON_NONE"]) {
-            [GleapNotificationHelper sharedInstance].showButton = NO;
+            [GleapUIOverlayHelper sharedInstance].showButton = NO;
         } else {
-            [GleapNotificationHelper sharedInstance].showButton = YES;
+            [GleapUIOverlayHelper sharedInstance].showButton = YES;
         }
     }
     
     // Update notification UI components.
-    [GleapNotificationHelper updateUI];
+    [GleapUIOverlayHelper updateUI];
     
     // Config loaded delegate
     if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(configLoaded:)]) {

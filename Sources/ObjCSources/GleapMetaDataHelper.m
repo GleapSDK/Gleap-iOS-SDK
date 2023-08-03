@@ -5,8 +5,6 @@
 //  Created by Lukas Boehler on 25.05.22.
 //
 
-#define SDK_VERSION @"11.0.0"
-
 #import "GleapMetaDataHelper.h"
 #import <sys/utsname.h>
 #import "GleapCore.h"

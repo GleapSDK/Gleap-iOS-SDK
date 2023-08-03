@@ -10,7 +10,7 @@
 #import "GleapReplayHelper.h"
 #import "GleapMetaDataHelper.h"
 #import "GleapScreenshotManager.h"
-#import "GleapNotificationHelper.h"
+#import "GleapUIOverlayHelper.h"
 #import "GleapCore.h"
 
 @implementation GleapWidgetManager
@@ -84,7 +84,7 @@
                 completion();
             }
             
-            [GleapNotificationHelper updateUI];
+            [GleapUIOverlayHelper updateUI];
             
             if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetClosed)]) {
                 [Gleap.sharedInstance.delegate widgetClosed];
@@ -127,8 +127,8 @@
         self.gleapWidget.delegate = self;
     
         // Clear all notifications.
-        [GleapNotificationHelper clear];
-        [GleapNotificationHelper updateUI];
+        [GleapUIOverlayHelper clear];
+        [GleapUIOverlayHelper updateUI];
         
         UINavigationController * navController = [[UINavigationController alloc] initWithRootViewController: self.gleapWidget];
         navController.navigationBar.barStyle = UIBarStyleBlack;

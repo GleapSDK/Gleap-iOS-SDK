@@ -20,7 +20,7 @@
 #import "GleapActivationMethodHelper.h"
 #import "GleapScreenshotListener.h"
 #import "GleapUIHelper.h"
-#import "GleapNotificationHelper.h"
+#import "GleapUIOverlayHelper.h"
 #import "GleapCustomDataHelper.h"
 #import "GleapAttachmentHelper.h"
 #import "GleapTranslationHelper.h"
@@ -64,6 +64,7 @@
     self.token = @"";
     self.apiUrl = @"https://api.gleap.io";
     self.frameUrl = @"https://messenger-app.gleap.io/appnew";
+    self.bannerUrl = @"https://outboundmedia.gleap.io";
     self.initialized = NO;
     self.applicationType = NATIVE;
     
@@ -209,7 +210,7 @@
 }
 
 + (void)showFeedbackButton:(BOOL)show {
-    [GleapNotificationHelper showFeedbackButton: show];
+    [GleapUIOverlayHelper showFeedbackButton: show];
 }
 
 + (void)setFrameUrl: (NSString *)frameUrl {

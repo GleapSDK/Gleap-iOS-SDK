@@ -1,5 +1,5 @@
 //
-//  GleapNotificationHelper.h
+//  GleapUIOverlayHelper.h
 //  
 //
 //  Created by Lukas Boehler on 29.08.22.
@@ -12,12 +12,13 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface GleapNotificationHelper : NSObject <GleapUIWindowDelegate>
+@interface GleapUIOverlayHelper : NSObject <GleapUIWindowDelegate>
 
 + (instancetype)sharedInstance;
 + (void)showNotification:(NSDictionary *)notification;
 + (void)updateNotificationCount:(int)notificationCount;
 + (void)showFeedbackButton:(bool)show;
++ (void)showBanner:(NSDictionary *)bannerData;
 + (void)clear;
 + (void)updateUI;
 

@@ -8,7 +8,7 @@
 #import "GleapSessionHelper.h"
 #import "GleapCore.h"
 #import "GleapWidgetManager.h"
-#import "GleapNotificationHelper.h"
+#import "GleapUIOverlayHelper.h"
 #import "GleapCore.h"
 #import "GleapEventLogHelper.h"
 #import "GleapTranslationHelper.h"
@@ -372,7 +372,7 @@ static id ObjectOrNull(id object)
     
     // Update widget session
     [[GleapWidgetManager sharedInstance] sendSessionUpdate];
-    [GleapNotificationHelper clear];
+    [GleapUIOverlayHelper clear];
     
     // Restart a session.
     [self startSessionWith:^(bool success) {}];
