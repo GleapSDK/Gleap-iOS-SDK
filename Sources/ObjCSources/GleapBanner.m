@@ -230,7 +230,6 @@
     
     if (@available(iOS 11.0, *)) {
         UILayoutGuide *guide = parent.safeAreaLayoutGuide;
-        
         [NSLayoutConstraint constraintWithItem:subView
                                      attribute:NSLayoutAttributeLeading
                                      relatedBy:NSLayoutRelationEqual

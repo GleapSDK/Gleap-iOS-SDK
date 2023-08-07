@@ -24,6 +24,7 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 - (void) feedbackFlowStarted: (NSDictionary *)feedbackAction;
 - (void) feedbackSent: (NSDictionary *)data;
 - (void) feedbackSendingFailed;
+- (void) initialized;
 - (void) customActionCalled: (NSString *)customAction;
 - (void) configLoaded: (NSDictionary *)config;
 - (void) widgetOpened;

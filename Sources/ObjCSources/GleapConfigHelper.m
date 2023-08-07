@@ -128,6 +128,11 @@
     if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(configLoaded:)]) {
         [Gleap.sharedInstance.delegate configLoaded: config];
     }
+    
+    // Send initialization done callback.
+    if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(initialized:)]) {
+        [Gleap.sharedInstance.delegate initialized];
+    }
 }
 
 - (int)getButtonX {

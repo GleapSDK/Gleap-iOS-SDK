@@ -64,8 +64,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "168"
             endingLineNumber = "168"
-            landmarkName = "GleapFrameManagerViewController"
-            landmarkType = "3">
+            landmarkName = "-sendSessionUpdate"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -225,22 +225,6 @@
             startingLineNumber = "50"
             endingLineNumber = "50"
             landmarkName = "+showFeedbackButton:"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "3F6D17F1-BBCA-4259-86FE-083F7F0D9D53"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "../Sources/ObjCSources/GleapConfigHelper.m"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "115"
-            endingLineNumber = "115"
-            landmarkName = "-configureGleapWithConfig:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -944,7 +928,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "249"
             endingLineNumber = "249"
-            landmarkName = "-setupModernButton"
+            landmarkName = "-updateConstraintsForOrientation"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
