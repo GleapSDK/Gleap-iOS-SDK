@@ -50,6 +50,19 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
     self.notificationBadgeLabel.textColor = [UIColor whiteColor];
     self.notificationBadgeLabel.textAlignment = NSTextAlignmentCenter;
     [self.notificationBadgeView addSubview: self.notificationBadgeLabel];
+    
+    // Initialization code
+    if (@available(iOS 11, *)) {
+        UILayoutGuide *guide = self.safeAreaLayoutGuide;
+        self.safeAreaConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:guide attribute:NSLayoutAttributeLeft multiplier:1 constant: -12];
+
+        self.edgeConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:self attribute:NSLayoutAttributeLeft multiplier:1 constant: -12];
+
+        [self updateConstraintsForOrientation];
+    }
+
+    // Register for notification
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationDidChange:) name:UIDeviceOrientationDidChangeNotification object:nil];
 }
 
 - (void)setNotificationCount:(int)notificationCount {
@@ -115,11 +128,6 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
     NSString *widgetButtonText = [config objectForKey: @"widgetButtonText"];
     NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
     
-    self.layer.cornerRadius = 8.0;
-    if (@available(iOS 11.0, *)) {
-        self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner;
-    }
-    
     self.buttonTextLabel.text = widgetButtonText;
     [self.buttonTextLabel setTextAlignment: NSTextAlignmentCenter];
     
@@ -139,68 +147,127 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
     // Find the perfect position.
     UIDeviceOrientation orientation = [[UIDevice currentDevice] orientation];
     float rotation = -90;
-    int x = self.superview.frame.size.width - buttonHeight;
-    int y = (self.superview.frame.size.height / 2) + (buttonWidth / 2);
-    self.notificationBadgeView.frame = CGRectMake(buttonWidth-6-(NOTIFICATION_BADGE_SIZE / 2), 6-(NOTIFICATION_BADGE_SIZE / 2), NOTIFICATION_BADGE_SIZE, NOTIFICATION_BADGE_SIZE);
+
+    // Disable autoresizing masks to constraints conversion
+    self.translatesAutoresizingMaskIntoConstraints = NO;
+    
+    // Auto layout constraints
+    NSLayoutConstraint *heightConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1 constant:buttonHeight];
+    NSLayoutConstraint *widthConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1 constant:buttonWidth];
+    [self addConstraints:@[heightConstraint, widthConstraint]];
+
+    UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
+
+    // Set the auto layout constraints depending on the button position
     if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"]) {
         rotation = 90;
-        x = buttonHeight;
+        [window addConstraint: [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:window attribute:NSLayoutAttributeCenterY multiplier:1 constant: -(buttonWidth / 2)]];
         
-        if (@available(iOS 11.0, *)) {
-            UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
-            if (orientation == UIDeviceOrientationLandscapeLeft && window.safeAreaInsets.left && window.safeAreaInsets.left > 0) {
-                x += window.safeAreaInsets.left;
-                if (@available(iOS 11.0, *)) {
-                    self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner | kCALayerMaxXMaxYCorner | kCALayerMinXMaxYCorner;
-                }
-            }
+        _edgeConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:window attribute:NSLayoutAttributeLeft multiplier:1 constant: -12];
+        
+        if (@available(iOS 11, *)) {
+            UILayoutGuide *guide = window.safeAreaLayoutGuide;
+            _safeAreaConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:guide attribute:NSLayoutAttributeLeft multiplier:1 constant: -12];
         }
-        
-        y = (self.superview.frame.size.height / 2) - (buttonWidth / 2);
-        self.notificationBadgeView.frame = CGRectMake(6-(NOTIFICATION_BADGE_SIZE/2), 6-(NOTIFICATION_BADGE_SIZE / 2), NOTIFICATION_BADGE_SIZE, NOTIFICATION_BADGE_SIZE);
     } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_BOTTOM"]) {
         rotation = 0;
-        x = self.superview.frame.size.width - buttonWidth - 16;
-        if (@available(iOS 11.0, *)) {
-            UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
-            if (orientation == UIDeviceOrientationLandscapeRight && window.safeAreaInsets.right && window.safeAreaInsets.right > 0) {
-                x -= window.safeAreaInsets.right;
-            }
-        }
         
-        y = self.superview.frame.size.height - buttonHeight;
-        if (@available(iOS 11.0, *)) {
-            UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
-            if (window.safeAreaInsets.bottom && window.safeAreaInsets.bottom > 0) {
-                y -= window.safeAreaInsets.bottom;
-                if (@available(iOS 11.0, *)) {
-                    self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner | kCALayerMaxXMaxYCorner | kCALayerMinXMaxYCorner;
-                }
-            }
-        }
+        _edgeConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:window attribute:NSLayoutAttributeBottom multiplier:1 constant: -(buttonHeight / 2)];
         
-        self.notificationBadgeView.frame = CGRectMake(buttonWidth - (NOTIFICATION_BADGE_SIZE - 5.0), -5.0, NOTIFICATION_BADGE_SIZE, NOTIFICATION_BADGE_SIZE);
+        if (@available(iOS 11, *)) {
+            UILayoutGuide *guide = window.safeAreaLayoutGuide;
+            
+            _safeAreaConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:guide attribute:NSLayoutAttributeBottom multiplier:1 constant: -(buttonHeight / 2)];
+            
+            [window addConstraint: [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:guide attribute: NSLayoutAttributeRight multiplier:1 constant: -((buttonWidth / 2) + 20)]];
+        }
     } else {
-        if (@available(iOS 11.0, *)) {
-            UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
-            if (orientation == UIDeviceOrientationLandscapeRight && window.safeAreaInsets.right && window.safeAreaInsets.right > 0) {
-                x -= window.safeAreaInsets.right;
-                if (@available(iOS 11.0, *)) {
-                    self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner | kCALayerMaxXMaxYCorner | kCALayerMinXMaxYCorner;
-                }
-            }
+        [window addConstraint: [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:window attribute:NSLayoutAttributeCenterY multiplier:1 constant: (buttonWidth / 2)]];
+        
+        _edgeConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:window attribute:NSLayoutAttributeRight multiplier:1 constant: 12];
+        
+        if (@available(iOS 11, *)) {
+            UILayoutGuide *guide = window.safeAreaLayoutGuide;
+            _safeAreaConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeRight relatedBy:NSLayoutRelationEqual toItem:guide attribute: NSLayoutAttributeRight multiplier:1 constant: 12];
         }
     }
     
-    self.notificationBadgeView.layer.anchorPoint = CGPointMake(0.5, 0.5);
-    self.notificationBadgeView.transform = CGAffineTransformMakeRotation(rotation * -1 * M_PI/180);
-    
-    self.frame = CGRectMake(x, y, buttonWidth, buttonHeight);
+    [self updateConstraintsForOrientation];
     
     // Update feedback text label frame.
-    self.buttonTextLabel.frame = CGRectMake(16, 0, self.frame.size.width - 32, self.frame.size.height);
+    self.buttonTextLabel.frame = CGRectMake(16, 0, buttonWidth - 32, buttonHeight);
     
     self.transform = CGAffineTransformMakeRotation(rotation * M_PI/180);
+}
+
+- (void)orientationDidChange:(NSNotification *)notification {
+    [self updateConstraintsForOrientation];
+}
+
+- (UIInterfaceOrientation)reliableInterfaceOrientation {
+    UIInterfaceOrientation deviceOrientation = [UIApplication sharedApplication].statusBarOrientation;
+    
+    if (deviceOrientation == UIDeviceOrientationUnknown) {
+        if (@available(iOS 13.0, *)) {
+            deviceOrientation = [UIApplication sharedApplication].windows.firstObject.windowScene.interfaceOrientation;
+        }
+    }
+    
+    return deviceOrientation;
+}
+
+- (void)updateConstraintsForOrientation {
+    NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+    if (config == nil) {
+        return;
+    }
+    
+    NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
+    if (![feedbackButtonPosition containsString: @"CLASSIC"]) {
+        return;
+    }
+    
+    UIInterfaceOrientation orientation = [self reliableInterfaceOrientation];
+    
+    self.layer.cornerRadius = 8.0;
+    if (@available(iOS 11.0, *)) {
+        self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner;
+    }
+    
+    if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"]) {
+        if (orientation == UIDeviceOrientationLandscapeLeft) {
+            self.edgeConstraint.active = NO;
+            self.safeAreaConstraint.active = YES;
+            if (@available(iOS 11.0, *)) {
+                self.layer.maskedCorners = kCALayerMinXMinYCorner | kCALayerMaxXMinYCorner | kCALayerMinXMaxYCorner | kCALayerMaxXMaxYCorner;
+            }
+        } else {
+            self.safeAreaConstraint.active = NO;
+            self.edgeConstraint.active = YES;
+        }
+    } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_BOTTOM"]) {
+        if (orientation == UIDeviceOrientationPortrait) {
+            self.edgeConstraint.active = NO;
+            self.safeAreaConstraint.active = YES;
+            if (@available(iOS 11.0, *)) {
+                self.layer.maskedCorners = kCALayerMinXMinYCorner | kCALayerMaxXMinYCorner | kCALayerMinXMaxYCorner | kCALayerMaxXMaxYCorner;
+            }
+        } else {
+            self.safeAreaConstraint.active = NO;
+            self.edgeConstraint.active = YES;
+        }
+    } else {
+        if (orientation == UIDeviceOrientationLandscapeRight) {
+            self.edgeConstraint.active = NO;
+            self.safeAreaConstraint.active = YES;
+            if (@available(iOS 11.0, *)) {
+                self.layer.maskedCorners = kCALayerMinXMinYCorner | kCALayerMaxXMinYCorner | kCALayerMinXMaxYCorner | kCALayerMaxXMaxYCorner;
+            }
+        } else {
+            self.safeAreaConstraint.active = NO;
+            self.edgeConstraint.active = YES;
+        }
+    }
 }
 
 - (void)setupModernButton {
@@ -210,7 +277,8 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
         return;
     }
     
-    self.layer.cornerRadius = self.frame.size.height / 2.0;
+    self.translatesAutoresizingMaskIntoConstraints = NO;
+    self.layer.cornerRadius = BUTTON_SIZE / 2.0;
     
     NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
     
@@ -218,7 +286,6 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
     if (buttonLogo == nil || buttonLogo.length == 0) {
         buttonLogo = @"https://sdk.gleap.io/res/chatbubble.png";
     }
-    // Prevent button from being loaded multiple times.
     if (![buttonLogo isEqualToString: self.currentButtonUrl]) {
         self.currentButtonUrl = buttonLogo;
         dispatch_async(dispatch_get_global_queue(0,0), ^{
@@ -226,7 +293,6 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
             if (data == nil) {
                 return;
             }
-            
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (self.logoView != nil) {
                     self.logoView.hidden = NO;
@@ -242,36 +308,25 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
     UIDeviceOrientation orientation = [[UIDevice currentDevice] orientation];
     
     if (self.superview != nil) {
-        float x = self.superview.frame.size.width - BUTTON_SIZE - buttonX;
+        NSLayoutConstraint *xConstraint;
+        NSLayoutConstraint *yConstraint;
+        NSLayoutConstraint *widthConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1 constant:BUTTON_SIZE];
+        NSLayoutConstraint *heightConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1 constant:BUTTON_SIZE];
         
-        if (
-            [feedbackButtonPosition isEqualToString: @"BOTTOM_LEFT"]
-        ) {
-            x = buttonX;
-            
-            if (@available(iOS 11.0, *)) {
-                UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
-                if (orientation == UIDeviceOrientationLandscapeLeft && window.safeAreaInsets.left && window.safeAreaInsets.left > 0) {
-                    x += window.safeAreaInsets.left;
-                }
-            }
+        if ([feedbackButtonPosition isEqualToString: @"BOTTOM_LEFT"]) {
+            xConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeLeading relatedBy:NSLayoutRelationEqual toItem:self.superview attribute:NSLayoutAttributeLeadingMargin multiplier:1 constant: buttonX];
         } else {
-            if (@available(iOS 11.0, *)) {
-                UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
-                if (orientation == UIDeviceOrientationLandscapeRight && window.safeAreaInsets.right && window.safeAreaInsets.right > 0) {
-                    x -= window.safeAreaInsets.right;
-                }
-            }
+            xConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeTrailing relatedBy:NSLayoutRelationEqual toItem:self.superview attribute:NSLayoutAttributeTrailingMargin multiplier:1 constant: -buttonX];
         }
         
-        CGFloat borderBottom = buttonY;
-        if (@available(iOS 11.0, *)) {
-            UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
-            borderBottom += window.safeAreaInsets.bottom;
-        }
+        yConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeBottom relatedBy:NSLayoutRelationEqual toItem:self.superview attribute:NSLayoutAttributeBottomMargin multiplier:1 constant: -buttonY];
         
-        self.frame = CGRectMake(x, self.superview.frame.size.height - BUTTON_SIZE - borderBottom, BUTTON_SIZE, BUTTON_SIZE);
+        [NSLayoutConstraint activateConstraints:@[xConstraint, yConstraint, widthConstraint, heightConstraint]];
     }
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIDeviceOrientationDidChangeNotification object:nil];
 }
 
 @end

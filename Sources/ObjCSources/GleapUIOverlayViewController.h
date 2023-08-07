@@ -6,23 +6,19 @@
 //
 
 #import <UIKit/UIKit.h>
-#import "GleapUIWindow.h"
 #import "GleapFeedbackButton.h"
 #import "GleapBanner.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface GleapUIOverlayViewController : UIViewController
+@interface GleapUIOverlayViewController : NSObject
 
 - (void)setNotifications:(NSMutableArray *)notifications;
 - (void)updateNotificationCount:(int)notificationCount;
 - (void)updateUI;
+- (void)initializeUI;
 - (void)showBanner:(NSDictionary *)bannerData;
 
-@property (nonatomic, assign) UIInterfaceOrientationMask lastOrientation;
-@property (nonatomic, assign) bool lastShouldAutoRotate;
-@property (nonatomic, assign) UIStatusBarStyle lastStatusBarStyle;
-@property (nonatomic, retain) NSTimer *topMostViewControllerTimer;
 @property (nonatomic, retain) NSMutableArray *internalNotifications;
 @property (nonatomic, retain) UIView *closeButton;
 @property (nonatomic, retain) GleapFeedbackButton *feedbackButton;

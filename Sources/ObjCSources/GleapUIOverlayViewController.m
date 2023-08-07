@@ -16,96 +16,79 @@
 
 @implementation GleapUIOverlayViewController
 
-- (void)viewWillAppear:(BOOL)animated {
-    [self checkIfUpdateNeeded: NO];
-}
-
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    [self initializeUI];
-}
-
-- (UIStatusBarStyle)preferredStatusBarStyle {
-    return _lastStatusBarStyle;
-}
-
-- (UIInterfaceOrientationMask)supportedInterfaceOrientations
-{
-    return _lastOrientation;
-}
-
-- (BOOL)shouldAutorotate
-{
-    return _lastShouldAutoRotate;
-}
-
-- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
-    
-    if (self.view != nil) {
-        self.view.alpha = 0.0;
-    }
-    
-    [coordinator animateAlongsideTransition:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
-        
-    } completion:^(id<UIViewControllerTransitionCoordinatorContext>  _Nonnull context) {
-        [self updateUI];
-        if (self.view != nil) {
-            [UIView animateWithDuration:0.3f animations:^{
-                self.view.alpha = 1.0;
-            }];
+- (UIWindow *)getKeyWindow {
+    UIWindow *keyWindow = nil;
+    for (UIWindow *window in UIApplication.sharedApplication.windows) {
+        if (window.isKeyWindow) {
+            keyWindow = window;
+            break;
         }
-    }];
+    }
+    return keyWindow;
+}
+
+- (void)clearNotifications:(UITapGestureRecognizer *)sender {
+    [GleapUIOverlayHelper clear];
+}
+
+- (void)feedbackButtonPressed:(UITapGestureRecognizer *)sender {
+    [Gleap open];
 }
 
 - (void)initializeUI {
-    self.modalPresentationStyle = UIModalPresentationOverFullScreen;
-    self.modalPresentationCapturesStatusBarAppearance = NO;
-    self.internalNotifications = [[NSMutableArray alloc] init];
-    self.notificationViews = [[NSMutableArray alloc] init];
-    
-    self.closeButton = [[UIView alloc] initWithFrame: CGRectMake(self.view.frame.size.width - 16, 0, 32, 32)];
-    self.closeButton.layer.cornerRadius = 16;
-    self.closeButton.hidden = YES;
-    self.closeButton.alpha = 0.8;
-    self.closeButton.layer.cornerRadius = 16.0;
-    self.closeButton.layer.shadowRadius  = 8.0;
-    self.closeButton.layer.shadowColor   = [UIColor blackColor].CGColor;
-    self.closeButton.layer.shadowOffset  = CGSizeMake(2.0f, 2.0f);
-    self.closeButton.layer.shadowOpacity = 0.08;
-    self.closeButton.autoresizesSubviews = NO;
-    self.closeButton.backgroundColor = [UIColor colorWithRed: 0.9 green: 0.9 blue: 0.9 alpha: 1.0];
-    self.closeButton.tag = 999;
-    
-    UIView * crossLeft = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 16.0, 2.0)];
-    crossLeft.backgroundColor = [UIColor blackColor];
-    crossLeft.center = CGPointMake(16.0, 16.0);
-    crossLeft.autoresizingMask = UIViewAutoresizingNone;
-    crossLeft.transform = CGAffineTransformMakeRotation(45 * -1 * M_PI/180);
-    [self.closeButton addSubview: crossLeft];
-    
-    UIView * crossRight = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 16.0, 2.0)];
-    crossRight.backgroundColor = [UIColor blackColor];
-    crossRight.center = CGPointMake(16.0, 16.0);
-    crossRight.autoresizingMask = UIViewAutoresizingNone;
-    crossRight.transform = CGAffineTransformMakeRotation(45 * M_PI/180);
-    [self.closeButton addSubview: crossRight];
-    
-    [self.view addSubview: self.closeButton];
-    
-    // Render feedback button.
-    self.feedbackButton = [[GleapFeedbackButton alloc] initWithFrame: CGRectMake(0, 0, 54.0, 54.0)];
-    [self.view addSubview: self.feedbackButton];
-    
-    [self.feedbackButton applyConfig];
-    [self.feedbackButton setNotificationCount: 0];
-    
     dispatch_async(dispatch_get_main_queue(), ^{
-        self.topMostViewControllerTimer = [NSTimer scheduledTimerWithTimeInterval: 0.4
-                                             target: self
-                                           selector: @selector(checkIfUpdateNeeded)
-                                           userInfo: nil
-                                            repeats: YES];
+        UIWindow *keyWindow = [self getKeyWindow];
+        self.internalNotifications = [[NSMutableArray alloc] init];
+        self.notificationViews = [[NSMutableArray alloc] init];
+        
+        self.closeButton = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 32, 32)];
+        self.closeButton.layer.cornerRadius = 16;
+        self.closeButton.hidden = YES;
+        self.closeButton.alpha = 0.8;
+        self.closeButton.layer.cornerRadius = 16.0;
+        self.closeButton.layer.shadowRadius  = 8.0;
+        self.closeButton.layer.shadowColor   = [UIColor blackColor].CGColor;
+        self.closeButton.layer.shadowOffset  = CGSizeMake(2.0f, 2.0f);
+        self.closeButton.layer.shadowOpacity = 0.08;
+        self.closeButton.autoresizesSubviews = NO;
+        self.closeButton.backgroundColor = [UIColor colorWithRed: 0.9 green: 0.9 blue: 0.9 alpha: 1.0];
+        self.closeButton.tag = 999;
+        self.closeButton.layer.zPosition = INT_MAX;
+        UITapGestureRecognizer *clearNotificationsGesture =
+          [[UITapGestureRecognizer alloc] initWithTarget:self
+                                                  action:@selector(clearNotifications:)];
+        [self.closeButton addGestureRecognizer: clearNotificationsGesture];
+        
+        UIView * crossLeft = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 16.0, 2.0)];
+        crossLeft.backgroundColor = [UIColor blackColor];
+        crossLeft.center = CGPointMake(16.0, 16.0);
+        crossLeft.autoresizingMask = UIViewAutoresizingNone;
+        crossLeft.transform = CGAffineTransformMakeRotation(45 * -1 * M_PI/180);
+        [self.closeButton addSubview: crossLeft];
+        
+        UIView * crossRight = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 16.0, 2.0)];
+        crossRight.backgroundColor = [UIColor blackColor];
+        crossRight.center = CGPointMake(16.0, 16.0);
+        crossRight.autoresizingMask = UIViewAutoresizingNone;
+        crossRight.transform = CGAffineTransformMakeRotation(45 * M_PI/180);
+        [self.closeButton addSubview: crossRight];
+        
+        [keyWindow addSubview: self.closeButton];
+        
+        // Render feedback button.
+        self.feedbackButton = [[GleapFeedbackButton alloc] initWithFrame: CGRectMake(0, 0, 54.0, 54.0)];
+        [keyWindow addSubview: self.feedbackButton];
+        self.feedbackButton.layer.zPosition = INT_MAX;
+        [self.feedbackButton applyConfig];
+        [self.feedbackButton setUserInteractionEnabled: YES];
+        [self.feedbackButton setNotificationCount: 0];
+        
+        UITapGestureRecognizer *feedbackButtonGesture =
+          [[UITapGestureRecognizer alloc] initWithTarget: self
+                                                  action: @selector(feedbackButtonPressed:)];
+        [self.feedbackButton addGestureRecognizer: feedbackButtonGesture];
     });
+    
 }
 
 - (void)showBanner:(NSDictionary *)bannerData {
@@ -115,14 +98,14 @@
             self.banner = nil;
         }
         
-        self.banner = [[GleapBanner alloc] initWithFrame: CGRectMake(0, 0, self.view.frame.size.width, 70.0)];
-        [self.view addSubview: self.banner];
+        self.banner = [[GleapBanner alloc] initWithFrame: CGRectMake(0, 0, [self getKeyWindow].frame.size.width, 70.0)];
+        [[self getKeyWindow] addSubview: self.banner];
         
         NSLayoutConstraint *trailing = [NSLayoutConstraint
                                         constraintWithItem: self.banner
                                         attribute: NSLayoutAttributeTrailing
                                         relatedBy: NSLayoutRelationEqual
-                                        toItem: self.view
+                                        toItem: [self getKeyWindow]
                                         attribute: NSLayoutAttributeTrailing
                                         multiplier: 1.0f
                                         constant: 0.f];
@@ -130,162 +113,25 @@
                                        constraintWithItem: self.banner
                                        attribute: NSLayoutAttributeLeading
                                        relatedBy: NSLayoutRelationEqual
-                                       toItem: self.view
+                                       toItem: [self getKeyWindow]
                                        attribute: NSLayoutAttributeLeading
                                        multiplier: 1.0f
                                        constant: 0.f];
-        [self.view addConstraint: leading];
-        [self.view addConstraint: trailing];
+        [[self getKeyWindow] addConstraint: leading];
+        [[self getKeyWindow] addConstraint: trailing];
         
         NSLayoutConstraint *top =[NSLayoutConstraint
                                   constraintWithItem: self.banner
                                   attribute: NSLayoutAttributeTop
                                   relatedBy: NSLayoutRelationEqual
-                                  toItem: self.view
+                                  toItem: [self getKeyWindow]
                                   attribute: NSLayoutAttributeTop
                                   multiplier: 1.0f
                                   constant: 0.f];
-        [self.view addConstraint: top];
+        [[self getKeyWindow] addConstraint: top];
         
         [self.banner setupWithData: bannerData];
     });
-}
-
-- (void)checkIfUpdateNeeded {
-    [self checkIfUpdateNeeded: NO];
-}
-
-- (BOOL)isModal {
-    UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
-    
-    if (topMostViewController != nil) {
-        if([topMostViewController presentingViewController]) {
-            return YES;        }
-        if([[[topMostViewController navigationController] presentingViewController] presentedViewController] == [topMostViewController navigationController]) {
-            return YES;
-        }
-        if([[[topMostViewController tabBarController] presentingViewController] isKindOfClass:[UITabBarController class]]) {
-            return YES;
-        }
-    }
-
-    return NO;
- }
-
-- (BOOL)isModalStyle:(UIViewController *)vc {
-    if (
-        vc.modalPresentationStyle == UIModalPresentationFormSheet ||
-        vc.modalPresentationStyle == UIModalPresentationPageSheet ||
-        vc.modalPresentationStyle == UIModalPresentationPopover
-    ) {
-        return YES;
-    }
-    
-    if (@available(iOS 13.0, *)) {
-        if (
-            vc.modalPresentationStyle == UIModalPresentationAutomatic
-        ) {
-            return YES;
-        }
-    }
-    
-    return NO;
-}
-
-- (BOOL)isModal:(UIViewController *)vc {
-    if (vc.presentingViewController == nil) {
-        return NO;
-    }
-    
-    if(vc.navigationController != nil && [[[vc navigationController] presentingViewController] presentedViewController] == [vc navigationController]) {
-        return [self isModalStyle: vc.navigationController];
-    }
-    
-    if(vc.tabBarController != nil) {
-        return [self isModalStyle: vc.tabBarController];
-    }
-    
-    return [self isModalStyle: vc];
-}
-
-- (UIViewController *)getRotationViewController:(UIViewController *)vc {
-    if (vc.presentingViewController == nil) {
-        return vc;
-    }
-    
-    if(vc.navigationController != nil && [[[vc navigationController] presentingViewController] presentedViewController] == [vc navigationController]) {
-        return vc.navigationController;
-    }
-    
-    if(vc.tabBarController != nil) {
-        return vc.tabBarController;
-    }
-    
-    return vc;
-}
-
-- (UIViewController *)getNonModalVC:(UIViewController *)vc {
-    if (vc.presentingViewController != nil) {
-        bool isModal = [self isModal: vc.presentingViewController];
-        if (isModal) {
-            return [self getNonModalVC: vc.presentingViewController];
-        }
-        
-        return vc.presentingViewController;
-    }
-    
-    return nil;
-}
-
-- (void)checkIfUpdateNeeded:(Boolean)isInit {
-    UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
-    if (topMostViewController != nil) {
-        bool needsRotationRefresh = NO;
-        
-        bool isModal = [self isModal: topMostViewController];
-        UIInterfaceOrientationMask newOrientation = UIInterfaceOrientationMaskAll;
-        UIViewController *rotationViewController = [self getRotationViewController: topMostViewController];
-        bool newShouldAutoRotate = YES;
-        if (!isModal) {
-            newOrientation = rotationViewController.supportedInterfaceOrientations;
-            newShouldAutoRotate = rotationViewController.shouldAutorotate;
-        } else {
-            // Try to get orientation from parent.
-            UIViewController * nonModalParent = [self getNonModalVC: rotationViewController];
-            if (nonModalParent != nil) {
-                newOrientation = nonModalParent.supportedInterfaceOrientations;
-                newShouldAutoRotate = nonModalParent.shouldAutorotate;
-            }
-        }
-        if (_lastOrientation != newOrientation) {
-            _lastOrientation = newOrientation;
-            needsRotationRefresh = YES;
-        }
-        if (_lastShouldAutoRotate != newShouldAutoRotate) {
-            _lastShouldAutoRotate = newShouldAutoRotate;
-            needsRotationRefresh = YES;
-        }
-        
-        if (needsRotationRefresh && !isInit) {
-            /*if (@available(iOS 16.0, *)) {
-                [self setNeedsUpdateOfSupportedInterfaceOrientations];
-            }*/
-            [UIViewController attemptRotationToDeviceOrientation];
-        }
-        
-        if (!isInit) {
-            UIStatusBarStyle newStatusBarStyle = topMostViewController.preferredStatusBarStyle;
-            if (newStatusBarStyle == UIStatusBarStyleDefault && isModal) {
-                newStatusBarStyle = UIStatusBarStyleLightContent;
-            }
-            
-            if (_lastStatusBarStyle != newStatusBarStyle) {
-                _lastStatusBarStyle = newStatusBarStyle;
-                [topMostViewController setNeedsStatusBarAppearanceUpdate];
-                [self setNeedsStatusBarAppearanceUpdate];
-            }
-        }
-    }
 }
 
 - (void)setNotifications:(NSMutableArray *)notifications {
@@ -321,19 +167,29 @@
     if ([Gleap isOpened]) {
         self.internalNotifications = [[NSMutableArray alloc] init];
         
-        [UIView animateWithDuration:0.3f animations:^{
+        [UIView animateWithDuration:0.1f animations:^{
             self.feedbackButton.alpha = 0.0;
+            if (self.banner != nil) {
+                self.banner.alpha = 0.0;
+            }
         } completion:^(BOOL finished) {
-            self.view.hidden = YES;
+            [self.feedbackButton setUserInteractionEnabled: NO];
+            if (self.banner != nil) {
+                [self.banner setUserInteractionEnabled: NO];
+            }
         }];
     } else {
-        if (self.view.hidden) {
-            self.feedbackButton.alpha = 0.0;
-            [UIView animateWithDuration:0.3f animations:^{
-                self.feedbackButton.alpha = 1.0;
-            }];
-        }
-        self.view.hidden = NO;
+        [UIView animateWithDuration:0.3f animations:^{
+            self.feedbackButton.alpha = 1.0;
+            if (self.banner != nil) {
+                self.banner.alpha = 1.0;
+            }
+        } completion:^(BOOL finished) {
+            [self.feedbackButton setUserInteractionEnabled: YES];
+            if (self.banner != nil) {
+                [self.banner setUserInteractionEnabled: YES];
+            }
+        }];
     }
     
     [self.feedbackButton applyConfig];
@@ -376,7 +232,7 @@
     // Create new notifications.
     for (int i = 0; i < self.internalNotifications.count; i++) {
         NSDictionary * notification = [self.internalNotifications objectAtIndex: i];
-        UIView *notificationView = [self createNotificationViewFor: notification onWindow: self.view];
+        UIView *notificationView = [self createNotificationViewFor: notification onWindow: [self getKeyWindow]];
         notificationView.tag = i;
         
         float x = 0;
@@ -393,7 +249,7 @@
                 }
             }
         } else {
-            x = self.view.frame.size.width - notificationView.frame.size.width - buttonX;
+            x = [self getKeyWindow].frame.size.width - notificationView.frame.size.width - buttonX;
             if (@available(iOS 11.0, *)) {
                 UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
                 if (orientation == UIDeviceOrientationLandscapeRight && window.safeAreaInsets.right && window.safeAreaInsets.right > 0) {
@@ -403,16 +259,16 @@
         }
         lastX = x + notificationView.frame.size.width;
         
-        notificationView.frame = CGRectMake(x, self.view.frame.size.height - notificationView.frame.size.height - 20.0 - currentNotificationHeight, notificationView.frame.size.width, notificationView.frame.size.height);
+        notificationView.frame = CGRectMake(x, [self getKeyWindow].frame.size.height - notificationView.frame.size.height - 20.0 - currentNotificationHeight, notificationView.frame.size.width, notificationView.frame.size.height);
         
-        [self.view addSubview: notificationView];
+        [[self getKeyWindow] addSubview: notificationView];
         [self.notificationViews addObject: notificationView];
         
         currentNotificationHeight += notificationView.frame.size.height + 20.0;
     }
     
     if (self.internalNotifications.count > 0) {
-        self.closeButton.frame = CGRectMake(lastX - 32.0, self.view.frame.size.height - 44.0 - currentNotificationHeight, self.closeButton.frame.size.width, self.closeButton.frame.size.height);
+        self.closeButton.frame = CGRectMake(lastX - 32.0, [self getKeyWindow].frame.size.height - 44.0 - currentNotificationHeight, self.closeButton.frame.size.width, self.closeButton.frame.size.height);
         self.closeButton.hidden = NO;
         self.closeButton.alpha = 0.0;
         

@@ -11,22 +11,6 @@ import Gleap
 class ImageViewController: UIViewController, UINavigationControllerDelegate, UITabBarControllerDelegate {
     @IBOutlet weak var button: UIButton!
     
-    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        return .landscape
-    }
-    
-    override var shouldAutorotate: Bool {
-        return true
-    }
-    
-    func tabBarControllerSupportedInterfaceOrientations(_ tabBarController: UITabBarController) -> UIInterfaceOrientationMask {
-        return .portrait
-    }
-    
-    func navigationControllerSupportedInterfaceOrientations(_ navigationController: UINavigationController) -> UIInterfaceOrientationMask {
-        return .portrait
-    }
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         

@@ -18,8 +18,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.setLanguage("de")
         
-        Gleap.setApiUrl("http://localhost:9000")
-        Gleap.setFrameUrl("http://localhost:3001/appnew.html")
+        //Gleap.setApiUrl("http://localhost:9000")
+        //Gleap.setFrameUrl("http://localhost:3001/appnew.html")
         Gleap.initialize(withToken: "hciNpT8z64tsHATINYZjWBvbirVWCKWt")
         
         Gleap.showFeedbackButton(true)

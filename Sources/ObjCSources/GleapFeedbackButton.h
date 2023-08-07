@@ -21,6 +21,9 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, retain) UIView *notificationBadgeView;
 @property (nonatomic, retain) UILabel *notificationBadgeLabel;
 @property (nonatomic, retain) UILabel *buttonTextLabel;
+@property (strong, nonatomic) NSLayoutConstraint *safeAreaConstraint;
+@property (strong, nonatomic) NSLayoutConstraint *edgeConstraint;
+
 
 @end
 

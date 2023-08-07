@@ -65,25 +65,8 @@
     self.showButtonExternalOverwrite = NO;
     
     dispatch_async(dispatch_get_main_queue(), ^{
-        UIWindow * currentKeyWindow = [[UIApplication sharedApplication] keyWindow];
-        if (@available(iOS 13.0, *)) {
-            UIScene *scene = [[[[UIApplication sharedApplication] connectedScenes] allObjects] firstObject];
-            self.uiWindow = [[GleapUIWindow alloc] initWithWindowScene: (UIWindowScene *)scene];
-        }
-        if (self.uiWindow == nil) {
-            self.uiWindow = [[GleapUIWindow alloc] init];
-        }
-        [self.uiWindow setFrame: UIScreen.mainScreen.bounds];
-        self.uiWindow.backgroundColor = nil;
-        self.uiWindow.windowLevel = CGFLOAT_MAX;
-        self.uiWindow.hidden = NO;
-        self.uiWindow.delegate = self;
-        
-        // Hook up view controller.
         self.uiOverlayViewController = [[GleapUIOverlayViewController alloc] init];
-        self.uiWindow.rootViewController = self.uiOverlayViewController;
-        
-        [currentKeyWindow makeKeyWindow];
+        [self.uiOverlayViewController initializeUI];
     });
 }
 

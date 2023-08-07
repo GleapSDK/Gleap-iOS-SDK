@@ -198,7 +198,6 @@
                             }
                         } else if ([[action objectForKey: @"actionType"] isEqualToString: @"banner"]) {
                             // BANNER
-                            NSLog(@"BANNER");
                             [GleapUIOverlayHelper showBanner: action];
                         } else {
                             // FEEDBACK FORMS

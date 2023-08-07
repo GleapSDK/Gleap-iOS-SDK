@@ -121,7 +121,6 @@
         if ([name isEqualToString: @"banner-height"]) {
             // Update banner height.
             if (self.heightConstraint != nil) {
-                NSLog(@"%f", [[messageData objectForKey: @"height"] floatValue]);
                 self.heightConstraint.constant = [[messageData objectForKey: @"height"] floatValue];
                 [self layoutIfNeeded];
             }
