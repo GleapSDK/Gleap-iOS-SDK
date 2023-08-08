@@ -29,6 +29,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         // Attach custom data sample.
         Gleap.attachCustomData(["value": "Unicorn", "type": "Demo", "ExtraInfo": ["Age": "28", "City": "San Francisco"]])
         
+        Gleap.showFeedbackButton(true)
+        
         /*Gleap.handlePushNotification([
             "type": "news",
             "id": "12"

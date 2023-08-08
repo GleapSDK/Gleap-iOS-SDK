@@ -26,6 +26,7 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
 
 - (void)commonInit {
     self.autoresizingMask = UIViewAutoresizingNone;
+    self.hidden = YES;
     
     float padding = (BUTTON_SIZE - (BUTTON_SIZE * 0.64)) / 2.0;
     self.logoView = [[UIImageView alloc] initWithFrame: CGRectMake(padding, padding, BUTTON_SIZE - (padding * 2), BUTTON_SIZE - (padding * 2))];
@@ -95,9 +96,12 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
         return;
     }
     
+    [self showButtonIfNeeded];
+}
+
+- (void)showButtonIfNeeded {
     if (![GleapUIOverlayHelper sharedInstance].showButton) {
         self.hidden = YES;
-        return;
     } else {
         self.hidden = NO;
     }
@@ -356,7 +360,7 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
                 if (self.logoView != nil) {
                     self.logoView.hidden = NO;
                     self.logoView.image = [UIImage imageWithData: data];
-                    self.hidden = NO;
+                    [self showButtonIfNeeded];
                 }
             });
         });
