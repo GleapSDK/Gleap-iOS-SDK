@@ -27,6 +27,30 @@
     return keyWindow;
 }
 
+- (void)performNotificationAction:(UITapGestureRecognizer *)sender {
+    if (sender == nil || sender.view == nil) {
+        return;
+    }
+
+    long tag = sender.view.tag;
+    if (tag < 0 || tag >= self.internalNotifications.count) {
+        return;
+    }
+    
+    NSDictionary *notification = [self.internalNotifications objectAtIndex: tag];
+    if (notification != nil) {
+        NSString *shareToken = [notification valueForKeyPath: @"data.conversation.shareToken"];
+        NSString *newsId = [notification valueForKeyPath: @"data.news.id"];
+        if (shareToken != nil) {
+            [Gleap openConversation: shareToken];
+        } else if (newsId != nil) {
+            [Gleap openNewsArticle: newsId andShowBackButton: YES];
+        } else {
+            [Gleap open];
+        }
+    }
+}
+
 - (void)clearNotifications:(UITapGestureRecognizer *)sender {
     [GleapUIOverlayHelper clear];
 }
@@ -41,40 +65,6 @@
         self.internalNotifications = [[NSMutableArray alloc] init];
         self.notificationViews = [[NSMutableArray alloc] init];
         
-        self.closeButton = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 32, 32)];
-        self.closeButton.layer.cornerRadius = 16;
-        self.closeButton.hidden = YES;
-        self.closeButton.alpha = 0.8;
-        self.closeButton.layer.cornerRadius = 16.0;
-        self.closeButton.layer.shadowRadius  = 8.0;
-        self.closeButton.layer.shadowColor   = [UIColor blackColor].CGColor;
-        self.closeButton.layer.shadowOffset  = CGSizeMake(2.0f, 2.0f);
-        self.closeButton.layer.shadowOpacity = 0.08;
-        self.closeButton.autoresizesSubviews = NO;
-        self.closeButton.backgroundColor = [UIColor colorWithRed: 0.9 green: 0.9 blue: 0.9 alpha: 1.0];
-        self.closeButton.tag = 999;
-        self.closeButton.layer.zPosition = INT_MAX;
-        UITapGestureRecognizer *clearNotificationsGesture =
-          [[UITapGestureRecognizer alloc] initWithTarget:self
-                                                  action:@selector(clearNotifications:)];
-        [self.closeButton addGestureRecognizer: clearNotificationsGesture];
-        
-        UIView * crossLeft = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 16.0, 2.0)];
-        crossLeft.backgroundColor = [UIColor blackColor];
-        crossLeft.center = CGPointMake(16.0, 16.0);
-        crossLeft.autoresizingMask = UIViewAutoresizingNone;
-        crossLeft.transform = CGAffineTransformMakeRotation(45 * -1 * M_PI/180);
-        [self.closeButton addSubview: crossLeft];
-        
-        UIView * crossRight = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 16.0, 2.0)];
-        crossRight.backgroundColor = [UIColor blackColor];
-        crossRight.center = CGPointMake(16.0, 16.0);
-        crossRight.autoresizingMask = UIViewAutoresizingNone;
-        crossRight.transform = CGAffineTransformMakeRotation(45 * M_PI/180);
-        [self.closeButton addSubview: crossRight];
-        
-        [keyWindow addSubview: self.closeButton];
-        
         // Render feedback button.
         self.feedbackButton = [[GleapFeedbackButton alloc] initWithFrame: CGRectMake(0, 0, 54.0, 54.0)];
         [keyWindow addSubview: self.feedbackButton];
@@ -88,7 +78,20 @@
                                                   action: @selector(feedbackButtonPressed:)];
         [self.feedbackButton addGestureRecognizer: feedbackButtonGesture];
     });
-    
+}
+
+- (void)bringViewToFront:(UIView *)view {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (view != nil && view.superview != nil) {
+            [view.superview bringSubviewToFront: view];
+        }
+    });
+}
+
+- (void)updateUIPositions {
+    [self bringViewToFront: self.feedbackButton];
+    [self bringViewToFront: self.notificationsContainerView];
+    [self bringViewToFront: self.banner];
 }
 
 - (void)showBanner:(NSDictionary *)bannerData {
@@ -99,6 +102,7 @@
         }
         
         self.banner = [[GleapBanner alloc] initWithFrame: CGRectMake(0, 0, [self getKeyWindow].frame.size.width, 70.0)];
+        self.banner.layer.zPosition = INT_MAX;
         [[self getKeyWindow] addSubview: self.banner];
         
         NSLayoutConstraint *trailing = [NSLayoutConstraint
@@ -143,7 +147,7 @@
     if (config != nil) {
         NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
         // Hide feedback button.
-        if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"] || [feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC"]) {
+        if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"] || [feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC"] || [feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_BOTTOM"]) {
             if (![Gleap isOpened]) {
                 if (notifications != nil && notifications.count > 0) {
                     [UIView animateWithDuration: 0.3f animations:^{
@@ -192,100 +196,170 @@
         }];
     }
     
-    [self.feedbackButton applyConfig];
+    [self.feedbackButton updateVisibility];
     [self renderNotifications];
 }
 
 - (void)renderNotifications {
-    self.closeButton.hidden = YES;
     NSDictionary *config = GleapConfigHelper.sharedInstance.config;
     if (config == nil) {
         return;
     }
     
-    NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
-    CGFloat currentNotificationHeight = [[GleapConfigHelper sharedInstance] getButtonY];
-    if (@available(iOS 11.0, *)) {
-        UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
-        currentNotificationHeight += window.safeAreaInsets.bottom;
-    }
-    
-    if (!self.feedbackButton.isHidden) {
-        if ([feedbackButtonPosition containsString: @"CLASSIC"]) {
-            if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_BOTTOM"]) {
-                currentNotificationHeight += 20.0;
-            }
-        } else {
-            currentNotificationHeight += self.feedbackButton.frame.size.height;
-        }
-    }
-    
     // Cleanup existing notifications.
-    for (int i = 0; i < self.notificationViews.count; i++) {
-        [[self.notificationViews objectAtIndex: i] removeFromSuperview];
+    for (UIView *notificationView in self.notificationViews) {
+        [notificationView removeFromSuperview];
+    }
+    [self.notificationViews removeAllObjects];
+    if (_notificationsContainerView != nil) {
+        [_notificationsContainerView removeFromSuperview];
     }
     
-    int buttonX = [[GleapConfigHelper sharedInstance] getButtonX];
-    UIDeviceOrientation orientation = [[UIDevice currentDevice] orientation];
-    
-    float lastX = 0;
-    // Create new notifications.
-    for (int i = 0; i < self.internalNotifications.count; i++) {
-        NSDictionary * notification = [self.internalNotifications objectAtIndex: i];
-        UIView *notificationView = [self createNotificationViewFor: notification onWindow: [self getKeyWindow]];
-        notificationView.tag = i;
-        
-        float x = 0;
-        if (
-            [feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"] ||
-            [feedbackButtonPosition isEqualToString: @"BOTTOM_LEFT"]
-        ) {
-            x = buttonX;
-            
-            if (@available(iOS 11.0, *)) {
-                UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
-                if (orientation == UIDeviceOrientationLandscapeLeft && window.safeAreaInsets.left && window.safeAreaInsets.left > 0) {
-                    x += window.safeAreaInsets.left;
-                }
-            }
-        } else {
-            x = [self getKeyWindow].frame.size.width - notificationView.frame.size.width - buttonX;
-            if (@available(iOS 11.0, *)) {
-                UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
-                if (orientation == UIDeviceOrientationLandscapeRight && window.safeAreaInsets.right && window.safeAreaInsets.right > 0) {
-                    x -= window.safeAreaInsets.right;
-                }
-            }
-        }
-        lastX = x + notificationView.frame.size.width;
-        
-        notificationView.frame = CGRectMake(x, [self getKeyWindow].frame.size.height - notificationView.frame.size.height - 20.0 - currentNotificationHeight, notificationView.frame.size.width, notificationView.frame.size.height);
-        
-        [[self getKeyWindow] addSubview: notificationView];
-        [self.notificationViews addObject: notificationView];
-        
-        currentNotificationHeight += notificationView.frame.size.height + 20.0;
+    if (self.internalNotifications.count <= 0) {
+        return;
     }
     
-    if (self.internalNotifications.count > 0) {
-        self.closeButton.frame = CGRectMake(lastX - 32.0, [self getKeyWindow].frame.size.height - 44.0 - currentNotificationHeight, self.closeButton.frame.size.width, self.closeButton.frame.size.height);
-        self.closeButton.hidden = NO;
-        self.closeButton.alpha = 0.0;
-        
-        [UIView animateWithDuration: 2.0f animations:^{
-            self.closeButton.alpha = 1.0;
-        } completion:^(BOOL finished) {}];
-    }
-}
-
-- (UIView *)createNotificationViewFor:(NSDictionary *)notification onWindow:(UIView *)view {
-    NSDictionary *notificationData = [notification objectForKey: @"data"];
-    NSDictionary * sender = [notificationData objectForKey: @"sender"];
-    
-    CGFloat width = (view.frame.size.width * 0.9);
+    // Render notification views.
+    UIView *window = [self getKeyWindow];
+    CGFloat width = (window.frame.size.width * 0.9);
     if (width > 320) {
         width = 320;
     }
+    
+    _notificationsContainerView = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 0, 0)];
+    _notificationsContainerView.backgroundColor = [UIColor clearColor];
+    _notificationsContainerView.layer.zPosition = INT_MAX;
+    _notificationsContainerView.translatesAutoresizingMaskIntoConstraints = NO;
+    [window addSubview: _notificationsContainerView];
+    
+    UIView *previousView = nil;
+    
+    // Create new notifications.
+    for (NSDictionary *notification in self.internalNotifications) {
+        UIView *localNotificationView = [self createNotificationViewFor: notification andWith: width];
+        localNotificationView.translatesAutoresizingMaskIntoConstraints = NO;
+        localNotificationView.tag = [self.internalNotifications indexOfObject:notification];
+        
+        UITapGestureRecognizer *performNotificationActionGesture =
+          [[UITapGestureRecognizer alloc] initWithTarget:self
+                                                  action:@selector(performNotificationAction:)];
+        [localNotificationView addGestureRecognizer: performNotificationActionGesture];
+        
+        [_notificationsContainerView addSubview: localNotificationView];
+        [self.notificationViews addObject: localNotificationView];
+        
+        // Set height.
+        [localNotificationView.heightAnchor constraintEqualToConstant: localNotificationView.frame.size.height].active = YES;
+        
+        // Pin to left and right.
+         [localNotificationView.leadingAnchor constraintEqualToAnchor: _notificationsContainerView.leadingAnchor constant: 0].active = YES;
+        [localNotificationView.trailingAnchor constraintEqualToAnchor: _notificationsContainerView.trailingAnchor constant: 0].active = YES;
+        
+        if (previousView) {
+            [localNotificationView.bottomAnchor constraintEqualToAnchor: previousView.topAnchor constant: -10.0].active = YES;
+        } else {
+            [localNotificationView.bottomAnchor constraintEqualToAnchor: _notificationsContainerView.bottomAnchor constant: 0].active = YES;
+        }
+        
+        previousView = localNotificationView;
+    }
+    
+    // Create close button.
+    UIView *closeButton = [self generateCloseButton];
+    [_notificationsContainerView addSubview: closeButton];
+    
+    closeButton.translatesAutoresizingMaskIntoConstraints = NO;
+    
+    // Set height.
+    [closeButton.widthAnchor constraintEqualToConstant: closeButton.frame.size.width].active = YES;
+    [closeButton.heightAnchor constraintEqualToConstant: closeButton.frame.size.height].active = YES;
+    
+    [closeButton.trailingAnchor constraintEqualToAnchor: _notificationsContainerView.trailingAnchor constant: 0].active = YES;
+    [closeButton.bottomAnchor constraintEqualToAnchor: previousView.topAnchor constant: -10.0].active = YES;
+    
+    int containerHeight = (previousView.frame.size.height * self.internalNotifications.count) + (10 * (self.internalNotifications.count - 1)) + closeButton.frame.size.height + 10;
+    [_notificationsContainerView.widthAnchor constraintEqualToConstant: width].active = YES;
+    [_notificationsContainerView.heightAnchor constraintEqualToConstant: containerHeight].active = YES;
+    
+    NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
+    if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"]) {
+        [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
+        [_notificationsContainerView.leadingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.leadingAnchor constant: 20].active = YES;
+    } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC"]) {
+        [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
+        [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.trailingAnchor constant: -20].active = YES;
+    } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_BOTTOM"]) {
+        [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
+        [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.trailingAnchor constant: -20].active = YES;
+    } else if ([feedbackButtonPosition isEqualToString: @"BOTTOM_LEFT"]) {
+        if (self.feedbackButton != nil && self.feedbackButton.isHidden == NO) {
+            [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: self.feedbackButton.topAnchor constant: -10].active = YES;
+            [_notificationsContainerView.leadingAnchor constraintEqualToAnchor: self.feedbackButton.leadingAnchor constant: 0].active = YES;
+        } else {
+            [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
+            [_notificationsContainerView.leadingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.leadingAnchor constant: 20].active = YES;
+        }
+    } else if ([feedbackButtonPosition isEqualToString: @"BOTTOM_RIGHT"]) {
+        if (self.feedbackButton != nil && self.feedbackButton.isHidden == NO) {
+            [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: self.feedbackButton.topAnchor constant: -10].active = YES;
+            [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: self.feedbackButton.trailingAnchor constant: 0].active = YES;
+        } else {
+            [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
+            [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.trailingAnchor constant: -20].active = YES;
+        }
+    } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_NONE"]) {
+        if (self.feedbackButton != nil && self.feedbackButton.isHidden == NO) {
+            [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: self.feedbackButton.topAnchor constant: -10].active = YES;
+            [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: self.feedbackButton.trailingAnchor constant: 0].active = YES;
+        } else {
+            [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
+            [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.trailingAnchor constant: -20].active = YES;
+        }
+    }
+    
+    _notificationsContainerView.alpha = 0.0;
+    [UIView animateWithDuration:0.3f animations:^{
+        _notificationsContainerView.alpha = 1.0;
+    }];
+}
+
+- (UIView *)generateCloseButton {
+    UIView *closeButton = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 32, 32)];
+    closeButton.layer.cornerRadius = 16;
+    closeButton.alpha = 0.8;
+    closeButton.layer.cornerRadius = 16.0;
+    closeButton.layer.shadowRadius  = 8.0;
+    closeButton.layer.shadowColor   = [UIColor blackColor].CGColor;
+    closeButton.layer.shadowOffset  = CGSizeMake(2.0f, 2.0f);
+    closeButton.layer.shadowOpacity = 0.08;
+    closeButton.autoresizesSubviews = NO;
+    closeButton.backgroundColor = [UIColor colorWithRed: 0.9 green: 0.9 blue: 0.9 alpha: 1.0];
+    
+    UITapGestureRecognizer *clearNotificationsGesture =
+      [[UITapGestureRecognizer alloc] initWithTarget:self
+                                              action:@selector(clearNotifications:)];
+    [closeButton addGestureRecognizer: clearNotificationsGesture];
+    
+    UIView * crossLeft = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 16.0, 2.0)];
+    crossLeft.backgroundColor = [UIColor blackColor];
+    crossLeft.center = CGPointMake(16.0, 16.0);
+    crossLeft.autoresizingMask = UIViewAutoresizingNone;
+    crossLeft.transform = CGAffineTransformMakeRotation(45 * -1 * M_PI/180);
+    [closeButton addSubview: crossLeft];
+    
+    UIView * crossRight = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 16.0, 2.0)];
+    crossRight.backgroundColor = [UIColor blackColor];
+    crossRight.center = CGPointMake(16.0, 16.0);
+    crossRight.autoresizingMask = UIViewAutoresizingNone;
+    crossRight.transform = CGAffineTransformMakeRotation(45 * M_PI/180);
+    [closeButton addSubview: crossRight];
+    
+    return closeButton;
+}
+
+- (UIView *)createNotificationViewFor:(NSDictionary *)notification andWith:(int)width {
+    NSDictionary *notificationData = [notification objectForKey: @"data"];
+    NSDictionary * sender = [notificationData objectForKey: @"sender"];
     
     CGFloat chatBubbleViewWidth = width - 48.0;
     
@@ -303,7 +377,6 @@
         chatBubbleView.layer.shadowOpacity = 0.1;
         chatBubbleView.layer.masksToBounds = NO;
         chatBubbleView.clipsToBounds = NO;
-        chatBubbleView.alpha = 0.0;
         if (@available(iOS 13.0, *)) {
             chatBubbleView.backgroundColor = [UIColor systemBackgroundColor];
         } else {
@@ -331,9 +404,6 @@
                 if (newsImageView != nil) {
                     newsImageView.image = [UIImage imageWithData: data];
                 }
-                [UIView animateWithDuration:0.3f animations:^{
-                    chatBubbleView.alpha = 1.0;
-                }];
             });
         });
         
@@ -383,11 +453,11 @@
         }
         [chatBubbleView addSubview: senderLabel];
         
-        UIView * containerView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0, width, chatBubbleView.frame.size.height)];
+        UIView * _notificationsContainerView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0, width, chatBubbleView.frame.size.height)];
         
-        [containerView addSubview: chatBubbleView];
+        [_notificationsContainerView addSubview: chatBubbleView];
         
-        return containerView;
+        return _notificationsContainerView;
     } else {
         // Build the chat message.
         UIFont *contentFont = [UIFont systemFontOfSize: 16];
@@ -469,12 +539,12 @@
         
         [chatBubbleView addSubview: contentLabel];
         
-        UIView * containerView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0, width, chatBubbleView.frame.size.height)];
+        UIView * _notificationsContainerView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0, width, chatBubbleView.frame.size.height)];
         
-        [containerView addSubview: chatBubbleView];
-        [containerView addSubview: senderOuterImageView];
+        [_notificationsContainerView addSubview: chatBubbleView];
+        [_notificationsContainerView addSubview: senderOuterImageView];
         
-        return containerView;
+        return _notificationsContainerView;
     }
 }
 

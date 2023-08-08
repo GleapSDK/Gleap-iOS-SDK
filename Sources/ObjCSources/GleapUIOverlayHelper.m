@@ -70,27 +70,6 @@
     });
 }
 
-- (void)pressedView:(UIView *)view {
-    @try {
-        if (view.tag == 999) {
-            [GleapUIOverlayHelper clear];
-        } else if (view.tag == INT_MAX) {
-            [Gleap open];
-        } else {
-            NSDictionary *notification = [self.notifications objectAtIndex: view.tag];
-            NSString *shareToken = [notification valueForKeyPath: @"data.conversation.shareToken"];
-            NSString *newsId = [notification valueForKeyPath: @"data.news.id"];
-            if (shareToken != nil) {
-                [Gleap openConversation: shareToken];
-            } else if (newsId != nil) {
-                [Gleap openNewsArticle: newsId andShowBackButton: YES];
-            } else {
-                [Gleap open];
-            }
-        }
-    } @catch(id exception) {}
-}
-
 + (void)updateNotificationCount:(int)notificationCount {
     dispatch_async(dispatch_get_main_queue(), ^{
         if ([GleapUIOverlayHelper sharedInstance].uiOverlayViewController != nil) {

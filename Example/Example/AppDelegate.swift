@@ -22,8 +22,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         //Gleap.setFrameUrl("http://localhost:3001/appnew.html")
         Gleap.initialize(withToken: "hciNpT8z64tsHATINYZjWBvbirVWCKWt")
         
-        Gleap.showFeedbackButton(true)
-        
         Gleap.sharedInstance().delegate = self
         
         Gleap.trackEvent("asfasdfasdf")

@@ -14,8 +14,10 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, retain) UIImageView *logoView;
 
 - (void)applyConfig;
+- (void)updateVisibility;
 - (void)setNotificationCount:(int)notificationCount;
 
+@property (nonatomic, assign) bool initialized;
 @property (nonatomic, assign) bool showButton;
 @property (nonatomic, retain) NSString *currentButtonUrl;
 @property (nonatomic, retain) UIView *notificationBadgeView;

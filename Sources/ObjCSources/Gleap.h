@@ -17,6 +17,7 @@ FOUNDATION_EXPORT const unsigned char GleapVersionString[];
 #import "./GleapCore.h"
 #import "./UIWindow+GleapShakeRecognizer.h"
 #import "./UIWindow+GleapTouchRecognizer.h"
+#import "./UIViewController+GleapViewControllerHelper.h"
 #import "./GleapAction.h"
 #import "./GleapActivationMethodHelper.h"
 #import "./GleapAttachmentHelper.h"
