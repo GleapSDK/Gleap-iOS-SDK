@@ -130,7 +130,7 @@
     }
     
     // Send initialization done callback.
-    if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(initialized:)]) {
+    if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(initialized)]) {
         [Gleap.sharedInstance.delegate initialized];
     }
 }

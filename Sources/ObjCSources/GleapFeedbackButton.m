@@ -187,7 +187,6 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
     self.layer.anchorPoint = CGPointMake(0, 0);
     
     // Find the perfect position.
-    UIDeviceOrientation orientation = [[UIDevice currentDevice] orientation];
     float rotation = -90;
 
     // Disable autoresizing masks to constraints conversion
@@ -368,7 +367,6 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
     
     float buttonX = [[GleapConfigHelper sharedInstance] getButtonX];
     float buttonY = [[GleapConfigHelper sharedInstance] getButtonY];
-    UIDeviceOrientation orientation = [[UIDevice currentDevice] orientation];
     
     if (self.superview != nil) {
         NSLayoutConstraint *yConstraint;

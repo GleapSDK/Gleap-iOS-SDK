@@ -319,7 +319,7 @@
     
     _notificationsContainerView.alpha = 0.0;
     [UIView animateWithDuration:0.3f animations:^{
-        _notificationsContainerView.alpha = 1.0;
+        self.notificationsContainerView.alpha = 1.0;
     }];
 }
 

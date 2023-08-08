@@ -160,7 +160,11 @@
         }
         
         if ([name isEqualToString: @"show-survey"]) {
-            [Gleap showSurvey: [messageData objectForKey: @"formId"] andFormat: [messageData objectForKey: @"surveyFormat"]];
+            GleapSurveyFormat format = SURVEY;
+            if ([[messageData objectForKey: @"surveyFormat"] isEqualToString: @"survey_full"]) {
+                format = SURVEY_FULL;
+            }
+            [Gleap showSurvey: [messageData objectForKey: @"formId"] andFormat: format];
         }
         
         if ([name isEqualToString: @"show-news-article"]) {
