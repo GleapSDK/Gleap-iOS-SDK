@@ -838,54 +838,6 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "1DEB778B-0E1F-4F09-89A4-652BEC6D8A4F"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "../Sources/ObjCSources/GleapUIOverlayHelper.m"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "37"
-            endingLineNumber = "37"
-            landmarkName = "+clear"
-            landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "1DEB778B-0E1F-4F09-89A4-652BEC6D8A4F - c7689da7d8b27b14"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "+[GleapUIOverlayHelper clear]"
-                  moduleName = "Example"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/lukasboehler/Documents/GitHub/Gleap-iOS-SDK/Sources/ObjCSources/GleapUIOverlayHelper.m"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "37"
-                  endingLineNumber = "37"
-                  offsetFromSymbolStart = "32">
-               </Location>
-               <Location
-                  uuid = "1DEB778B-0E1F-4F09-89A4-652BEC6D8A4F - a0678c039559b3f4"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "__29+[GleapUIOverlayHelper clear]_block_invoke"
-                  moduleName = "Example"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/lukasboehler/Documents/GitHub/Gleap-iOS-SDK/Sources/ObjCSources/GleapUIOverlayHelper.m"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "38"
-                  endingLineNumber = "38"
-                  offsetFromSymbolStart = "28">
-               </Location>
-            </Locations>
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
             uuid = "CEF8F811-1E00-4493-A653-A5A8B327B092"
             shouldBeEnabled = "No"
             ignoreCount = "0"
