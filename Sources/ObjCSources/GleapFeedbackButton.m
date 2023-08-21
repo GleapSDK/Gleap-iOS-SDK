@@ -258,6 +258,13 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
 }
 
 - (void)updateConstraintsForOrientation {
+    if (![NSThread isMainThread]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self updateConstraintsForOrientation];
+        });
+        return;
+    }
+    
     NSDictionary *config = GleapConfigHelper.sharedInstance.config;
     if (config == nil) {
         return;
@@ -271,6 +278,10 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
         if (@available(iOS 11.0, *)) {
             self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner;
         }
+    }
+    
+    if (_safeAreaConstraint == nil || _edgeConstraint == nil) {
+        return;
     }
     
     // Always pin iPad to edge.
