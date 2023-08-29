@@ -258,99 +258,95 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
 }
 
 - (void)updateConstraintsForOrientation {
+    if (![NSThread isMainThread]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self updateConstraintsForOrientation];
+        });
+        return;
+    }
+    
+    NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+    if (config == nil) {
+        return;
+    }
+    
+    NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
+    if (feedbackButtonPosition == nil) {
+        return;
+    }
+    
+    bool isClassicButton = [feedbackButtonPosition containsString: @"CLASSIC"];
+    
+    if (isClassicButton) {
+        self.layer.cornerRadius = 8.0;
+        if (@available(iOS 11.0, *)) {
+            self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner;
+        }
+    }
+    
+    if (_safeAreaConstraint == nil || _edgeConstraint == nil) {
+        return;
+    }
+    
     @try {
-        if (![NSThread isMainThread]) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [self updateConstraintsForOrientation];
-            });
-            return;
-        }
-
-        NSDictionary *config = GleapConfigHelper.sharedInstance.config;
-        if (!config) {
-            return;
-        }
-
-        NSString *feedbackButtonPosition = config[@"feedbackButtonPosition"];
-        if (!feedbackButtonPosition) {
-            return;
-        }
-        
-        if (![feedbackButtonPosition isKindOfClass:[NSString class]]) {
-            return;
-        }
-
-        bool isClassicButton = [feedbackButtonPosition containsString:@"CLASSIC"];
-        
-        if (isClassicButton) {
-            self.layer.cornerRadius = 8.0;
-            if (@available(iOS 11.0, *)) {
-                self.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner;
-            }
-        }
-
-        if (!_safeAreaConstraint || !_edgeConstraint) {
-            return;
-        }
-        
-        BOOL shouldActivateSafeAreaConstraint = NO;
-        BOOL shouldActivateEdgeConstraint = NO;
-
         // Always pin iPad to edge.
         if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-            shouldActivateEdgeConstraint = YES;
+            _safeAreaConstraint.active = NO;
+            _edgeConstraint.active = YES;
         } else {
             UIInterfaceOrientation orientation = [self reliableInterfaceOrientation];
-            
             if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"]) {
                 if (orientation == UIDeviceOrientationLandscapeLeft) {
-                    shouldActivateSafeAreaConstraint = YES;
+                    _edgeConstraint.active = NO;
+                    _safeAreaConstraint.active = YES;
                     if (@available(iOS 11.0, *)) {
                         self.layer.maskedCorners = kCALayerMinXMinYCorner | kCALayerMaxXMinYCorner | kCALayerMinXMaxYCorner | kCALayerMaxXMaxYCorner;
                     }
                 } else {
-                    shouldActivateEdgeConstraint = YES;
+                    _safeAreaConstraint.active = NO;
+                    _edgeConstraint.active = YES;
                 }
             } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_BOTTOM"]) {
                 if (orientation == UIDeviceOrientationPortrait) {
-                    shouldActivateSafeAreaConstraint = YES;
+                    _edgeConstraint.active = NO;
+                    _safeAreaConstraint.active = YES;
                     if (@available(iOS 11.0, *)) {
                         self.layer.maskedCorners = kCALayerMinXMinYCorner | kCALayerMaxXMinYCorner | kCALayerMinXMaxYCorner | kCALayerMaxXMaxYCorner;
                     }
                 } else {
-                    shouldActivateEdgeConstraint = YES;
+                    _safeAreaConstraint.active = NO;
+                    _edgeConstraint.active = YES;
                 }
             } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC"]) {
                 if (orientation == UIDeviceOrientationLandscapeRight) {
-                    shouldActivateSafeAreaConstraint = YES;
+                    _edgeConstraint.active = NO;
+                    _safeAreaConstraint.active = YES;
                     if (@available(iOS 11.0, *)) {
                         self.layer.maskedCorners = kCALayerMinXMinYCorner | kCALayerMaxXMinYCorner | kCALayerMinXMaxYCorner | kCALayerMaxXMaxYCorner;
                     }
                 } else {
-                    shouldActivateEdgeConstraint = YES;
+                    _safeAreaConstraint.active = NO;
+                    _edgeConstraint.active = YES;
                 }
             } else if ([feedbackButtonPosition isEqualToString: @"BOTTOM_LEFT"]) {
                 if (orientation == UIDeviceOrientationLandscapeLeft) {
-                    shouldActivateSafeAreaConstraint = YES;
+                    _edgeConstraint.active = NO;
+                    _safeAreaConstraint.active = YES;
                 } else {
-                    shouldActivateEdgeConstraint = YES;
+                    _safeAreaConstraint.active = NO;
+                    _edgeConstraint.active = YES;
                 }
             } else {
                 if (orientation == UIDeviceOrientationLandscapeRight) {
-                    shouldActivateSafeAreaConstraint = YES;
+                    _edgeConstraint.active = NO;
+                    _safeAreaConstraint.active = YES;
                 } else {
-                    shouldActivateEdgeConstraint = YES;
+                    _safeAreaConstraint.active = NO;
+                    _edgeConstraint.active = YES;
                 }
             }
         }
-
-        if (_safeAreaConstraint.active != shouldActivateSafeAreaConstraint) {
-            _safeAreaConstraint.active = shouldActivateSafeAreaConstraint;
-        }
-        if (_edgeConstraint.active != shouldActivateEdgeConstraint) {
-            _edgeConstraint.active = shouldActivateEdgeConstraint;
-        }
-    } @catch (NSException *exception) {
+    } @catch (id anException) {
         
     }
 }
