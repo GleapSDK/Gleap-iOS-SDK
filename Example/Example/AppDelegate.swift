@@ -24,8 +24,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.sharedInstance().delegate = self
         
-        Gleap.clearIdentity()
-        
         Gleap.trackEvent("asfasdfasdf")
         
         // Attach custom data sample.

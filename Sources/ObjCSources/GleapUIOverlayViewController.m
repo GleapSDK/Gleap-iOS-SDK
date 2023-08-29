@@ -201,126 +201,141 @@
 }
 
 - (void)renderNotifications {
-    NSDictionary *config = GleapConfigHelper.sharedInstance.config;
-    if (config == nil) {
-        return;
-    }
-    
-    // Cleanup existing notifications.
-    for (UIView *notificationView in self.notificationViews) {
-        [notificationView removeFromSuperview];
-    }
-    [self.notificationViews removeAllObjects];
-    if (_notificationsContainerView != nil) {
-        [_notificationsContainerView removeFromSuperview];
-    }
-    
-    if (self.internalNotifications.count <= 0) {
-        return;
-    }
-    
-    // Render notification views.
-    UIView *window = [self getKeyWindow];
-    CGFloat width = (window.frame.size.width * 0.9);
-    if (width > 320) {
-        width = 320;
-    }
-    
-    _notificationsContainerView = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 0, 0)];
-    _notificationsContainerView.backgroundColor = [UIColor clearColor];
-    _notificationsContainerView.layer.zPosition = INT_MAX;
-    _notificationsContainerView.translatesAutoresizingMaskIntoConstraints = NO;
-    [window addSubview: _notificationsContainerView];
-    
-    UIView *previousView = nil;
-    
-    // Create new notifications.
-    for (NSDictionary *notification in self.internalNotifications) {
-        UIView *localNotificationView = [self createNotificationViewFor: notification andWith: width];
-        localNotificationView.translatesAutoresizingMaskIntoConstraints = NO;
-        localNotificationView.tag = [self.internalNotifications indexOfObject:notification];
+    @try {
+        NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+        if (config == nil) {
+            return;
+        }
         
-        UITapGestureRecognizer *performNotificationActionGesture =
-          [[UITapGestureRecognizer alloc] initWithTarget:self
-                                                  action:@selector(performNotificationAction:)];
-        [localNotificationView addGestureRecognizer: performNotificationActionGesture];
+        // Cleanup existing notifications.
+        for (UIView *notificationView in self.notificationViews) {
+            if (notificationView != nil && notificationView.superview != nil) {
+                NSMutableArray *constraintsToRemove = [NSMutableArray array];
+                for (NSLayoutConstraint *constraint in notificationView.superview.constraints) {
+                    if (constraint.firstItem == self || constraint.secondItem == self) {
+                        [constraintsToRemove addObject:constraint];
+                    }
+                }
+                
+                [notificationView.superview removeConstraints:constraintsToRemove];
+                [notificationView removeConstraints: constraintsToRemove];
+            }
+        }
         
-        [_notificationsContainerView addSubview: localNotificationView];
-        [self.notificationViews addObject: localNotificationView];
+        [self.notificationViews removeAllObjects];
+        if (_notificationsContainerView != nil) {
+            [_notificationsContainerView removeFromSuperview];
+        }
+        
+        if (self.internalNotifications.count <= 0) {
+            return;
+        }
+        
+        // Render notification views.
+        UIView *window = [self getKeyWindow];
+        CGFloat width = (window.frame.size.width * 0.9);
+        if (width > 320) {
+            width = 320;
+        }
+        
+        _notificationsContainerView = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 0, 0)];
+        _notificationsContainerView.backgroundColor = [UIColor clearColor];
+        _notificationsContainerView.layer.zPosition = INT_MAX;
+        _notificationsContainerView.translatesAutoresizingMaskIntoConstraints = NO;
+        [window addSubview: _notificationsContainerView];
+        
+        UIView *previousView = nil;
+        
+        // Create new notifications.
+        for (NSDictionary *notification in self.internalNotifications) {
+            UIView *localNotificationView = [self createNotificationViewFor: notification andWith: width];
+            localNotificationView.translatesAutoresizingMaskIntoConstraints = NO;
+            localNotificationView.tag = [self.internalNotifications indexOfObject:notification];
+            
+            UITapGestureRecognizer *performNotificationActionGesture =
+            [[UITapGestureRecognizer alloc] initWithTarget:self
+                                                    action:@selector(performNotificationAction:)];
+            [localNotificationView addGestureRecognizer: performNotificationActionGesture];
+            
+            [_notificationsContainerView addSubview: localNotificationView];
+            [self.notificationViews addObject: localNotificationView];
+            
+            // Set height.
+            [localNotificationView.heightAnchor constraintEqualToConstant: localNotificationView.frame.size.height].active = YES;
+            
+            // Pin to left and right.
+            [localNotificationView.leadingAnchor constraintEqualToAnchor: _notificationsContainerView.leadingAnchor constant: 0].active = YES;
+            [localNotificationView.trailingAnchor constraintEqualToAnchor: _notificationsContainerView.trailingAnchor constant: 0].active = YES;
+            
+            if (previousView) {
+                [localNotificationView.bottomAnchor constraintEqualToAnchor: previousView.topAnchor constant: -10.0].active = YES;
+            } else {
+                [localNotificationView.bottomAnchor constraintEqualToAnchor: _notificationsContainerView.bottomAnchor constant: 0].active = YES;
+            }
+            
+            previousView = localNotificationView;
+        }
+        
+        // Create close button.
+        UIView *closeButton = [self generateCloseButton];
+        [_notificationsContainerView addSubview: closeButton];
+        
+        closeButton.translatesAutoresizingMaskIntoConstraints = NO;
         
         // Set height.
-        [localNotificationView.heightAnchor constraintEqualToConstant: localNotificationView.frame.size.height].active = YES;
+        [closeButton.widthAnchor constraintEqualToConstant: closeButton.frame.size.width].active = YES;
+        [closeButton.heightAnchor constraintEqualToConstant: closeButton.frame.size.height].active = YES;
         
-        // Pin to left and right.
-         [localNotificationView.leadingAnchor constraintEqualToAnchor: _notificationsContainerView.leadingAnchor constant: 0].active = YES;
-        [localNotificationView.trailingAnchor constraintEqualToAnchor: _notificationsContainerView.trailingAnchor constant: 0].active = YES;
+        [closeButton.trailingAnchor constraintEqualToAnchor: _notificationsContainerView.trailingAnchor constant: 0].active = YES;
+        [closeButton.bottomAnchor constraintEqualToAnchor: previousView.topAnchor constant: -10.0].active = YES;
         
-        if (previousView) {
-            [localNotificationView.bottomAnchor constraintEqualToAnchor: previousView.topAnchor constant: -10.0].active = YES;
-        } else {
-            [localNotificationView.bottomAnchor constraintEqualToAnchor: _notificationsContainerView.bottomAnchor constant: 0].active = YES;
-        }
+        int containerHeight = (previousView.frame.size.height * self.internalNotifications.count) + (10 * (self.internalNotifications.count - 1)) + closeButton.frame.size.height + 10;
+        [_notificationsContainerView.widthAnchor constraintEqualToConstant: width].active = YES;
+        [_notificationsContainerView.heightAnchor constraintEqualToConstant: containerHeight].active = YES;
         
-        previousView = localNotificationView;
-    }
-    
-    // Create close button.
-    UIView *closeButton = [self generateCloseButton];
-    [_notificationsContainerView addSubview: closeButton];
-    
-    closeButton.translatesAutoresizingMaskIntoConstraints = NO;
-    
-    // Set height.
-    [closeButton.widthAnchor constraintEqualToConstant: closeButton.frame.size.width].active = YES;
-    [closeButton.heightAnchor constraintEqualToConstant: closeButton.frame.size.height].active = YES;
-    
-    [closeButton.trailingAnchor constraintEqualToAnchor: _notificationsContainerView.trailingAnchor constant: 0].active = YES;
-    [closeButton.bottomAnchor constraintEqualToAnchor: previousView.topAnchor constant: -10.0].active = YES;
-    
-    int containerHeight = (previousView.frame.size.height * self.internalNotifications.count) + (10 * (self.internalNotifications.count - 1)) + closeButton.frame.size.height + 10;
-    [_notificationsContainerView.widthAnchor constraintEqualToConstant: width].active = YES;
-    [_notificationsContainerView.heightAnchor constraintEqualToConstant: containerHeight].active = YES;
-    
-    NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
-    if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"]) {
-        [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
-        [_notificationsContainerView.leadingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.leadingAnchor constant: 20].active = YES;
-    } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC"]) {
-        [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
-        [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.trailingAnchor constant: -20].active = YES;
-    } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_BOTTOM"]) {
-        [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
-        [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.trailingAnchor constant: -20].active = YES;
-    } else if ([feedbackButtonPosition isEqualToString: @"BOTTOM_LEFT"]) {
-        if (self.feedbackButton != nil && self.feedbackButton.isHidden == NO) {
-            [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: self.feedbackButton.topAnchor constant: -10].active = YES;
-            [_notificationsContainerView.leadingAnchor constraintEqualToAnchor: self.feedbackButton.leadingAnchor constant: 0].active = YES;
-        } else {
+        NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
+        if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"]) {
             [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
             [_notificationsContainerView.leadingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.leadingAnchor constant: 20].active = YES;
-        }
-    } else if ([feedbackButtonPosition isEqualToString: @"BOTTOM_RIGHT"]) {
-        if (self.feedbackButton != nil && self.feedbackButton.isHidden == NO) {
-            [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: self.feedbackButton.topAnchor constant: -10].active = YES;
-            [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: self.feedbackButton.trailingAnchor constant: 0].active = YES;
-        } else {
+        } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC"]) {
             [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
             [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.trailingAnchor constant: -20].active = YES;
-        }
-    } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_NONE"]) {
-        if (self.feedbackButton != nil && self.feedbackButton.isHidden == NO) {
-            [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: self.feedbackButton.topAnchor constant: -10].active = YES;
-            [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: self.feedbackButton.trailingAnchor constant: 0].active = YES;
-        } else {
+        } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_BOTTOM"]) {
             [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
             [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.trailingAnchor constant: -20].active = YES;
+        } else if ([feedbackButtonPosition isEqualToString: @"BOTTOM_LEFT"]) {
+            if (self.feedbackButton != nil && self.feedbackButton.isHidden == NO) {
+                [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: self.feedbackButton.topAnchor constant: -10].active = YES;
+                [_notificationsContainerView.leadingAnchor constraintEqualToAnchor: self.feedbackButton.leadingAnchor constant: 0].active = YES;
+            } else {
+                [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
+                [_notificationsContainerView.leadingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.leadingAnchor constant: 20].active = YES;
+            }
+        } else if ([feedbackButtonPosition isEqualToString: @"BOTTOM_RIGHT"]) {
+            if (self.feedbackButton != nil && self.feedbackButton.isHidden == NO) {
+                [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: self.feedbackButton.topAnchor constant: -10].active = YES;
+                [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: self.feedbackButton.trailingAnchor constant: 0].active = YES;
+            } else {
+                [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
+                [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.trailingAnchor constant: -20].active = YES;
+            }
+        } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_NONE"]) {
+            if (self.feedbackButton != nil && self.feedbackButton.isHidden == NO) {
+                [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: self.feedbackButton.topAnchor constant: -10].active = YES;
+                [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: self.feedbackButton.trailingAnchor constant: 0].active = YES;
+            } else {
+                [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
+                [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.trailingAnchor constant: -20].active = YES;
+            }
         }
+        
+        _notificationsContainerView.alpha = 0.0;
+        [UIView animateWithDuration:0.3f animations:^{
+            self.notificationsContainerView.alpha = 1.0;
+        }];
+    } @catch(id anException) {
+        
     }
-    
-    _notificationsContainerView.alpha = 0.0;
-    [UIView animateWithDuration:0.3f animations:^{
-        self.notificationsContainerView.alpha = 1.0;
-    }];
 }
 
 - (UIView *)generateCloseButton {
