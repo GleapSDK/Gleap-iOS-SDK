@@ -108,6 +108,11 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
 }
 
 - (void)applyConfig {
+    UIApplicationState state = [[UIApplication sharedApplication] applicationState];
+    if (state == UIApplicationStateBackground || state == UIApplicationStateInactive) {
+        return;
+    }
+    
     NSDictionary *config = GleapConfigHelper.sharedInstance.config;
     if (config == nil) {
         return;
@@ -265,6 +270,11 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
         return;
     }
     
+    UIApplicationState state = [[UIApplication sharedApplication] applicationState];
+    if (state == UIApplicationStateBackground || state == UIApplicationStateInactive) {
+        return;
+    }
+    
     NSDictionary *config = GleapConfigHelper.sharedInstance.config;
     if (config == nil) {
         return;
@@ -284,68 +294,74 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
         }
     }
     
-    if (_safeAreaConstraint == nil || _edgeConstraint == nil) {
+    if (self.safeAreaConstraint == nil || self.edgeConstraint == nil) {
         return;
     }
+    
+    bool shouldActivateSafeAreaConstraint = NO;
+    bool shouldActivateEdgeConstraint = NO;
     
     @try {
         // Always pin iPad to edge.
         if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-            _safeAreaConstraint.active = NO;
-            _edgeConstraint.active = YES;
+            shouldActivateSafeAreaConstraint = NO;
+            shouldActivateEdgeConstraint = YES;
         } else {
             UIInterfaceOrientation orientation = [self reliableInterfaceOrientation];
             if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"]) {
                 if (orientation == UIDeviceOrientationLandscapeLeft) {
-                    _edgeConstraint.active = NO;
-                    _safeAreaConstraint.active = YES;
+                    shouldActivateEdgeConstraint = NO;
+                    shouldActivateSafeAreaConstraint = YES;
                     if (@available(iOS 11.0, *)) {
                         self.layer.maskedCorners = kCALayerMinXMinYCorner | kCALayerMaxXMinYCorner | kCALayerMinXMaxYCorner | kCALayerMaxXMaxYCorner;
                     }
                 } else {
-                    _safeAreaConstraint.active = NO;
-                    _edgeConstraint.active = YES;
+                    shouldActivateSafeAreaConstraint = NO;
+                    shouldActivateEdgeConstraint = YES;
                 }
             } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_BOTTOM"]) {
                 if (orientation == UIDeviceOrientationPortrait) {
-                    _edgeConstraint.active = NO;
-                    _safeAreaConstraint.active = YES;
+                    shouldActivateEdgeConstraint = NO;
+                    shouldActivateSafeAreaConstraint = YES;
                     if (@available(iOS 11.0, *)) {
                         self.layer.maskedCorners = kCALayerMinXMinYCorner | kCALayerMaxXMinYCorner | kCALayerMinXMaxYCorner | kCALayerMaxXMaxYCorner;
                     }
                 } else {
-                    _safeAreaConstraint.active = NO;
-                    _edgeConstraint.active = YES;
+                    shouldActivateSafeAreaConstraint = NO;
+                    shouldActivateEdgeConstraint = YES;
                 }
             } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC"]) {
                 if (orientation == UIDeviceOrientationLandscapeRight) {
-                    _edgeConstraint.active = NO;
-                    _safeAreaConstraint.active = YES;
+                    shouldActivateEdgeConstraint = NO;
+                    shouldActivateSafeAreaConstraint = YES;
                     if (@available(iOS 11.0, *)) {
                         self.layer.maskedCorners = kCALayerMinXMinYCorner | kCALayerMaxXMinYCorner | kCALayerMinXMaxYCorner | kCALayerMaxXMaxYCorner;
                     }
                 } else {
-                    _safeAreaConstraint.active = NO;
-                    _edgeConstraint.active = YES;
+                    shouldActivateSafeAreaConstraint = NO;
+                    shouldActivateEdgeConstraint = YES;
                 }
             } else if ([feedbackButtonPosition isEqualToString: @"BOTTOM_LEFT"]) {
                 if (orientation == UIDeviceOrientationLandscapeLeft) {
-                    _edgeConstraint.active = NO;
-                    _safeAreaConstraint.active = YES;
+                    shouldActivateEdgeConstraint = NO;
+                    shouldActivateSafeAreaConstraint = YES;
                 } else {
-                    _safeAreaConstraint.active = NO;
-                    _edgeConstraint.active = YES;
+                    shouldActivateSafeAreaConstraint = NO;
+                    shouldActivateEdgeConstraint = YES;
                 }
             } else {
                 if (orientation == UIDeviceOrientationLandscapeRight) {
-                    _edgeConstraint.active = NO;
-                    _safeAreaConstraint.active = YES;
+                    shouldActivateEdgeConstraint = NO;
+                    shouldActivateSafeAreaConstraint = YES;
                 } else {
-                    _safeAreaConstraint.active = NO;
-                    _edgeConstraint.active = YES;
+                    shouldActivateSafeAreaConstraint = NO;
+                    shouldActivateEdgeConstraint = YES;
                 }
             }
         }
+        
+        self.safeAreaConstraint.active = shouldActivateSafeAreaConstraint;
+        self.edgeConstraint.active = shouldActivateEdgeConstraint;
     } @catch (id anException) {
         
     }

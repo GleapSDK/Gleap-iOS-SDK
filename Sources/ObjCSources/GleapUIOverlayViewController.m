@@ -201,6 +201,11 @@
 }
 
 - (void)renderNotifications {
+    UIApplicationState state = [[UIApplication sharedApplication] applicationState];
+    if (state == UIApplicationStateBackground || state == UIApplicationStateInactive) {
+        return;
+    }
+    
     @try {
         NSDictionary *config = GleapConfigHelper.sharedInstance.config;
         if (config == nil) {
