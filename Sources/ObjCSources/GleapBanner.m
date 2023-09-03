@@ -196,17 +196,25 @@
 }
 
 - (void)openURLExternally:(NSURL *)url fromViewController:(UIViewController *)presentingViewController {
-    if ([SFSafariViewController class]) {
-        SFSafariViewController *viewController = [[SFSafariViewController alloc] initWithURL: url];
-        viewController.modalPresentationStyle = UIModalPresentationFormSheet;
-        viewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
-        [presentingViewController presentViewController:viewController animated:YES completion:nil];
-    } else {
-        if ([[UIApplication sharedApplication] canOpenURL: url]) {
-            if (@available(iOS 10.0, *)) {
-                [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
+    if (url == nil) {
+        return;
+    }
+    
+    @try {
+        if ([SFSafariViewController class]) {
+            SFSafariViewController *viewController = [[SFSafariViewController alloc] initWithURL: url];
+            viewController.modalPresentationStyle = UIModalPresentationFormSheet;
+            viewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
+            [presentingViewController presentViewController:viewController animated:YES completion:nil];
+        } else {
+            if ([[UIApplication sharedApplication] canOpenURL: url]) {
+                if (@available(iOS 10.0, *)) {
+                    [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
+                }
             }
         }
+    } @catch(NSException *exception) {
+        NSLog(@"Exception while opening URL: %@", exception);
     }
 }
 

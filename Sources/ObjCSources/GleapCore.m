@@ -34,6 +34,11 @@
 
 @end
 
+static id ObjectOrNull(id object)
+{
+  return object ?: [NSNull null];
+}
+
 @implementation Gleap
 
 /*
@@ -234,7 +239,7 @@
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
             @"name": @"open-news-article",
             @"data": @{
-              @"id": articleId,
+              @"id": ObjectOrNull(articleId),
               @"hideBackButton": @(!showBackButton)
             }
         }];
@@ -246,7 +251,7 @@
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
             @"name": @"start-bot",
             @"data": @{
-              @"botId": botId,
+              @"botId": ObjectOrNull(botId),
               @"hideBackButton": @(!showBackButton)
             }
         }];
@@ -258,7 +263,7 @@
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
             @"name": @"open-conversation",
             @"data": @{
-                @"shareToken": shareToken
+                @"shareToken": ObjectOrNull(shareToken)
             },
         }];
     }
@@ -303,7 +308,7 @@
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
             @"name": @"open-help-collection",
             @"data": @{
-                @"collectionId": collectionId,
+                @"collectionId": ObjectOrNull(collectionId),
                 @"hideBackButton": @(!showBackButton)
             }
         }];
@@ -319,7 +324,7 @@
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
             @"name": @"open-help-article",
             @"data": @{
-                @"articleId": articleId,
+                @"articleId": ObjectOrNull(articleId),
                 @"hideBackButton": @(!showBackButton)
             }
         }];
@@ -350,7 +355,7 @@
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
             @"name": @"open-helpcenter-search",
             @"data": @{
-                @"term": searchTerm,
+                @"term": ObjectOrNull(searchTerm),
                 @"hideBackButton": @(!showBackButton)
             }
         }];
@@ -423,7 +428,7 @@
     // Start a feedback flow.
     if (feedbackFlow != nil) {
         NSMutableDictionary *startFeedbackFlowData = [[NSMutableDictionary alloc] initWithDictionary: @{
-            @"flow": feedbackFlow
+            @"flow": ObjectOrNull(feedbackFlow)
         }];
         if (options != nil) {
             [startFeedbackFlowData addEntriesFromDictionary: options];

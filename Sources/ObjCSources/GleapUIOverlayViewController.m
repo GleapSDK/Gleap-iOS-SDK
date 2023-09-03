@@ -96,43 +96,52 @@
 
 - (void)showBanner:(NSDictionary *)bannerData {
     dispatch_async(dispatch_get_main_queue(), ^{
+        UIWindow* keyWindow = [self getKeyWindow];
+        if (keyWindow == nil) {
+            return;
+        }
+        
         if (self.banner != nil) {
             [self.banner removeFromSuperview];
             self.banner = nil;
         }
         
-        self.banner = [[GleapBanner alloc] initWithFrame: CGRectMake(0, 0, [self getKeyWindow].frame.size.width, 70.0)];
+        self.banner = [[GleapBanner alloc] initWithFrame: CGRectMake(0, 0, keyWindow.frame.size.width, 70.0)];
+        self.banner.translatesAutoresizingMaskIntoConstraints = NO;
         self.banner.layer.zPosition = INT_MAX;
-        [[self getKeyWindow] addSubview: self.banner];
+        [keyWindow addSubview: self.banner];
         
-        NSLayoutConstraint *trailing = [NSLayoutConstraint
-                                        constraintWithItem: self.banner
-                                        attribute: NSLayoutAttributeTrailing
-                                        relatedBy: NSLayoutRelationEqual
-                                        toItem: [self getKeyWindow]
-                                        attribute: NSLayoutAttributeTrailing
-                                        multiplier: 1.0f
-                                        constant: 0.f];
-        NSLayoutConstraint *leading = [NSLayoutConstraint
-                                       constraintWithItem: self.banner
-                                       attribute: NSLayoutAttributeLeading
-                                       relatedBy: NSLayoutRelationEqual
-                                       toItem: [self getKeyWindow]
-                                       attribute: NSLayoutAttributeLeading
-                                       multiplier: 1.0f
-                                       constant: 0.f];
-        [[self getKeyWindow] addConstraint: leading];
-        [[self getKeyWindow] addConstraint: trailing];
-        
-        NSLayoutConstraint *top =[NSLayoutConstraint
-                                  constraintWithItem: self.banner
-                                  attribute: NSLayoutAttributeTop
-                                  relatedBy: NSLayoutRelationEqual
-                                  toItem: [self getKeyWindow]
-                                  attribute: NSLayoutAttributeTop
-                                  multiplier: 1.0f
-                                  constant: 0.f];
-        [[self getKeyWindow] addConstraint: top];
+        @try {
+            NSLayoutConstraint *trailing = [NSLayoutConstraint
+                                            constraintWithItem: self.banner
+                                            attribute: NSLayoutAttributeTrailing
+                                            relatedBy: NSLayoutRelationEqual
+                                            toItem: keyWindow
+                                            attribute: NSLayoutAttributeTrailing
+                                            multiplier: 1.0f
+                                            constant: 0.f];
+            NSLayoutConstraint *leading = [NSLayoutConstraint
+                                           constraintWithItem: self.banner
+                                           attribute: NSLayoutAttributeLeading
+                                           relatedBy: NSLayoutRelationEqual
+                                           toItem: keyWindow
+                                           attribute: NSLayoutAttributeLeading
+                                           multiplier: 1.0f
+                                           constant: 0.f];
+            [keyWindow addConstraint: leading];
+            [keyWindow addConstraint: trailing];
+            
+            NSLayoutConstraint *top =[NSLayoutConstraint
+                                      constraintWithItem: self.banner
+                                      attribute: NSLayoutAttributeTop
+                                      relatedBy: NSLayoutRelationEqual
+                                      toItem: keyWindow
+                                      attribute: NSLayoutAttributeTop
+                                      multiplier: 1.0f
+                                      constant: 0.f];
+            [keyWindow addConstraint: top];
+        }
+        @catch (NSException *exception) {}
         
         [self.banner setupWithData: bannerData];
     });
