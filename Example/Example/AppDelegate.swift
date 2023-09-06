@@ -18,9 +18,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.setLanguage("de")
         
-        //Gleap.setApiUrl("http://localhost:9000")
-        //Gleap.setFrameUrl("http://localhost:3001/appnew.html")
-        Gleap.initialize(withToken: "hciNpT8z64tsHATINYZjWBvbirVWCKWt")
+        // Gleap.setApiUrl("http://localhost:9000")
+        // Gleap.setFrameUrl("http://localhost:3001/appnew.html")
+        Gleap.initialize(withToken: "9JDaXydIFNu4CgeLQOw4S50KVazALlMg")
         
         Gleap.sharedInstance().delegate = self
         
