@@ -26,10 +26,12 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)logEvent: (NSString *)name;
 - (void)logEvent: (NSString *)name withData: (NSDictionary *)data;
 - (void)clear;
+- (void)parseUpdate:(NSDictionary *)actionData;
 - (NSArray *)getLogs;
 
 @property (nonatomic, retain) NSMutableArray* log;
 @property (nonatomic, assign) bool disableInAppNotifications;
+@property (nonatomic, assign) bool webSocketEnabled;
 @property (nonatomic, retain) NSMutableArray* streamedLog;
 @property (nonatomic, retain) NSString* lastPageName;
 @property (nonatomic, retain) NSTimer* pageNameTimer;

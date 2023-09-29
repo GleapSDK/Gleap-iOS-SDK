@@ -291,6 +291,14 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)setApiUrl: (NSString *)apiUrl;
 
 /**
+ * Sets a custom websocket api url.
+ * @author Gleap
+ *
+ * @param wsApiUrl The custom websocket api url.
+ */
++ (void)setWSApiUrl: (NSString *)wsApiUrl;
+
+/**
  * Sets a custom frame url.
  * @author Gleap
  *
@@ -429,6 +437,7 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 
 @property (nonatomic, retain) NSString* token;
 @property (nonatomic, retain) NSString* apiUrl;
+@property (nonatomic, retain) NSString *wsApiUrl;
 @property (nonatomic, retain) NSString* frameUrl;
 @property (nonatomic, retain) NSString* bannerUrl;
 @property (nonatomic, assign) int initialized;

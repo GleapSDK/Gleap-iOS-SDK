@@ -68,6 +68,7 @@ static id ObjectOrNull(id object)
 - (void)initHelper {
     self.token = @"";
     self.apiUrl = @"https://api.gleap.io";
+    self.wsApiUrl = @"wss://ws.gleap.io";
     self.frameUrl = @"https://messenger-app.gleap.io/appnew";
     self.bannerUrl = @"https://outboundmedia.gleap.io";
     self.initialized = NO;
@@ -212,6 +213,10 @@ static id ObjectOrNull(id object)
 
 + (void)setApiUrl: (NSString *)apiUrl {
     Gleap.sharedInstance.apiUrl = apiUrl;
+}
+
++ (void)setWSApiUrl: (NSString *)wsApiUrl {
+    Gleap.sharedInstance.wsApiUrl = wsApiUrl;
 }
 
 + (void)showFeedbackButton:(BOOL)show {

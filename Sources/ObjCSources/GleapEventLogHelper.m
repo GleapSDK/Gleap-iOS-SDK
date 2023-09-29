@@ -12,6 +12,7 @@
 #import "GleapWidgetManager.h"
 #import "GleapMetaDataHelper.h"
 #import "GleapUIOverlayHelper.h"
+#import "GleapWebSocketHelper.h"
 
 @implementation GleapEventLogHelper
 
@@ -37,6 +38,7 @@
 }
 
 - (void)initHelper {
+    self.webSocketEnabled = NO;
     self.disableInAppNotifications = NO;
     self.log = [[NSMutableArray alloc] init];
     self.streamedLog = [[NSMutableArray alloc] init];
@@ -92,6 +94,17 @@
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
+        if (@available(iOS 13.0, *)) {
+            GleapSession *session = GleapSessionHelper.sharedInstance.currentSession;
+            if (session != nil && session.gleapId != nil && session.gleapHash != nil) {
+                self.webSocketEnabled = YES;
+                NSString *urlToConnectTo = [NSString stringWithFormat: @"%@?gleapId=%@&gleapHash=%@&apiKey=%@&sdkVersion=%@", [Gleap sharedInstance].wsApiUrl, session.gleapId, session.gleapHash, [Gleap sharedInstance].token, SDK_VERSION];
+                [[GleapWebSocketHelper sharedInstance] connectToURL: [NSURL URLWithString: urlToConnectTo]];
+            }
+        } else {
+            self.webSocketEnabled = NO;
+        }
+        
         [self lastPageNameUpdate];
         [self sendEventStreamToServer];
         
@@ -101,7 +114,7 @@
                                                             userInfo: nil
                                                              repeats: YES];
         
-        self.eventStreamTimer = [NSTimer scheduledTimerWithTimeInterval: 10.0
+        self.eventStreamTimer = [NSTimer scheduledTimerWithTimeInterval: self.webSocketEnabled ? 3.0 : 10.0
                                              target: self
                                            selector: @selector(sendEventStreamToServer)
                                            userInfo: nil
@@ -142,6 +155,11 @@
         return;
     }
     
+    // When websocket mode is enabled, don't send empty events.
+    if (self.webSocketEnabled && self.streamedLog.count == 0) {
+        return;
+    }
+    
     NSDictionary *data = @{
         @"time": [NSNumber numberWithDouble: [[GleapMetaDataHelper sharedInstance] sessionDuration]],
         @"events": self.streamedLog,
@@ -165,7 +183,6 @@
         [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
         [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
         [request setHTTPBody: jsonBodyData];
-        
         NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
         NSURLSession *session = [NSURLSession sessionWithConfiguration:config
                                                               delegate:nil
@@ -176,48 +193,19 @@
                 return;
             }
             
-            if (![response isKindOfClass:[NSHTTPURLResponse class]]) {
-                return;
-            }
-            
-            NSError *jsonError;
-            NSDictionary *actionData = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-            if (jsonError) {
-                return;
-            }
-            
-            @try {
-                NSArray *actions = [actionData objectForKey: @"a"];
-                if (actions != nil) {
-                    for (int i = 0; i < actions.count; i++) {
-                        NSDictionary *action = [actions objectAtIndex: i];
-                        if ([[action objectForKey: @"actionType"] isEqualToString: @"notification"]) {
-                            // NOTIFICATIONS
-                            if (self.disableInAppNotifications == NO) {
-                                [GleapUIOverlayHelper showNotification: action];
-                            }
-                        } else if ([[action objectForKey: @"actionType"] isEqualToString: @"banner"]) {
-                            // BANNER
-                            [GleapUIOverlayHelper showBanner: action];
-                        } else {
-                            // FEEDBACK FORMS
-                            if ([action objectForKey: @"actionType"] != nil) {
-                                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-                                    [Gleap.sharedInstance startFeedbackFlow: [action objectForKey: @"actionType"] withOptions: @{
-                                        @"isSurvey": @YES,
-                                        @"format": [action objectForKey: @"format"],
-                                        @"hideBackButton": @YES
-                                    }];
-                                });
-                            }
-                        }
-                    }
+            if (!self.webSocketEnabled) {
+                if (![response isKindOfClass:[NSHTTPURLResponse class]]) {
+                    return;
                 }
                 
-                int unreadCount = [[actionData objectForKey: @"u"] intValue];
-                [GleapUIOverlayHelper updateNotificationCount: unreadCount];
+                NSError *jsonError;
+                NSDictionary *actionData = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
+                if (jsonError) {
+                    return;
+                }
+                
+                [self parseUpdate: actionData];
             }
-            @catch(id exception) {}
         }];
         [task resume];
     } @catch(id exception) {
@@ -226,6 +214,41 @@
     
     // Clear items.
     [self.streamedLog removeAllObjects];
+}
+
+- (void)parseUpdate:(NSDictionary *)actionData {
+    @try {
+        NSArray *actions = [actionData objectForKey: @"a"];
+        if (actions != nil) {
+            for (int i = 0; i < actions.count; i++) {
+                NSDictionary *action = [actions objectAtIndex: i];
+                if ([[action objectForKey: @"actionType"] isEqualToString: @"notification"]) {
+                    // NOTIFICATIONS
+                    if (self.disableInAppNotifications == NO) {
+                        [GleapUIOverlayHelper showNotification: action];
+                    }
+                } else if ([[action objectForKey: @"actionType"] isEqualToString: @"banner"]) {
+                    // BANNER
+                    [GleapUIOverlayHelper showBanner: action];
+                } else {
+                    // FEEDBACK FORMS
+                    if ([action objectForKey: @"actionType"] != nil) {
+                        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                            [Gleap.sharedInstance startFeedbackFlow: [action objectForKey: @"actionType"] withOptions: @{
+                                @"isSurvey": @YES,
+                                @"format": [action objectForKey: @"format"],
+                                @"hideBackButton": @YES
+                            }];
+                        });
+                    }
+                }
+            }
+        }
+        
+        int unreadCount = [[actionData objectForKey: @"u"] intValue];
+        [GleapUIOverlayHelper updateNotificationCount: unreadCount];
+    }
+    @catch(id exception) {}
 }
 
 - (NSString *)getCurrentJSDate {
