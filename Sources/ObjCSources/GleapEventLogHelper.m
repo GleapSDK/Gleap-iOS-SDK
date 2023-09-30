@@ -160,10 +160,17 @@
         return;
     }
     
+    if (@available(iOS 13.0, *)) {
+        if (self.webSocketEnabled && ![GleapWebSocketHelper sharedInstance].connected) {
+            return;
+        }
+    }
+    
     NSDictionary *data = @{
         @"time": [NSNumber numberWithDouble: [[GleapMetaDataHelper sharedInstance] sessionDuration]],
         @"events": self.streamedLog,
         @"opened": @([Gleap isOpened]),
+        @"ws": @(self.webSocketEnabled),
         @"sdkVersion": SDK_VERSION,
     };
     

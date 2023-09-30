@@ -27,6 +27,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)logEvent: (NSString *)name withData: (NSDictionary *)data;
 - (void)clear;
 - (void)parseUpdate:(NSDictionary *)actionData;
+- (void)sendEventStreamToServer;
 - (NSArray *)getLogs;
 
 @property (nonatomic, retain) NSMutableArray* log;

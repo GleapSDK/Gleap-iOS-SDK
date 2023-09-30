@@ -18,6 +18,7 @@ API_AVAILABLE(ios(13.0))
 
 @property (nonatomic, retain) NSTimer* pingTimer;
 @property (nonatomic, retain) NSURL* reconnectURL;
+@property (nonatomic) bool connected;
 
 @end
 

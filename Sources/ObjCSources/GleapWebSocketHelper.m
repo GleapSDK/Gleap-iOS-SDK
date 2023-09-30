@@ -1,6 +1,6 @@
 //
 //  GleapWebSocketHelper.m
-//  
+//
 //
 //  Created by Lukas Boehler on 29.09.23.
 //
@@ -30,7 +30,18 @@
 
 - (void)sendPingPong {
     if (self.webSocketTask != nil && self.webSocketTask.state == NSURLSessionTaskStateRunning) {
-        [self.webSocketTask sendPingWithPongReceiveHandler:^(NSError * _Nullable error) {}];
+        [self.webSocketTask sendPingWithPongReceiveHandler:^(NSError * _Nullable error) {
+            if (error != nil) {
+                self.connected = NO;
+            } else {
+                if (self.connected == NO) {
+                    self.connected = YES;
+                    
+                    // We got connected, send events.
+                    [[GleapEventLogHelper sharedInstance] sendEventStreamToServer];
+                }
+            }
+        }];
     }
 }
 
@@ -42,6 +53,7 @@
         self.webSocketTask = [urlSession webSocketTaskWithURL:url];
         self.reconnectURL = url;
         [self.webSocketTask resume];
+        [self sendPingPong];
         [self receiveMessage];
         return YES;
     } else {
@@ -54,6 +66,8 @@
         [self.webSocketTask cancel];
         self.webSocketTask = nil;
     }
+    
+    self.connected = NO;
 }
 
 - (void)receiveMessage API_AVAILABLE(ios(13.0)) {
