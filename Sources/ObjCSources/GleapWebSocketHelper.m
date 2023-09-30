@@ -79,9 +79,7 @@
                         }
                     }
                 }
-                @catch (NSException *exception) {
-                    NSLog(@"Exception caught: %@", exception.reason);
-                }
+                @catch (NSException *exception) {}
             }
         }
         
@@ -91,7 +89,6 @@
 }
 
 - (void)handleReconnect:(NSError *)error API_AVAILABLE(ios(13.0)) {
-    NSLog(@"Attempting to reconnect...");
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [self connectToURL: self.reconnectURL];
     });
