@@ -266,31 +266,33 @@
         // Create new notifications.
         for (NSDictionary *notification in self.internalNotifications) {
             UIView *localNotificationView = [self createNotificationViewFor: notification andWith: width];
-            localNotificationView.translatesAutoresizingMaskIntoConstraints = NO;
-            localNotificationView.tag = [self.internalNotifications indexOfObject:notification];
-            
-            UITapGestureRecognizer *performNotificationActionGesture =
-            [[UITapGestureRecognizer alloc] initWithTarget:self
-                                                    action:@selector(performNotificationAction:)];
-            [localNotificationView addGestureRecognizer: performNotificationActionGesture];
-            
-            [_notificationsContainerView addSubview: localNotificationView];
-            [self.notificationViews addObject: localNotificationView];
-            
-            // Set height.
-            [localNotificationView.heightAnchor constraintEqualToConstant: localNotificationView.frame.size.height].active = YES;
-            
-            // Pin to left and right.
-            [localNotificationView.leadingAnchor constraintEqualToAnchor: _notificationsContainerView.leadingAnchor constant: 0].active = YES;
-            [localNotificationView.trailingAnchor constraintEqualToAnchor: _notificationsContainerView.trailingAnchor constant: 0].active = YES;
-            
-            if (previousView) {
-                [localNotificationView.bottomAnchor constraintEqualToAnchor: previousView.topAnchor constant: -10.0].active = YES;
-            } else {
-                [localNotificationView.bottomAnchor constraintEqualToAnchor: _notificationsContainerView.bottomAnchor constant: 0].active = YES;
+            if (localNotificationView != nil) {
+                localNotificationView.translatesAutoresizingMaskIntoConstraints = NO;
+                localNotificationView.tag = [self.internalNotifications indexOfObject:notification];
+                
+                UITapGestureRecognizer *performNotificationActionGesture =
+                [[UITapGestureRecognizer alloc] initWithTarget:self
+                                                        action:@selector(performNotificationAction:)];
+                [localNotificationView addGestureRecognizer: performNotificationActionGesture];
+                
+                [_notificationsContainerView addSubview: localNotificationView];
+                [self.notificationViews addObject: localNotificationView];
+                
+                // Set height.
+                [localNotificationView.heightAnchor constraintEqualToConstant: localNotificationView.frame.size.height].active = YES;
+                
+                // Pin to left and right.
+                [localNotificationView.leadingAnchor constraintEqualToAnchor: _notificationsContainerView.leadingAnchor constant: 0].active = YES;
+                [localNotificationView.trailingAnchor constraintEqualToAnchor: _notificationsContainerView.trailingAnchor constant: 0].active = YES;
+                
+                if (previousView) {
+                    [localNotificationView.bottomAnchor constraintEqualToAnchor: previousView.topAnchor constant: -10.0].active = YES;
+                } else {
+                    [localNotificationView.bottomAnchor constraintEqualToAnchor: _notificationsContainerView.bottomAnchor constant: 0].active = YES;
+                }
+                
+                previousView = localNotificationView;
             }
-            
-            previousView = localNotificationView;
         }
         
         // Create close button.
@@ -392,7 +394,7 @@
 - (UIView *)createNotificationViewFor:(NSDictionary *)notification andWith:(int)width {
     NSDictionary *config = GleapConfigHelper.sharedInstance.config;
     if (config == nil) {
-        return;
+        return nil;
     }
     
     NSDictionary *notificationData = [notification objectForKey: @"data"];
