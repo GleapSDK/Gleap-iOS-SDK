@@ -78,6 +78,30 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)openNews:(Boolean)showBackButton;
 
 /**
+ * Open the checklists overview.
+ * @author Gleap
+ *
+ */
++ (void)openChecklists;
++ (void)openChecklists:(Boolean)showBackButton;
+
+/**
+ * Open a checklist.
+ * @author Gleap
+ *
+ */
++ (void)openChecklist:(NSString *)checklistId;
++ (void)openChecklist:(NSString *)checklistId andShowBackButton:(Boolean)showBackButton;
+
+/**
+ * Start a new checklist.
+ * @author Gleap
+ *
+ */
++ (void)startChecklist:(NSString *)outboundId;
++ (void)startChecklist:(NSString *)outboundId andShowBackButton:(Boolean)showBackButton;
+
+/**
  * Disable in-app notifications.
  * @author Gleap
  *

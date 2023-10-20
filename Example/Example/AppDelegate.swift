@@ -18,13 +18,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.setLanguage("de")
         
-        // Gleap.setApiUrl("http://localhost:9000")
+        //Gleap.setApiUrl("http://localhost:9000")
         // Gleap.setFrameUrl("http://localhost:3001/appnew.html")
         Gleap.initialize(withToken: "X5C0grjFCjUMbZKi131MjZLaGRwg2iKH")
         
         Gleap.sharedInstance().delegate = self
-        
-        Gleap.trackEvent("asfasdfasdf")
         
         // Attach custom data sample.
         Gleap.attachCustomData(["value": "Unicorn", "type": "Demo", "ExtraInfo": ["Age": "28", "City": "San Francisco"]])
@@ -35,7 +33,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
             "type": "news",
             "id": "12"
         ])*/
-        //Gleap.clearIdentity()
+        Gleap.clearIdentity()
+        
+        /*let userProperty = GleapUserProperty()
+        userProperty.name = "Franz"
+        userProperty.email = "franz@gleap.io"
+        userProperty.phone = "+1 (902) 123123"
+        userProperty.value = 199.95
+        userProperty.customData = [
+            "plan": "Pro plan",
+            "company": "ACME inc."
+        ]
+        Gleap.identifyUser(with: "129833", andData: userProperty)*/
         
         // Testing file attachments.
         if let data = "Dies ist ein test.".data(using: String.Encoding.utf8) {

@@ -225,28 +225,30 @@
 
 - (void)parseUpdate:(NSDictionary *)actionData {
     @try {
-        NSArray *actions = [actionData objectForKey: @"a"];
-        if (actions != nil) {
-            for (int i = 0; i < actions.count; i++) {
-                NSDictionary *action = [actions objectAtIndex: i];
-                if ([[action objectForKey: @"actionType"] isEqualToString: @"notification"]) {
-                    // NOTIFICATIONS
-                    if (self.disableInAppNotifications == NO) {
-                        [GleapUIOverlayHelper showNotification: action];
-                    }
-                } else if ([[action objectForKey: @"actionType"] isEqualToString: @"banner"]) {
-                    // BANNER
-                    [GleapUIOverlayHelper showBanner: action];
-                } else {
-                    // FEEDBACK FORMS
-                    if ([action objectForKey: @"actionType"] != nil) {
-                        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-                            [Gleap.sharedInstance startFeedbackFlow: [action objectForKey: @"actionType"] withOptions: @{
-                                @"isSurvey": @YES,
-                                @"format": [action objectForKey: @"format"],
-                                @"hideBackButton": @YES
-                            }];
-                        });
+        if (![Gleap isOpened]) {
+            NSArray *actions = [actionData objectForKey: @"a"];
+            if (actions != nil) {
+                for (int i = 0; i < actions.count; i++) {
+                    NSDictionary *action = [actions objectAtIndex: i];
+                    if ([[action objectForKey: @"actionType"] isEqualToString: @"notification"]) {
+                        // NOTIFICATIONS
+                        if (self.disableInAppNotifications == NO) {
+                            [GleapUIOverlayHelper showNotification: action];
+                        }
+                    } else if ([[action objectForKey: @"actionType"] isEqualToString: @"banner"]) {
+                        // BANNER
+                        [GleapUIOverlayHelper showBanner: action];
+                    } else {
+                        // FEEDBACK FORMS
+                        if ([action objectForKey: @"actionType"] != nil) {
+                            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                                [Gleap.sharedInstance startFeedbackFlow: [action objectForKey: @"actionType"] withOptions: @{
+                                    @"isSurvey": @YES,
+                                    @"format": [action objectForKey: @"format"],
+                                    @"hideBackButton": @YES
+                                }];
+                            });
+                        }
                     }
                 }
             }

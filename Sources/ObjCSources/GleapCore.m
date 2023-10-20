@@ -274,8 +274,55 @@ static id ObjectOrNull(id object)
     }
 }
 
++ (void)openChecklists {
+    [self openChecklists: YES];
+}
+
++ (void)openChecklists:(Boolean)showBackButton {
+    if ([Gleap open]) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": @"open-checklists",
+            @"data": @{
+                @"hideBackButton": @(!showBackButton)
+            }
+        }];
+    }
+}
+
++ (void)openChecklist:(NSString *)checklistId {
+    [self openChecklist: checklistId andShowBackButton: YES];
+}
+
++ (void)openChecklist:(NSString *)checklistId andShowBackButton:(Boolean)showBackButton {
+    if ([Gleap open]) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": @"open-checklist",
+            @"data": @{
+                @"id": checklistId,
+                @"hideBackButton": @(!showBackButton)
+            }
+        }];
+    }
+}
+
++ (void)startChecklist:(NSString *)outboundId {
+    [self startChecklist: outboundId andShowBackButton: YES];
+}
+
++ (void)startChecklist:(NSString *)outboundId andShowBackButton:(Boolean)showBackButton {
+    if ([Gleap open]) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": @"start-checklist",
+            @"data": @{
+                @"outboundId": outboundId,
+                @"hideBackButton": @(!showBackButton)
+            }
+        }];
+    }
+}
+
 + (void)openNews {
-    [self openNews: NO];
+    [self openNews: YES];
 }
 
 + (void)openNews:(Boolean)showBackButton {

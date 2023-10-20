@@ -134,8 +134,9 @@ static id ObjectOrNull(id object)
     if (itemId != nil && itemId.length > 0) {
         if ([type isEqualToString: @"news"]) {
             [Gleap openNewsArticle: itemId];
-        }
-        if ([type isEqualToString: @"conversation"]) {
+        } else if ([type isEqualToString: @"checklist"]) {
+            [Gleap openChecklist: itemId];
+        } else if ([type isEqualToString: @"conversation"]) {
             [Gleap openConversation: itemId];
         }
     }

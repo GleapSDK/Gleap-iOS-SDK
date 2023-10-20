@@ -41,10 +41,13 @@
     if (notification != nil) {
         NSString *shareToken = [notification valueForKeyPath: @"data.conversation.shareToken"];
         NSString *newsId = [notification valueForKeyPath: @"data.news.id"];
+        NSString *checklistId = [notification valueForKeyPath: @"data.checklist.id"];
         if (shareToken != nil) {
             [Gleap openConversation: shareToken];
         } else if (newsId != nil) {
             [Gleap openNewsArticle: newsId andShowBackButton: YES];
+        } else if (checklistId != nil) {
+            [Gleap openChecklist: checklistId];
         } else {
             [Gleap open];
         }
@@ -387,6 +390,11 @@
 }
 
 - (UIView *)createNotificationViewFor:(NSDictionary *)notification andWith:(int)width {
+    NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+    if (config == nil) {
+        return;
+    }
+    
     NSDictionary *notificationData = [notification objectForKey: @"data"];
     NSDictionary * sender = [notificationData objectForKey: @"sender"];
     
@@ -481,6 +489,104 @@
             senderLabel.textColor = [UIColor blackColor];
         }
         [chatBubbleView addSubview: senderLabel];
+        
+        UIView * _notificationsContainerView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0, width, chatBubbleView.frame.size.height)];
+        
+        [_notificationsContainerView addSubview: chatBubbleView];
+        
+        return _notificationsContainerView;
+    } else if ([[notificationData objectForKey: @"type"] isEqualToString: @"checklist"]) {
+        // Build the chat message.
+        UIView * chatBubbleView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0.0, width, 100.0)];
+        chatBubbleView.layer.cornerRadius = 8.0;
+        chatBubbleView.layer.shadowRadius  = 8.0;
+        chatBubbleView.layer.shadowColor   = [UIColor blackColor].CGColor;
+        chatBubbleView.layer.shadowOffset  = CGSizeMake(3.0f, 3.0f);
+        chatBubbleView.layer.shadowOpacity = 0.1;
+        chatBubbleView.layer.masksToBounds = NO;
+        chatBubbleView.clipsToBounds = NO;
+        if (@available(iOS 13.0, *)) {
+            chatBubbleView.backgroundColor = [UIColor systemBackgroundColor];
+        } else {
+            chatBubbleView.backgroundColor = [UIColor whiteColor];
+        }
+        
+        UIFont *contentFont = [UIFont systemFontOfSize: 16 weight: UIFontWeightSemibold];
+        UILabel *contentLabel = [[UILabel alloc] initWithFrame: CGRectMake(16.0, 16.0, chatBubbleView.frame.size.width - 32.0, 18.0)];
+        contentLabel.text = textContent;
+        contentLabel.font = contentFont;
+        contentLabel.adjustsFontSizeToFitWidth = NO;
+        contentLabel.lineBreakMode = NSLineBreakByTruncatingTail;
+        contentLabel.numberOfLines = 1;
+        if (@available(iOS 13.0, *)) {
+            contentLabel.textColor = [UIColor labelColor];
+        } else {
+            contentLabel.textColor = [UIColor blackColor];
+        }
+        
+        [chatBubbleView addSubview: contentLabel];
+        
+        UILabel *nextStepLabel = [[UILabel alloc] initWithFrame: CGRectMake(16.0, 66.0, chatBubbleView.frame.size.width - 32.0, 18.0)];
+        nextStepLabel.text = [notificationData objectForKey: @"nextStepTitle"];
+        nextStepLabel.adjustsFontSizeToFitWidth = NO;
+        nextStepLabel.lineBreakMode = NSLineBreakByTruncatingTail;
+        nextStepLabel.numberOfLines = 1;
+        nextStepLabel.font = [UIFont systemFontOfSize: 14];
+        nextStepLabel.alpha = 0.5;
+        if (@available(iOS 13.0, *)) {
+            nextStepLabel.textColor = [UIColor labelColor];
+        } else {
+            nextStepLabel.textColor = [UIColor blackColor];
+        }
+        
+        [chatBubbleView addSubview: nextStepLabel];
+        
+        UIView *progressBarViewBG = [[UIView alloc] initWithFrame: CGRectMake(16.0, 46.0, chatBubbleView.frame.size.width - 32.0, 8.0)];
+        progressBarViewBG.layer.cornerRadius = 4.0;
+        progressBarViewBG.layer.masksToBounds = YES;
+        progressBarViewBG.clipsToBounds = YES;
+        progressBarViewBG.alpha = 0.15;
+        if (@available(iOS 13.0, *)) {
+            progressBarViewBG.backgroundColor = [UIColor labelColor];
+        } else {
+            progressBarViewBG.backgroundColor = [UIColor blackColor];
+        }
+        [chatBubbleView addSubview: progressBarViewBG];
+        
+        int maxWidth = chatBubbleView.frame.size.width - 32.0;
+        @try {
+            NSNumber *currentStepNumber = [notificationData objectForKey:@"currentStep"];
+            NSNumber *totalStepsNumber = [notificationData objectForKey:@"totalSteps"];
+            
+            if (currentStepNumber && totalStepsNumber) {
+                double currentStep = [currentStepNumber doubleValue];
+                double totalSteps = [totalStepsNumber doubleValue];
+                
+                double progress = currentStep / totalSteps;
+                if (progress < 1.0) {
+                    progress += 0.04;
+                }
+                maxWidth = maxWidth * progress;
+            } else {
+                maxWidth = maxWidth * 0.04;
+            }
+            
+        } @catch (id exp) {
+            maxWidth = maxWidth * 0.04;
+        }
+
+        UIView *progressBarView = [[UIView alloc] initWithFrame: CGRectMake(16.0, 46.0, maxWidth, 8.0)];
+        progressBarView.layer.cornerRadius = 4.0;
+        progressBarView.layer.masksToBounds = YES;
+        progressBarView.clipsToBounds = YES;
+        progressBarView.alpha = 1;
+        NSString *mainColor = [config objectForKey: @"color"];
+        if (mainColor != nil && mainColor.length > 0) {
+            progressBarView.backgroundColor = [GleapUIHelper colorFromHexString: mainColor];
+        } else {
+            progressBarView.backgroundColor = [UIColor blackColor];
+        }
+        [chatBubbleView addSubview: progressBarView];
         
         UIView * _notificationsContainerView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0, width, chatBubbleView.frame.size.height)];
         
