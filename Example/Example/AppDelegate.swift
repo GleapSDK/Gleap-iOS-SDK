@@ -29,22 +29,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.showFeedbackButton(true)
         
-        /*Gleap.handlePushNotification([
-            "type": "news",
-            "id": "12"
-        ])*/
-        Gleap.clearIdentity()
-        
-        /*let userProperty = GleapUserProperty()
+        let userProperty = GleapUserProperty()
         userProperty.name = "Franz"
         userProperty.email = "franz@gleap.io"
         userProperty.phone = "+1 (902) 123123"
         userProperty.value = 199.95
+        userProperty.companyId = "Gleap #123"
+        userProperty.companyName = "Gleap GmbH"
+        userProperty.plan = "Pro plan"
         userProperty.customData = [
-            "plan": "Pro plan",
             "company": "ACME inc."
         ]
-        Gleap.identifyUser(with: "129833", andData: userProperty)*/
+        Gleap.identifyUser(with: "129833", andData: userProperty)
         
         // Testing file attachments.
         if let data = "Dies ist ein test.".data(using: String.Encoding.utf8) {
@@ -68,6 +64,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     
     func initialized() {
         
+    }
+    
+    func notificationCountUpdated(_ count: Int32) {
+        NSLog("Count updated. %i", count);
     }
     
     func widgetClosed() {

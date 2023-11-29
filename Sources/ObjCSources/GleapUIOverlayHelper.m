@@ -40,8 +40,8 @@
         
         if (instance.uiOverlayViewController != nil) {
             [instance.uiOverlayViewController setNotifications: instance.notifications];
-            [instance.uiOverlayViewController updateNotificationCount: 0];
             [instance.uiOverlayViewController updateUI];
+            [GleapUIOverlayHelper updateNotificationCount: 0];
         }
     });
 }
@@ -74,6 +74,10 @@
     dispatch_async(dispatch_get_main_queue(), ^{
         if ([GleapUIOverlayHelper sharedInstance].uiOverlayViewController != nil) {
             [[GleapUIOverlayHelper sharedInstance].uiOverlayViewController updateNotificationCount: notificationCount];
+        }
+        
+        if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(notificationCountUpdated:)]) {
+            [Gleap.sharedInstance.delegate notificationCountUpdated: notificationCount];
         }
     });
 }

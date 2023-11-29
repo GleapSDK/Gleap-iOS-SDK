@@ -81,21 +81,24 @@
 }
 
 - (void)sendMessageWithData:(NSDictionary *)data {
-    NSError *error;
-    NSData *jsonData = [NSJSONSerialization dataWithJSONObject: data
-                                                       options: 0
-                                                         error:&error];
-    if (!jsonData) {
-        NSLog(@"[GLEAP_SDK] Error sending message: %@", error);
-    } else {
-        NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            @try {
-                [self.webView evaluateJavaScript: [NSString stringWithFormat: @"appMessage(%@)", jsonString] completionHandler: nil];
-            }
-            @catch(id exception) {}
-        });
+    @try {
+        NSError *error;
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject: data
+                                                           options: 0
+                                                             error:&error];
+        if (!jsonData) {
+            NSLog(@"[GLEAP_SDK] Error sending message: %@", error);
+        } else {
+            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                @try {
+                    [self.webView evaluateJavaScript: [NSString stringWithFormat: @"appMessage(%@)", jsonString] completionHandler: nil];
+                }
+                @catch(id exception) {}
+            });
+        }
     }
+    @catch(id exception) {}
 }
 
 - (void)userContentController:(WKUserContentController*)userContentController didReceiveScriptMessage:(WKScriptMessage*)message

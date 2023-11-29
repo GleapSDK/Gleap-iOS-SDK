@@ -389,6 +389,38 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
     }
 }
 
+- (void)safelyActivateConstraints:(NSArray<NSLayoutConstraint *> *)constraints {
+    for (NSLayoutConstraint *constraint in constraints) {
+        if (constraint == nil) {
+            NSLog(@"Gleap: Attempted to activate a nil constraint.");
+            continue;
+        }
+
+        if (constraint.firstItem == nil || constraint.secondItem == nil) {
+            NSLog(@"Gleap: Constraint has nil items: %@", constraint);
+            continue;
+        }
+
+        UIView *firstView = [constraint.firstItem isKindOfClass:[UIView class]] ? (UIView *)constraint.firstItem : nil;
+        if (firstView && ![firstView isDescendantOfView: self]) {
+            NSLog(@"Gleap: First item of constraint is not in the view hierarchy: %@", constraint);
+            continue;
+        }
+        
+        UIView *secondView = [constraint.secondItem isKindOfClass:[UIView class]] ? (UIView *)constraint.secondItem : nil;
+        if (secondView && ![secondView isDescendantOfView: self]) {
+            NSLog(@"Gleap: Second item of constraint is not in the view hierarchy: %@", constraint);
+            continue;
+        }
+
+        @try {
+            [NSLayoutConstraint activateConstraints:@[constraint]];
+        } @catch (NSException *exception) {
+            NSLog(@"Gleap: Exception activating constraint: %@, Exception: %@", constraint, exception);
+        }
+    }
+}
+
 - (void)setupModernButton {
     NSDictionary *config = GleapConfigHelper.sharedInstance.config;
     if (config == nil) {

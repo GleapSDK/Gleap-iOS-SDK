@@ -166,6 +166,15 @@ static id ObjectOrNull(id object)
     if (data != nil && data.phone != nil) {
         [sessionRequestData setValue: data.phone forKey: @"phone"];
     }
+    if (data != nil && data.plan != nil) {
+        [sessionRequestData setValue: data.plan forKey: @"plan"];
+    }
+    if (data != nil && data.companyId != nil) {
+        [sessionRequestData setValue: data.companyId forKey: @"companyId"];
+    }
+    if (data != nil && data.companyName != nil) {
+        [sessionRequestData setValue: data.companyName forKey: @"companyName"];
+    }
     if (data != nil && data.value != nil) {
         [sessionRequestData setValue: data.value forKey: @"value"];
     }
@@ -290,6 +299,18 @@ static id ObjectOrNull(id object)
         return YES;
     }
     
+    if ([self sessionDataItemNeedsUpgrade: self.currentSession.plan compareTo: [newData objectForKey: @"plan"]]) {
+        return YES;
+    }
+    
+    if ([self sessionDataItemNeedsUpgrade: self.currentSession.companyName compareTo: [newData objectForKey: @"companyName"]]) {
+        return YES;
+    }
+    
+    if ([self sessionDataItemNeedsUpgrade: self.currentSession.companyId compareTo: [newData objectForKey: @"companyId"]]) {
+        return YES;
+    }
+    
     if ([self sessionDataItemNeedsUpgrade: self.currentSession.userId compareTo: [newData objectForKey: @"userId"]]) {
         return YES;
     }
@@ -331,6 +352,9 @@ static id ObjectOrNull(id object)
         gleapSession.name = [data objectForKey: @"name"];
         gleapSession.value = [data objectForKey: @"value"];
         gleapSession.lang = [data objectForKey: @"lang"];
+        gleapSession.companyId = [data objectForKey: @"companyId"];
+        gleapSession.companyName = [data objectForKey: @"companyName"];
+        gleapSession.plan = [data objectForKey: @"plan"];
     } @catch (id exp) {
         
     }
@@ -435,7 +459,7 @@ static id ObjectOrNull(id object)
         return YES;
     }
     
-    return !(data == newData);
+    return ![data isEqualToNumber: newData];
 }
 
 - (NSString *)getSessionName {
