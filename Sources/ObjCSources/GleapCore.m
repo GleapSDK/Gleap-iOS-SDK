@@ -263,6 +263,10 @@ static id ObjectOrNull(id object)
     }
 }
 
++ (void)startConversation:(BOOL)showBackButton {
+    [Gleap startBot: @"" showBackButton: showBackButton];
+}
+
 + (void)openConversation:(NSString *)shareToken {
     if ([Gleap open]) {
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{

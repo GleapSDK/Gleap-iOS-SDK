@@ -179,6 +179,13 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow showBackButton:(BOOL)showBackButton;
 
 /**
+ * Start empty conversation.
+ * @author Gleap
+ *
+ */
++ (void)startConversation:(BOOL)showBackButton;
+
+/**
  * Start the bot with the given id.
  * @author Gleap
  *
