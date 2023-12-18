@@ -172,6 +172,13 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)close;
 
 /**
+ * Starts a classic form flow.
+ * @author Gleap
+ *
+ */
++ (Boolean)startClassicForm:(NSString * _Nullable)formId showBackButton:(BOOL)showBackButton;
+
+/**
  * Start a feedback flow.
  * @author Gleap
  *

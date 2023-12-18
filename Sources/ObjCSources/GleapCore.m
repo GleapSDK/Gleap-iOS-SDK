@@ -423,7 +423,16 @@ static id ObjectOrNull(id object)
 }
 
 /**
-    Starts the specified feedback flow.
+ * Starts a classic form flow.
+ */
++ (Boolean)startClassicForm:(NSString * _Nullable)formId showBackButton:(BOOL)showBackButton {
+    return [[Gleap sharedInstance] startFeedbackFlow: formId withOptions: @{
+        @"hideBackButton": @(!showBackButton)
+    }];
+}
+
+/**
+ * Starts the specified feedback flow.
  */
 + (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow showBackButton:(BOOL)showBackButton {
     return [[Gleap sharedInstance] startFeedbackFlow: feedbackFlow withOptions: @{
