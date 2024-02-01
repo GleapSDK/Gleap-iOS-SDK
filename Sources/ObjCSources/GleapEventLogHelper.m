@@ -171,6 +171,7 @@
         @"events": self.streamedLog,
         @"opened": @([Gleap isOpened]),
         @"ws": @(self.webSocketEnabled),
+        @"type": @"ios",
         @"sdkVersion": SDK_VERSION,
     };
     

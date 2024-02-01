@@ -243,8 +243,9 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
  *
  * @param userId The user ID of the the user (can be an email as well)
  * @param data The updated user data.
+ * @deprecated Use identifyContact instead. 
  */
-+ (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data;
++ (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data DEPRECATED_MSG_ATTRIBUTE("Use identifyContact instead.");
 
 /**
  * Updates a session's identity.
@@ -253,8 +254,36 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
  * @param userId The user ID of the the user (can be an email as well)
  * @param data The updated user data.
  * @param userHash The calculated user hash to verify ownership.
+ * @deprecated Use identifyContact instead.
  */
-+ (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString *)userHash;
++ (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString *)userHash DEPRECATED_MSG_ATTRIBUTE("Use identifyContact instead.");
+
+/**
+ * Identifies a guest as user.
+ * @author Gleap
+ *
+ * @param userId The user ID of the the user (can be an email as well)
+ * @param data The updated user data.
+ */
++ (void)identifyContact:(NSString *)userId andData:(nullable GleapUserProperty *)data;
+
+/**
+ * Identifies a guest as user (secure).
+ * @author Gleap
+ *
+ * @param userId The user ID of the the user (can be an email as well)
+ * @param data The updated user data.
+ * @param userHash The calculated user hash to verify ownership.
+ */
++ (void)identifyContact:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString *)userHash;
+
+/**
+ * Updates the current contact data.
+ * @author Gleap
+ *
+ * @param data The updated user data.
+ */
++ (void)updateContact:(nullable GleapUserProperty *)data;
 
 /**
  * Clears a user session.
@@ -458,6 +487,10 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
  */
 + (void)startNetworkRecordingForSessionConfiguration:(NSURLSessionConfiguration *)configuration;
 
++ (void)setNetworkLogsBlacklist: (NSArray *)blacklist;
+
++ (void)setNetworkLogPropsToIgnore: (NSArray *)networkLogPropsToIgnore;
+
 /**
  * Stops network recording.
  * @author Gleap
@@ -479,6 +512,8 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 @property (nonatomic, retain) NSString *wsApiUrl;
 @property (nonatomic, retain) NSString* frameUrl;
 @property (nonatomic, retain) NSString* bannerUrl;
+@property (nonatomic, retain) NSArray* blacklist;
+@property (nonatomic, retain) NSArray *networkLogPropsToIgnore;
 @property (nonatomic, assign) int initialized;
 @property (nonatomic, assign) GleapApplicationType applicationType;
 @property (nonatomic, weak) id <GleapDelegate> delegate;

@@ -428,10 +428,15 @@ static id ObjectOrNull(id object)
     self.webView.scrollView.alwaysBounceVertical = NO;
     self.webView.scrollView.alwaysBounceHorizontal = NO;
     self.webView.allowsBackForwardNavigationGestures = NO;
+    if (@available(iOS 16.4, *)) {
+        [self.webView setInspectable: YES];
+    } else {
+        // Fallback on earlier versions
+    }
     if (@available(iOS 11.0, *)) {
         [self.webView.scrollView setContentInsetAdjustmentBehavior: UIScrollViewContentInsetAdjustmentNever];
     }
-
+    
     [self.view addSubview: self.webView];
     self.webView.translatesAutoresizingMaskIntoConstraints = NO;
     [self pinEdgesFrom: self.webView to: self.view];

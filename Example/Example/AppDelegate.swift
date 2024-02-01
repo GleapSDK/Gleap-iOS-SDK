@@ -18,9 +18,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.setLanguage("de")
         
-        //Gleap.setApiUrl("http://localhost:9000")
-        // Gleap.setFrameUrl("http://localhost:3001/appnew.html")
-        Gleap.initialize(withToken: "ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV")
+        //Gleap.setApiUrl("http://0.0.0.0:9000")
+        //Gleap.setFrameUrl("http://0.0.0.0:3001/appnew.html")
+        Gleap.initialize(withToken: "vcxExo94dQQv7KIXd1BnMgN2bzpwZnoj")
         
         Gleap.sharedInstance().delegate = self
         
@@ -29,18 +29,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.showFeedbackButton(true)
         
-        let userProperty = GleapUserProperty()
-        userProperty.name = "Franz"
-        userProperty.email = "franz@gleap.io"
-        userProperty.phone = "+1 (902) 123123"
-        userProperty.value = 199.95
-        userProperty.companyId = "Gleap #123"
-        userProperty.companyName = "Gleap GmbH"
-        userProperty.plan = "Pro plan"
-        userProperty.customData = [
-            "company": "ACME inc."
-        ]
-        Gleap.identifyUser(with: "129833", andData: userProperty)
+        let userProp = GleapUserProperty()
+        userProp.name = "TEST1"
+        userProp.email = "lukas@gleap.io"
+        userProp.customData = ["test": "asdfasdf", "asdfasdfasdf": 123]
+        
+        Gleap.identifyContact("testuser2", andData: userProp)
         
         // Testing file attachments.
         if let data = "Dies ist ein test.".data(using: String.Encoding.utf8) {

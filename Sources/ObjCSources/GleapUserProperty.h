@@ -21,6 +21,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, retain) NSString* companyId;
 @property (nonatomic, retain) NSDictionary* customData;
 
+- (NSDictionary *)dataDictToSendWith:(NSString * _Nullable)userId and:(NSString * _Nullable)userHash;
+
 @end
 
 NS_ASSUME_NONNULL_END

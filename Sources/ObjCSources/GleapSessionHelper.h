@@ -26,6 +26,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)startSessionWith:(void (^)(bool success))completion;
 - (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString * _Nullable)userHash;
+- (void)updateContact:(nullable GleapUserProperty *)data;
 - (void)processOpenPushAction;
 - (void)clearSession;
 - (NSString *)getSessionName;
@@ -33,6 +34,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, retain, nullable) GleapSession* currentSession;
 @property (nonatomic, retain, nullable) NSDictionary* openPushAction;
 @property (nonatomic, retain, nullable) NSDictionary* openIdentityAction;
+@property (nonatomic, retain, nullable) NSDictionary* openUpdateAction;
+@property (nonatomic, retain, nullable) NSString* lastRegisterGleapHash;
 
 @end
 

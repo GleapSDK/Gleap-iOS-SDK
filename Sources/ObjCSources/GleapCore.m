@@ -71,6 +71,8 @@ static id ObjectOrNull(id object)
     self.wsApiUrl = @"wss://ws.gleap.io";
     self.frameUrl = @"https://messenger-app.gleap.io/appnew";
     self.bannerUrl = @"https://outboundmedia.gleap.io";
+    self.blacklist = [[NSArray alloc] init];
+    self.networkLogPropsToIgnore = [[NSArray alloc] init];
     self.initialized = NO;
     self.applicationType = NATIVE;
     
@@ -171,6 +173,7 @@ static id ObjectOrNull(id object)
  *
  * @param userId The user ID of the the user (can be an email as well)
  * @param data The updated user data.
+ * @deprecated Use identifyContact instead.
  */
 + (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data {
     [GleapSessionHelper.sharedInstance identifySessionWith: userId andData: data andUserHash: nil];
@@ -183,9 +186,43 @@ static id ObjectOrNull(id object)
  * @param userId The user ID of the the user (can be an email as well)
  * @param data The updated user data.
  * @param userHash The calculated user hash to verify ownership.
+ * @deprecated Use identifyContact instead.
  */
 + (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString *)userHash {
     [GleapSessionHelper.sharedInstance identifySessionWith: userId andData: data andUserHash: userHash];
+}
+
+/**
+ * Identifies a guest as user.
+ * @author Gleap
+ *
+ * @param userId The user ID of the the user (can be an email as well)
+ * @param data The updated user data.
+ */
++ (void)identifyContact:(NSString *)userId andData:(nullable GleapUserProperty *)data {
+    [GleapSessionHelper.sharedInstance identifySessionWith: userId andData: data andUserHash: nil];
+}
+
+/**
+ * Identifies a guest as user (secure).
+ * @author Gleap
+ *
+ * @param userId The user ID of the the user (can be an email as well)
+ * @param data The updated user data.
+ * @param userHash The calculated user hash to verify ownership.
+ */
++ (void)identifyContact:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString *)userHash {
+    [GleapSessionHelper.sharedInstance identifySessionWith: userId andData: data andUserHash: userHash];
+}
+
+/**
+ * Updates the current contact data.
+ * @author Gleap
+ *
+ * @param data The updated user data.
+ */
++ (void)updateContact:(nullable GleapUserProperty *)data {
+    [GleapSessionHelper.sharedInstance updateContact: data];
 }
 
 /**
@@ -420,6 +457,14 @@ static id ObjectOrNull(id object)
 
 + (void)close {
     [[GleapWidgetManager sharedInstance] closeWidgetWithAnimation: YES andCompletion:^{}];
+}
+
++ (void)setNetworkLogsBlacklist: (NSArray *)blacklist {
+    [Gleap sharedInstance].blacklist = blacklist;
+}
+
++ (void)setNetworkLogPropsToIgnore: (NSArray *)networkLogPropsToIgnore {
+    [Gleap sharedInstance].networkLogPropsToIgnore = networkLogPropsToIgnore;
 }
 
 /**

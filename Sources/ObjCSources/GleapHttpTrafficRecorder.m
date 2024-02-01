@@ -51,13 +51,15 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey     = @"ERROR_KEY";
         NSMutableDictionary * log =  [[NSMutableDictionary alloc] initWithDictionary: [networkLogs objectAtIndex: i]];
         
         @try {
-            if (self.networkLogPropsToIgnore != nil && self.networkLogPropsToIgnore.count >= 0) {
+            NSArray *localNetworkLogPropsToIgnore = [self.networkLogPropsToIgnore arrayByAddingObjectsFromArray: [Gleap sharedInstance].networkLogPropsToIgnore];
+            
+            if (localNetworkLogPropsToIgnore != nil && localNetworkLogPropsToIgnore.count >= 0) {
                 if ([log objectForKey: @"request"] != nil) {
                     NSMutableDictionary *request = [[NSMutableDictionary alloc] initWithDictionary: [log objectForKey: @"request"]];
                     if (request != nil && [request objectForKey: @"headers"]) {
                         if ([request objectForKey: @"headers"] != nil && [[request objectForKey: @"headers"] isKindOfClass:[NSDictionary class]]) {
                             NSMutableDictionary *mutableHeaders = [[NSMutableDictionary alloc] initWithDictionary: [request objectForKey: @"headers"]];
-                            [mutableHeaders removeObjectsForKeys: self.networkLogPropsToIgnore];
+                            [mutableHeaders removeObjectsForKeys: localNetworkLogPropsToIgnore];
                             [request setObject: mutableHeaders forKey: @"headers"];
                         }
                     }
@@ -68,7 +70,7 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey     = @"ERROR_KEY";
                             NSMutableDictionary *jsonObject = [NSJSONSerialization JSONObjectWithData:[[request objectForKey: @"payload"] dataUsingEncoding:NSUTF8StringEncoding]  options: NSJSONReadingMutableContainers error:&jsonError];
                             if (jsonError == nil && jsonObject != nil) {
                                 if ([jsonObject isKindOfClass:[NSDictionary class]]) {
-                                    [jsonObject removeObjectsForKeys: self.networkLogPropsToIgnore];
+                                    [jsonObject removeObjectsForKeys: localNetworkLogPropsToIgnore];
                                 }
                                 
                                 NSError *jsonDataError;
@@ -96,7 +98,7 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey     = @"ERROR_KEY";
                         id jsonObject = [NSJSONSerialization JSONObjectWithData:[[response objectForKey: @"responseText"] dataUsingEncoding:NSUTF8StringEncoding]  options: NSJSONReadingMutableContainers error:&jsonError];
                         if (jsonError == nil && jsonObject != nil) {
                             if ([jsonObject isKindOfClass:[NSDictionary class]]) {
-                                [jsonObject removeObjectsForKeys: self.networkLogPropsToIgnore];
+                                [jsonObject removeObjectsForKeys: localNetworkLogPropsToIgnore];
                             }
                             
                             NSError *jsonDataError;
@@ -119,11 +121,13 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey     = @"ERROR_KEY";
         @catch (NSException *exception) {}
         
         // Network log blacklist.
+        NSArray *blacklistItems = [self.blacklist arrayByAddingObjectsFromArray: [Gleap sharedInstance].blacklist];
+        
         NSString *logUrl = [log objectForKey: @"url"];
         BOOL shouldAddLog = YES;
         if (logUrl != nil) {
-            for (int i = 0; i < self.blacklist.count; i++) {
-                NSString *currentBlacklistItem = [self.blacklist objectAtIndex: i];
+            for (int i = 0; i < blacklistItems.count; i++) {
+                NSString *currentBlacklistItem = [blacklistItems objectAtIndex: i];
                 if (currentBlacklistItem != nil && [logUrl containsString: currentBlacklistItem]) {
                     shouldAddLog = NO;
                 }

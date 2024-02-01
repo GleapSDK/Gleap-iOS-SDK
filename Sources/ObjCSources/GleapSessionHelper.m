@@ -12,6 +12,7 @@
 #import "GleapCore.h"
 #import "GleapEventLogHelper.h"
 #import "GleapTranslationHelper.h"
+#import "GleapMetaDataHelper.h"
 
 @implementation GleapSessionHelper
 
@@ -117,6 +118,14 @@ static id ObjectOrNull(id object)
     [self processOpenPushAction];
 }
 
+- (void)updateContact:(nullable GleapUserProperty *)data {
+    self.openUpdateAction = @{
+        @"data": data,
+    };
+    
+    [self processOpenUpdateAction];
+}
+
 + (void)handlePushNotification:(NSDictionary *)notificationData {
     [GleapSessionHelper sharedInstance].openPushAction = notificationData;
     [[GleapSessionHelper sharedInstance] processOpenPushAction];
@@ -143,6 +152,79 @@ static id ObjectOrNull(id object)
     return;
 }
 
+- (void)processOpenUpdateAction {
+    if (self.openUpdateAction == nil || self.currentSession == nil || self.openIdentityAction != nil) {
+        return;
+    }
+    
+    NSString *gleapId = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapId"];
+    NSString *gleapHash = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapHash"];
+    if (gleapId == nil || gleapHash == nil || gleapId.length == 0 || gleapHash.length == 0) {
+        return;
+    }
+    GleapUserProperty *data = [self.openUpdateAction objectForKey: @"data"];
+    self.openUpdateAction = nil;
+    
+    NSDictionary *dataToSend = [data dataDictToSendWith: nil and: nil];
+    
+    // If update is needed, also append all the custom data fields.
+    @try {
+        NSError *error;
+        
+        NSData *jsonBodyData = [NSJSONSerialization dataWithJSONObject: @{
+            @"data": dataToSend,
+            @"ws": @(YES),
+            @"type": @"ios",
+            @"sdkVersion": SDK_VERSION,
+        } options:kNilOptions error: &error];
+        
+        // Check for parsing error.
+        if (error != nil) {
+            return;
+        }
+        
+        NSMutableURLRequest *request = [NSMutableURLRequest new];
+        request.HTTPMethod = @"POST";
+        [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/sessions/partialupdate", Gleap.sharedInstance.apiUrl]]];
+        [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
+        [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
+        [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
+        
+        [request setValue: gleapId forHTTPHeaderField: @"Gleap-Id"];
+        [request setValue: gleapHash forHTTPHeaderField: @"Gleap-Hash"];
+
+        [request setHTTPBody: jsonBodyData];
+        
+        NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
+        NSURLSession *session = [NSURLSession sessionWithConfiguration:config
+                                                              delegate:nil
+                                                         delegateQueue:[NSOperationQueue mainQueue]];
+        NSURLSessionDataTask *task = [session dataTaskWithRequest:request
+                                                completionHandler:^(NSData * _Nullable data,
+                                                                    NSURLResponse * _Nullable response,
+                                                                    NSError * _Nullable error) {
+            if (error != nil) {
+                return;
+            }
+            
+            if (![response isKindOfClass:[NSHTTPURLResponse class]]) {
+                return;
+            }
+            
+            NSError *jsonError;
+            NSDictionary *jsonResponse = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
+            if (jsonError) {
+                return;
+            }
+            
+            if (jsonResponse != nil && [jsonResponse objectForKey: @"errors"] == nil) {
+                [self updateLocalSessionWith: jsonResponse andCompletion:^(bool success) {}];
+            }
+        }];
+        [task resume];
+    } @catch (id exp) {}
+}
+
 - (void)processOpenIdentityAction {
     if (self.openIdentityAction == nil || self.currentSession == nil) {
         return;
@@ -153,45 +235,7 @@ static id ObjectOrNull(id object)
     GleapUserProperty *data = [self.openIdentityAction objectForKey: @"data"];
     self.openIdentityAction = nil;
     
-    NSMutableDictionary *sessionRequestData = [[NSMutableDictionary alloc] init];
-    if (userId != nil) {
-        [sessionRequestData setValue: userId forKey: @"userId"];
-    }
-    if (data != nil && data.name != nil) {
-        [sessionRequestData setValue: data.name forKey: @"name"];
-    }
-    if (data != nil && data.email != nil) {
-        [sessionRequestData setValue: data.email forKey: @"email"];
-    }
-    if (data != nil && data.phone != nil) {
-        [sessionRequestData setValue: data.phone forKey: @"phone"];
-    }
-    if (data != nil && data.plan != nil) {
-        [sessionRequestData setValue: data.plan forKey: @"plan"];
-    }
-    if (data != nil && data.companyId != nil) {
-        [sessionRequestData setValue: data.companyId forKey: @"companyId"];
-    }
-    if (data != nil && data.companyName != nil) {
-        [sessionRequestData setValue: data.companyName forKey: @"companyName"];
-    }
-    if (data != nil && data.value != nil) {
-        [sessionRequestData setValue: data.value forKey: @"value"];
-    }
-    if (userHash != nil) {
-        [sessionRequestData setValue: userHash forKey: @"userHash"];
-    }
-    
-    NSString *lang = [GleapTranslationHelper sharedInstance].language;
-    if (lang != nil) {
-        [sessionRequestData setValue: lang forKey: @"lang"];
-    }
-    
-    @try {
-        if (data != nil && data.customData != nil && [[data.customData allKeys] count] > 0) {
-            [sessionRequestData addEntriesFromDictionary: data.customData];
-        }
-    } @catch (id exp) {}
+    NSDictionary *sessionRequestData = [data dataDictToSendWith: userId and: userHash];
     
     // Used to check for update.
     NSMutableDictionary *sessionDataToCheckForUpdate = [sessionRequestData mutableCopy];
@@ -276,6 +320,15 @@ static id ObjectOrNull(id object)
         }
     }];
     [task resume];
+}
+
+- (BOOL)isCustomData:(NSDictionary *)customDataSubset aSubsetOf:(NSDictionary *)customData {
+    for (NSString *key in customDataSubset) {
+        if (![customData objectForKey:key] || ![customData[key] isEqual:customDataSubset[key]]) {
+            return NO;
+        }
+    }
+    return YES;
 }
 
 - (BOOL)sessionUpgradeWithDataNeeded:(NSDictionary *)newData {
@@ -365,14 +418,20 @@ static id ObjectOrNull(id object)
         
     }
     
+    // Update local session.
     self.currentSession = gleapSession;
     
     // Process any open identity actions.
     [self processOpenIdentityAction];
     [self processOpenPushAction];
+    [self processOpenUpdateAction];
     
+    // Only send update when session changed.
     if (self.currentSession != nil && self.currentSession.gleapHash != nil && self.currentSession.gleapHash.length > 0 && [Gleap sharedInstance].delegate != nil && [Gleap.sharedInstance.delegate respondsToSelector: @selector(registerPushMessageGroup:)]) {
-        [[Gleap sharedInstance].delegate registerPushMessageGroup: [NSString stringWithFormat: @"gleapuser-%@", self.currentSession.gleapHash]];
+        if (self.lastRegisterGleapHash == nil || ![self.lastRegisterGleapHash isEqualToString: self.currentSession.gleapHash]) {
+            [[Gleap sharedInstance].delegate registerPushMessageGroup: [NSString stringWithFormat: @"gleapuser-%@", self.currentSession.gleapHash]];
+            self.lastRegisterGleapHash = self.currentSession.gleapHash;
+        }
     }
     
     // Update widget session
@@ -384,6 +443,7 @@ static id ObjectOrNull(id object)
 - (void)sendPushMessageUnregister {
     if (self.currentSession != nil && self.currentSession.gleapHash != nil && self.currentSession.gleapHash.length > 0 && [Gleap sharedInstance].delegate != nil && [Gleap.sharedInstance.delegate respondsToSelector: @selector(unregisterPushMessageGroup:)]) {
         [[Gleap sharedInstance].delegate unregisterPushMessageGroup: [NSString stringWithFormat: @"gleapuser-%@", self.currentSession.gleapHash]];
+        self.lastRegisterGleapHash = nil;
     }
 }
 
@@ -418,7 +478,7 @@ static id ObjectOrNull(id object)
         return YES;
     }
     
-    return ![data isEqualToDictionary: newData];
+    return ![self isCustomData: newData aSubsetOf: data];
 }
 
 - (BOOL)sessionDataItemNeedsUpgrade:(NSString *)data compareTo:(NSString *)newData {
