@@ -107,34 +107,36 @@
  */
 - (void)receiveLogNotification:(NSNotification *) notification
 {
-    [_inputPipe.fileHandleForReading readInBackgroundAndNotify];
-    NSData *data = notification.userInfo[NSFileHandleNotificationDataItem];
-    
-    // Write data to output pipe
-    if (_outputPipe != nil) {
-        [[_outputPipe fileHandleForWriting] writeData: data];
-    }
-    
-    // Don't process the logs when the widget is opened.
-    if ([[GleapWidgetManager sharedInstance] isOpened]) {
-        return;
-    }
-    
-    NSString *consoleLogLines = [[NSString alloc] initWithData: data encoding: NSUTF8StringEncoding];
-    if (consoleLogLines != NULL) {
+    @try {
+        [_inputPipe.fileHandleForReading readInBackgroundAndNotify];
+        NSData *data = notification.userInfo[NSFileHandleNotificationDataItem];
         
-        NSError *error = nil;
-        NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"\\d+-\\d+-\\d+ \\d+:\\d+:\\d+.\\d+\\+\\d+ .+\\[.+:.+\\] " options:NSRegularExpressionCaseInsensitive error:&error];
-        consoleLogLines = [regex stringByReplacingMatchesInString: consoleLogLines options: 0 range:NSMakeRange(0, [consoleLogLines length]) withTemplate:@"#BBNL#"];
+        // Write data to output pipe
+        if (_outputPipe != nil) {
+            [[_outputPipe fileHandleForWriting] writeData: data];
+        }
         
-        NSArray *lines = [consoleLogLines componentsSeparatedByString: @"#BBNL#"];
-        for (int i = 0; i < lines.count; i++) {
-            NSString *line = [lines objectAtIndex: i];
-            if (line != NULL && ![line isEqualToString: @""]) {
-                [self addLogWith: line andPriority: @"INFO"];
+        // Don't process the logs when the widget is opened.
+        if ([[GleapWidgetManager sharedInstance] isOpened]) {
+            return;
+        }
+        
+        NSString *consoleLogLines = [[NSString alloc] initWithData: data encoding: NSUTF8StringEncoding];
+        if (consoleLogLines != NULL) {
+            
+            NSError *error = nil;
+            NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"\\d+-\\d+-\\d+ \\d+:\\d+:\\d+.\\d+\\+\\d+ .+\\[.+:.+\\] " options:NSRegularExpressionCaseInsensitive error:&error];
+            consoleLogLines = [regex stringByReplacingMatchesInString: consoleLogLines options: 0 range:NSMakeRange(0, [consoleLogLines length]) withTemplate:@"#BBNL#"];
+            
+            NSArray *lines = [consoleLogLines componentsSeparatedByString: @"#BBNL#"];
+            for (int i = 0; i < lines.count; i++) {
+                NSString *line = [lines objectAtIndex: i];
+                if (line != NULL && ![line isEqualToString: @""]) {
+                    [self addLogWith: line andPriority: @"INFO"];
+                }
             }
         }
-    }
+    } @catch (id exp) {}
 }
 
 @end
