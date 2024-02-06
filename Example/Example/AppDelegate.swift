@@ -41,6 +41,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
             Gleap.addAttachment(with: data, andName: "text.txt")
         }
         
+        let userProperty = GleapUserProperty()
+        userProperty.name = "Franz"
+        userProperty.email = "franz@gleap.io"
+        userProperty.phone = "+1 (902) 123123"
+        userProperty.value = 199.95
+        userProperty.plan = "Pro plan";
+        userProperty.companyId = "29883";
+        userProperty.companyName = "ACME inc.";
+        userProperty.customData = ["key1": "Custom data"];
+
+        Gleap.identifyContact("user_1234", andData: userProperty)
+        
+        Gleap.setNetworkLogsBlacklist(["https://api.gleap.io", "..."])
+        
         // Some demo logs.
         print("App started.")
         print("User logged in.")
