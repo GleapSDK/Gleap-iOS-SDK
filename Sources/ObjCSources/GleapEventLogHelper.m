@@ -67,18 +67,21 @@
 }
 
 - (void)logEvent: (NSString *)name withData: (NSDictionary *)data {
-    [self checkLogSize];
-    [self.log addObject: @{
-        @"name": name,
-        @"data": data,
-        @"date": [self getCurrentJSDate]
-    }];
-    [self.streamedLog addObject: @{
-        @"name": name,
-        @"data": data,
-        @"date": [self getCurrentJSDate]
-    }];
-    
+    @try {
+        [self checkLogSize];
+        [self.log addObject: @{
+            @"name": name,
+            @"data": data,
+            @"date": [self getCurrentJSDate]
+        }];
+        [self.streamedLog addObject: @{
+            @"name": name,
+            @"data": data,
+            @"date": [self getCurrentJSDate]
+        }];
+    } @catch (id exp) {
+        NSLog(@"[GLEAP]: Invalid data passed to Gleap.trackEvent() for event %@", name);
+    }
 }
 
 - (void)stop {
