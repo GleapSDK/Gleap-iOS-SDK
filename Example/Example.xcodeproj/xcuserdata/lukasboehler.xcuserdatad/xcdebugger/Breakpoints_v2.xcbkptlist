@@ -701,8 +701,8 @@
             filePath = "../Sources/ObjCSources/GleapFrameManagerViewController.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "515"
-            endingLineNumber = "515"
+            startingLineNumber = "523"
+            endingLineNumber = "523"
             landmarkName = "-openURLExternally:fromViewController:"
             landmarkType = "7">
          </BreakpointContent>
@@ -717,8 +717,8 @@
             filePath = "../Sources/ObjCSources/GleapFrameManagerViewController.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "527"
-            endingLineNumber = "527"
+            startingLineNumber = "535"
+            endingLineNumber = "535"
             landmarkName = "-openURLExternally:fromViewController:"
             landmarkType = "7">
          </BreakpointContent>
@@ -733,8 +733,8 @@
             filePath = "../Sources/ObjCSources/GleapFrameManagerViewController.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "296"
-            endingLineNumber = "296"
+            startingLineNumber = "304"
+            endingLineNumber = "304"
             landmarkName = "-userContentController:didReceiveScriptMessage:"
             landmarkType = "7">
          </BreakpointContent>

@@ -42,13 +42,17 @@ NS_ASSUME_NONNULL_BEGIN
  */
 + (void)clearCustomData;
 
++ (void)setTicketAttributeWithKey:(NSString *)key value:(id)value;
+
 /**
  * Returns the custom data
  * @author Gleap
  */
 + (NSDictionary *)getCustomData;
++ (NSDictionary *)getTicketAttributes;
 
 @property (retain, nonatomic) NSMutableDictionary *customData;
+@property (retain, nonatomic) NSMutableDictionary *ticketAttributeData;
 
 @end
 

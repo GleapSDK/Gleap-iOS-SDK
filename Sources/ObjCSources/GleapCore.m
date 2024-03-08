@@ -647,10 +647,28 @@ static id ObjectOrNull(id object)
 }
 
 /**
+ * Sets the value of a ticket attribute.
+ * @author Gleap
+ *
+ * @param value The value you want to add
+ * @param key The key of the attribute
+ */
++ (void)setTicketAttributeWithKey:(NSString *)key value:(id)value {
+    [GleapCustomDataHelper setTicketAttributeWithKey: key value: value];
+}
+
+/**
  * Attach one key value pair to existing custom data.
  */
 + (void)setCustomData: (NSString *)value forKey: (NSString *)key {
     [GleapCustomDataHelper setCustomData: value forKey: key];
+}
+
+/**
+ * Pass AI tools.
+ */
++ (void)setAiTools:(NSArray<GleapAiTool *> *)aiTools {
+    [[GleapConfigHelper sharedInstance] setAiTools: aiTools];
 }
 
 /**

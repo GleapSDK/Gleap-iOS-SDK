@@ -26,6 +26,7 @@
     self = [super init];
     if (self) {
         self.customData = [[NSMutableDictionary alloc] init];
+        self.ticketAttributeData = [[NSMutableDictionary alloc] init];
     }
     return self;
 }
@@ -51,6 +52,10 @@
     [[GleapCustomDataHelper sharedInstance].customData setObject: value forKey: key];
 }
 
++ (void)setTicketAttributeWithKey:(NSString *)key value:(id)value {
+    [[GleapCustomDataHelper sharedInstance].ticketAttributeData setObject: value forKey: key];
+}
+
 /**
  * Removes one key from existing custom data.
  */
@@ -60,6 +65,10 @@
 
 + (NSDictionary *)getCustomData {
     return [[[GleapCustomDataHelper sharedInstance] customData] copy];
+}
+
++ (NSDictionary *)getTicketAttributes {
+    return [[[GleapCustomDataHelper sharedInstance] ticketAttributeData] copy];
 }
 
 @end

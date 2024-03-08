@@ -10,6 +10,7 @@
 #import <UIKit/UIKit.h>
 #import "GleapUserProperty.h"
 #import "GleapAction.h"
+#import "GleapAiTool.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -32,6 +33,7 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 - (void) widgetClosed;
 - (void) registerPushMessageGroup: (NSString *)pushMessageGroup;
 - (void) unregisterPushMessageGroup: (NSString *)pushMessageGroup;
+- (void) onToolExecution: (NSDictionary *)toolExecution;
 - (void) openExternalLink: (NSURL *)url;
 @required
 @end
@@ -139,6 +141,12 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
  */
 + (void)openHelpCenter;
 + (void)openHelpCenter:(Boolean)showBackButton;
+
+/**
+ * Set AI tools.
+ * @author Gleap
+ */
++ (void)setAiTools:(NSArray<GleapAiTool *> *)aiTools;
 
 /**
  * Show the help center collection.
@@ -318,6 +326,15 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
  * @param tags The tags array to set
  */
 + (void)setTags: (NSArray *)tags;
+
+/**
+ * Sets the value of a ticket attribute.
+ * @author Gleap
+ *
+ * @param value The value you want to add
+ * @param key The key of the attribute
+ */
++ (void)setTicketAttributeWithKey:(NSString *)key value:(id)value;
 
 /**
  * Attaches custom data, which can be viewed in the Gleap dashboard. New data will be merged with existing custom data.

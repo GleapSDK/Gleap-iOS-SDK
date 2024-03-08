@@ -163,6 +163,16 @@
     // Attach custom data.
     [self attachData: @{ @"customData": [GleapCustomDataHelper getCustomData] }];
     
+    // Attach ticket attributes.
+    NSDictionary * existingFormData = [self.data objectForKey: @"formData"];
+    if (existingFormData != nil) {
+        NSMutableDictionary * formDataDict = [[GleapCustomDataHelper getTicketAttributes] mutableCopy];
+        [formDataDict addEntriesFromDictionary: existingFormData];
+        [self attachData: @{ @"formData": formDataDict }];
+    } else {
+        [self attachData: @{ @"formData": [GleapCustomDataHelper getTicketAttributes] }];
+    }
+    
     // Attach custom event log.
     [self attachData: @{ @"customEventLog": [[GleapEventLogHelper sharedInstance] getLogs] }];
     

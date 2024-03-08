@@ -31,7 +31,21 @@
 
 - (id)init {
     self = [super init];
+    
+    self.aiTools = [[NSArray alloc] init];
+    
     return self;
+}
+
+- (void)setAiTools:(NSArray<GleapAiTool *> *)aiTools {
+    NSMutableArray * toolsToAdd = [[NSMutableArray alloc] init];
+    
+    for (int i = 0; i < aiTools.count; i++) {
+        GleapAiTool * currentTool = [aiTools objectAtIndex: i];
+        [toolsToAdd addObject: [currentTool toDictionary]];
+    }
+    
+    self.internalAiTools = [toolsToAdd mutableCopy];
 }
 
 - (void)run {

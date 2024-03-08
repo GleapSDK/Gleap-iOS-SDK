@@ -190,6 +190,7 @@ static id ObjectOrNull(id object)
             @"config": GleapConfigHelper.sharedInstance.config,
             @"actions": GleapConfigHelper.sharedInstance.projectActions,
             @"overrideLanguage": GleapTranslationHelper.sharedInstance.language,
+            @"aiTools": GleapConfigHelper.sharedInstance.internalAiTools,
             @"isApp": @(YES),
         }
     }];
@@ -270,6 +271,12 @@ static id ObjectOrNull(id object)
             }
         }
         
+        if ([name isEqualToString: @"tool-execution"]) {
+            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(onToolExecution:)]) {
+                [Gleap.sharedInstance.delegate onToolExecution: messageData];
+            }
+        }
+        
         if ([name isEqualToString: @"collect-ticket-data"]) {
             // Create feedback object.
             GleapFeedback *feedback = [[GleapFeedback alloc] init];
@@ -279,6 +286,7 @@ static id ObjectOrNull(id object)
                 @"name": @"collect-ticket-data",
                 @"data": @{
                     @"customData": ObjectOrNull([feedback.data objectForKey: @"customData"]),
+                    @"formData": ObjectOrNull([feedback.data objectForKey: @"formData"]),
                     @"metaData": ObjectOrNull([feedback.data objectForKey: @"metaData"]),
                     @"consoleLog": ObjectOrNull([feedback.data objectForKey: @"consoleLog"]),
                     @"networkLogs": ObjectOrNull([feedback.data objectForKey: @"networkLogs"]),

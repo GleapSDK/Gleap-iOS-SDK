@@ -20,7 +20,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         //Gleap.setApiUrl("http://0.0.0.0:9000")
         //Gleap.setFrameUrl("http://0.0.0.0:3001/appnew.html")
-        Gleap.initialize(withToken: "ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV")
+        Gleap.initialize(withToken: "rnKAHkPdeQBsRlZ1zh4AfbszdqqxASY0")
         
         Gleap.sharedInstance().delegate = self
         
@@ -55,11 +55,38 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.setNetworkLogsBlacklist(["https://api.gleap.io", "..."])
         
+        let aiTool = GleapAiTool(
+            name: "send-money",
+            toolDescription: "Send money to contacts.",
+            response: "Money transfere is initiaed and requires pin entry of user.",
+            parameters: [
+                GleapAiToolParameter(
+                    name: "amount",
+                    parameterDescription: "The amount to transfere.",
+                    type: "string",
+                    required: true
+                )
+            ])
+        
+        Gleap.setAiTools([aiTool])
+        
+        Gleap.setTicketAttributeWithKey("testattr", value: "Some demo :)")
+        Gleap.setTicketAttributeWithKey("test2", value: "Some 1234 :)")
+        
         // Some demo logs.
         print("App started.")
         print("User logged in.")
         
         return true
+    }
+    
+    func onToolExecution(_ toolExecution: [AnyHashable : Any]) {
+        guard let name = toolExecution["name"] as? String else {
+            return
+        }
+        
+        print("Tool: " + name)
+        print(toolExecution["params"] ?? "No params.")
     }
     
     func registerPushMessageGroup(_ pushMessageGroup: String) {
