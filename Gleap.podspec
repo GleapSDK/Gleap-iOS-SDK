@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name         = "Gleap"
-  s.version      = "13.5.0"
+  s.version      = "13.6.0"
   s.summary      = "In-App Bug Reporting and Testing for Apps. Learn more at https://gleap.io"
   s.homepage     = "https://gleap.io"
   s.license      = { :type => 'Commercial', :file => 'LICENSE.md' }
@@ -19,6 +19,7 @@ Pod::Spec.new do |s|
   
   s.source_files = 'Sources/**/*.{h,m,c}'
   s.public_header_files = 'Sources/**/*.h'
+  s.resource_bundles = {"Gleap" => ["Sources/PrivacyInfo.xcprivacy"]}
   
   s.frameworks   = 'UIKit', 'Foundation'
 end

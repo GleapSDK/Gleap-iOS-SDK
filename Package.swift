@@ -19,6 +19,7 @@ let package = Package(
            name: "Gleap",
            dependencies: [],
            path: "Sources/ObjCSources/",
+           resources: [.copy("../PrivacyInfo.xcprivacy")],
            publicHeadersPath: ".",
            cSettings: [
               .headerSearchPath("Internal"),

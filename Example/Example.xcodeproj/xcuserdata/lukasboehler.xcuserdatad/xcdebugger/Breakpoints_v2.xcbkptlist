@@ -482,38 +482,6 @@
             endingLineNumber = "133"
             landmarkName = "-userContentController:didReceiveScriptMessage:"
             landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "44685E69-ADFF-4E76-A771-63600684FC43 - 35a39f59a4b1ca54"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "-[GleapBanner userContentController:didReceiveScriptMessage:]"
-                  moduleName = "Example"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/lukasboehler/Documents/GitHub/Gleap-iOS-SDK/Sources/ObjCSources/GleapBanner.m"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "131"
-                  endingLineNumber = "131"
-                  offsetFromSymbolStart = "1048">
-               </Location>
-               <Location
-                  uuid = "44685E69-ADFF-4E76-A771-63600684FC43 - 5b1abf94eed773ab"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "__61-[GleapBanner userContentController:didReceiveScriptMessage:]_block_invoke_2"
-                  moduleName = "Example"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/lukasboehler/Documents/GitHub/Gleap-iOS-SDK/Sources/ObjCSources/GleapBanner.m"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "132"
-                  endingLineNumber = "132"
-                  offsetFromSymbolStart = "28">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -594,53 +562,6 @@
             endingLineNumber = "74"
             landmarkName = "-initializeUI"
             landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "105C531D-E9EE-4E01-A5B1-7B43752291EE - fc982b7487e09f64"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "-[GleapUIOverlayViewController initializeUI]"
-                  moduleName = "Example"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/lukasboehler/Documents/GitHub/Gleap-iOS-SDK/Sources/ObjCSources/GleapUIOverlayViewController.m"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "66"
-                  endingLineNumber = "66"
-                  offsetFromSymbolStart = "2004">
-               </Location>
-               <Location
-                  uuid = "105C531D-E9EE-4E01-A5B1-7B43752291EE - 7c01ecaa5808d37f"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "__44-[GleapUIOverlayViewController initializeUI]_block_invoke"
-                  moduleName = "Example"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/lukasboehler/Documents/GitHub/Gleap-iOS-SDK/Sources/ObjCSources/GleapUIOverlayViewController.m"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "93"
-                  endingLineNumber = "93"
-                  offsetFromSymbolStart = "2920">
-               </Location>
-               <Location
-                  uuid = "105C531D-E9EE-4E01-A5B1-7B43752291EE - 7c01ecaa5808d2eb"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "__44-[GleapUIOverlayViewController initializeUI]_block_invoke"
-                  moduleName = "Example"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/lukasboehler/Documents/GitHub/Gleap-iOS-SDK/Sources/ObjCSources/GleapUIOverlayViewController.m"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "81"
-                  endingLineNumber = "81"
-                  offsetFromSymbolStart = "2284">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -801,38 +722,6 @@
             endingLineNumber = "156"
             landmarkName = "-processOpenUpdateAction"
             landmarkType = "7">
-            <Locations>
-               <Location
-                  uuid = "C0F5B266-BCD6-4E2C-89E9-C2B4836D9E78 - 3f0d7815c95d65ec"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "-[GleapSessionHelper processOpenUpdateAction]"
-                  moduleName = "Example"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/lukasboehler/Documents/GitHub/Gleap-iOS-SDK/Sources/ObjCSources/GleapSessionHelper.m"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "154"
-                  endingLineNumber = "154"
-                  offsetFromSymbolStart = "408">
-               </Location>
-               <Location
-                  uuid = "C0F5B266-BCD6-4E2C-89E9-C2B4836D9E78 - 3f0d7815c95d65ec"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "-[GleapSessionHelper processOpenUpdateAction]"
-                  moduleName = "Example"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/lukasboehler/Documents/GitHub/Gleap-iOS-SDK/Sources/ObjCSources/GleapSessionHelper.m"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "154"
-                  endingLineNumber = "154"
-                  offsetFromSymbolStart = "44">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>
