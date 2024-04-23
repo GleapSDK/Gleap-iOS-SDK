@@ -20,7 +20,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         //Gleap.setApiUrl("http://0.0.0.0:9000")
         //Gleap.setFrameUrl("http://0.0.0.0:3001/appnew.html")
-        Gleap.initialize(withToken: "rnKAHkPdeQBsRlZ1zh4AfbszdqqxASY0")
+        Gleap.initialize(withToken: "Vx0SXWPHGU7Af54CabNL07k6HRELKTxu")
         
         Gleap.sharedInstance().delegate = self
         
@@ -99,10 +99,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     
     func initialized() {
         
-    }
-    
-    func openExternalLink(_ url: URL) {
-        print(url)
     }
     
     func notificationCountUpdated(_ count: Int32) {

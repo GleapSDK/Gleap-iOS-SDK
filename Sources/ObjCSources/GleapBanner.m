@@ -151,11 +151,7 @@
         }
         
         if ([name isEqualToString: @"open-url"]) {
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(openExternalLink:)]) {
-                [Gleap.sharedInstance.delegate openExternalLink: [NSURL URLWithString: (NSString *)messageData]];
-            } else {
-                [self openURLExternally: [NSURL URLWithString: (NSString *)messageData] fromViewController: [GleapUIHelper getTopMostViewController]];
-            }
+            [Gleap handleURL: (NSString *)messageData];
         }
         
         if ([name isEqualToString: @"show-form"]) {

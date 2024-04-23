@@ -508,6 +508,8 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 
 + (void)setNetworkLogPropsToIgnore: (NSArray *)networkLogPropsToIgnore;
 
++ (void)handleURL: (NSString *)url;
+
 /**
  * Stops network recording.
  * @author Gleap
