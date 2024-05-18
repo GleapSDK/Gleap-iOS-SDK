@@ -20,7 +20,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         //Gleap.setApiUrl("http://0.0.0.0:9000")
         //Gleap.setFrameUrl("http://0.0.0.0:3001/appnew.html")
-        Gleap.initialize(withToken: "Vx0SXWPHGU7Af54CabNL07k6HRELKTxu")
+        Gleap.initialize(withToken: "ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV")
         
         Gleap.sharedInstance().delegate = self
         
@@ -59,6 +59,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
             name: "send-money",
             toolDescription: "Send money to contacts.",
             response: "Money transfere is initiaed and requires pin entry of user.",
+            executionType: "button",
             parameters: [
                 GleapAiToolParameter(
                     name: "amount",
