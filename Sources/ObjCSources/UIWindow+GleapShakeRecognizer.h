@@ -11,6 +11,12 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+extern NSNotificationName const WindowDidBeginMotionNotification;
+extern NSNotificationName const WindowDidEndMotionNotification;
+
+extern NSString * const WindowMotionEventUserInfoKey;
+extern NSString * const WindowMotionEventSubtypeUserInfoKey;
+
 @interface UIWindow (GleapShakeRecognizer)
 
 @end
