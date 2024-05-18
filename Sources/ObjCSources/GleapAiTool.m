@@ -37,7 +37,4 @@
              @"parameters": [paramsDictionaries copy]};
 }
 
-- (nonnull instancetype)initWithName:(nonnull NSString *)name toolDescription:(nonnull NSString *)description response:(nonnull NSString *)response parameters:(nonnull NSArray<GleapAiToolParameter *> *)parameters {
-}
-
 @end
