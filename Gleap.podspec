@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name         = "Gleap"
-  s.version      = "13.7.0"
+  s.version      = "13.7.1"
   s.summary      = "In-App Bug Reporting and Testing for Apps. Learn more at https://gleap.io"
   s.homepage     = "https://gleap.io"
   s.license      = { :type => 'Commercial', :file => 'LICENSE.md' }
