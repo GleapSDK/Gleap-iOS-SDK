@@ -36,6 +36,7 @@
 }
 
 - (IBAction)sendData:(id)sender {
+    [Gleap showFeedbackButton: YES];
 }
 
 @end

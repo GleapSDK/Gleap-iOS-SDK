@@ -65,21 +65,23 @@
 - (void)initializeUI {
     dispatch_async(dispatch_get_main_queue(), ^{
         UIWindow *keyWindow = [self getKeyWindow];
-        self.internalNotifications = [[NSMutableArray alloc] init];
-        self.notificationViews = [[NSMutableArray alloc] init];
-        
-        // Render feedback button.
-        self.feedbackButton = [[GleapFeedbackButton alloc] initWithFrame: CGRectMake(0, 0, 54.0, 54.0)];
-        [keyWindow addSubview: self.feedbackButton];
-        self.feedbackButton.layer.zPosition = INT_MAX;
-        [self.feedbackButton applyConfig];
-        [self.feedbackButton setUserInteractionEnabled: YES];
-        [self.feedbackButton setNotificationCount: 0];
-        
-        UITapGestureRecognizer *feedbackButtonGesture =
-          [[UITapGestureRecognizer alloc] initWithTarget: self
-                                                  action: @selector(feedbackButtonPressed:)];
-        [self.feedbackButton addGestureRecognizer: feedbackButtonGesture];
+        if (keyWindow != nil) {
+            self.internalNotifications = [[NSMutableArray alloc] init];
+            self.notificationViews = [[NSMutableArray alloc] init];
+            
+            // Render feedback button.
+            self.feedbackButton = [[GleapFeedbackButton alloc] initWithFrame: CGRectMake(0, 0, 54.0, 54.0)];
+            [keyWindow addSubview: self.feedbackButton];
+            self.feedbackButton.layer.zPosition = INT_MAX;
+            [self.feedbackButton applyConfig];
+            [self.feedbackButton setUserInteractionEnabled: YES];
+            [self.feedbackButton setNotificationCount: 0];
+            
+            UITapGestureRecognizer *feedbackButtonGesture =
+            [[UITapGestureRecognizer alloc] initWithTarget: self
+                                                    action: @selector(feedbackButtonPressed:)];
+            [self.feedbackButton addGestureRecognizer: feedbackButtonGesture];
+        }
     });
 }
 

@@ -51,3 +51,4 @@ FOUNDATION_EXPORT const unsigned char GleapVersionString[];
 #import "./GleapWebSocketHelper.h"
 #import "./GleapAiTool.h"
 #import "./GleapAiToolParameter.h"
+#import "./GleapWindowChecker.h"
