@@ -118,8 +118,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         NSLog("Started feedback flow", feedbackAction)
     }
     
-    func feedbackSendingFailed() {
-        NSLog("Sending feedback failed")
+    func feedbackSendingFailed(_ data: [AnyHashable : Any]) {
+        NSLog("Feedback sending failed", data)
     }
     
     func feedbackSent(_ data: [AnyHashable : Any]) {
