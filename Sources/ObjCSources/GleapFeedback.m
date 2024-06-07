@@ -53,8 +53,8 @@
                             [Gleap.sharedInstance.delegate feedbackSent: [self getFormData]];
                         }
                     } else {
-                        if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSendingFailed)]) {
-                            [Gleap.sharedInstance.delegate feedbackSendingFailed];
+                        if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSendingFailed:)]) {
+                            [Gleap.sharedInstance.delegate feedbackSendingFailed: data];
                         }
                     }
                     
@@ -235,7 +235,8 @@
  */
 - (void)sendReportToServer: (void (^)(bool success, NSDictionary * data))completion {
     if (Gleap.sharedInstance.token == NULL || [Gleap.sharedInstance.token isEqualToString: @""]) {
-        return completion(false, nil);
+        NSDictionary *errorInfo = @{ @"error": @"Token is null or empty" };
+        return completion(false, errorInfo);
     }
     
     @try {
@@ -244,7 +245,8 @@
         
         // Check for parsing error.
         if (error != nil) {
-            return completion(false, nil);
+            NSDictionary *errorInfo = @{ @"error": @"JSON serialization error", @"details": error.localizedDescription };
+            return completion(false, errorInfo);
         }
         
         NSMutableURLRequest *request = [NSMutableURLRequest new];
@@ -264,7 +266,8 @@
                                                                     NSURLResponse * _Nullable response,
                                                                     NSError * _Nullable error) {
             if (error != nil) {
-                return completion(false, nil);
+                NSDictionary *errorInfo = @{ @"error": @"Network error", @"details": error.localizedDescription };
+                return completion(false, errorInfo);
             }
             
             NSError *parseError = nil;
@@ -272,13 +275,15 @@
             if (!parseError) {
                 return completion(true, responseDict);
             } else {
-                return completion(false, nil);
+                NSDictionary *errorInfo = @{ @"error": @"Response parsing error", @"details": parseError.localizedDescription };
+                return completion(false, errorInfo);
             }
         }];
         [task resume];
     } @catch (NSException *exp) {
         NSLog(@"Failed sending feedback: %@", NSThread.callStackSymbols);
-        return completion(false, nil);
+        NSDictionary *errorInfo = @{ @"error": @"Exception occurred", @"details": exp.reason };
+        return completion(false, errorInfo);
     }
 }
 

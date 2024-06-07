@@ -387,9 +387,20 @@ static id ObjectOrNull(id object)
                         @"data": data
                     }];
                 } else {
+                    NSError *error;
+                    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
+                    
+                    NSString *jsonString;
+                    if (!jsonData) {
+                        NSLog(@"Error converting data to JSON: %@", error);
+                        jsonString = @"{\"error\": \"Conversion to JSON failed\"}";
+                    } else {
+                        jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                    }
+
                     [self sendMessageWithData: @{
                         @"name": @"feedback-sending-failed",
-                        @"data": @"Something went wrong, please try again.",
+                        @"data": jsonString
                     }];
                 }
             }];
