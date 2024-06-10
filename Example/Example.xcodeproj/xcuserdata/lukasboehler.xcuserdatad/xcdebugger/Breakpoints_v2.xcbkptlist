@@ -592,7 +592,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "542"
             endingLineNumber = "542"
-            landmarkName = "-webView:decidePolicyForNavigationAction:decisionHandler:"
+            landmarkName = "-openURLExternally:fromViewController:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

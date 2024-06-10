@@ -240,8 +240,11 @@
     }
     
     @try {
+        // Remove invalid keys from _data recursively
+        NSDictionary *cleanedData = [self dictionaryByRemovingInvalidKeysRecursivelyFromDictionary:_data];
+        
         NSError *error;
-        NSData *jsonBodyData = [NSJSONSerialization dataWithJSONObject: _data options:kNilOptions error: &error];
+        NSData *jsonBodyData = [NSJSONSerialization dataWithJSONObject: cleanedData options: kNilOptions error: &error];
         
         // Check for parsing error.
         if (error != nil) {
@@ -281,7 +284,7 @@
         }];
         [task resume];
     } @catch (NSException *exp) {
-        NSLog(@"Failed sending feedback: %@", NSThread.callStackSymbols);
+        NSLog(@"[GLEAP] Failed sending feedback: %@", NSThread.callStackSymbols);
         NSDictionary *errorInfo = @{ @"error": @"Exception occurred", @"details": exp.reason };
         return completion(false, errorInfo);
     }
@@ -301,6 +304,48 @@
 
 - (void)attachData: (NSDictionary *)data {
     [self.data addEntriesFromDictionary: data];
+}
+
+// Method to remove invalid keys recursively from a dictionary
+- (NSDictionary *)dictionaryByRemovingInvalidKeysRecursivelyFromDictionary:(NSDictionary *)dictionary {
+    NSMutableDictionary *validDictionary = [NSMutableDictionary new];
+    
+    for (id key in dictionary) {
+        if ([key isKindOfClass:[NSString class]]) {
+            id value = dictionary[key];
+            if ([value isKindOfClass:[NSDictionary class]]) {
+                // Recursively clean nested dictionary
+                value = [self dictionaryByRemovingInvalidKeysRecursivelyFromDictionary:value];
+            } else if ([value isKindOfClass:[NSArray class]]) {
+                // Recursively clean nested arrays
+                value = [self arrayByRemovingInvalidKeysRecursivelyFromArray:value];
+            }
+            validDictionary[key] = value;
+        } else {
+            NSLog(@"[GLEAP] Removed invalid key: %@", key);
+        }
+    }
+    
+    return [validDictionary copy];
+}
+
+// Method to remove invalid keys recursively from an array
+- (NSArray *)arrayByRemovingInvalidKeysRecursivelyFromArray:(NSArray *)array {
+    NSMutableArray *validArray = [NSMutableArray new];
+    
+    for (id element in array) {
+        if ([element isKindOfClass:[NSDictionary class]]) {
+            // Recursively clean nested dictionary
+            [validArray addObject:[self dictionaryByRemovingInvalidKeysRecursivelyFromDictionary:element]];
+        } else if ([element isKindOfClass:[NSArray class]]) {
+            // Recursively clean nested array
+            [validArray addObject:[self arrayByRemovingInvalidKeysRecursivelyFromArray:element]];
+        } else {
+            [validArray addObject:element];
+        }
+    }
+    
+    return [validArray copy];
 }
 
 @end

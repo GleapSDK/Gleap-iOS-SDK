@@ -25,7 +25,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         Gleap.sharedInstance().delegate = self
         
         // Attach custom data sample.
-        Gleap.attachCustomData(["value": "Unicorn", "type": "Demo", "ExtraInfo": ["Age": "28", "City": "San Francisco"]])
+        Gleap.attachCustomData(["value": "Unicorn", "type": "Demo", "ExtraInfo": ["Age": "28", "City": "San Francisco", 12: 2999]])
         
         Gleap.showFeedbackButton(true)
         
