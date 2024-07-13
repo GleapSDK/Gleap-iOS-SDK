@@ -36,6 +36,9 @@
     if (self != nil && self.value != nil) {
         [sessionRequestData setValue: self.value forKey: @"value"];
     }
+    if (self != nil && self.sla != nil) {
+        [sessionRequestData setValue: self.sla forKey: @"sla"];
+    }
     if (userHash != nil) {
         [sessionRequestData setValue: userHash forKey: @"userHash"];
     }

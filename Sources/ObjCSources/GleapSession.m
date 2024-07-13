@@ -23,6 +23,7 @@ static id ObjectOrNull(id object)
         @"name": ObjectOrNull(self.name),
         @"email": ObjectOrNull(self.email),
         @"value": ObjectOrNull(self.value),
+        @"sla": ObjectOrNull(self.sla),
         @"phone": ObjectOrNull(self.phone),
         @"companyId": ObjectOrNull(self.companyId),
         @"companyName": ObjectOrNull(self.companyName),

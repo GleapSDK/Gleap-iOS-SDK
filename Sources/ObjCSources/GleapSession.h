@@ -25,6 +25,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, retain, nullable) NSString* companyName;
 @property (nonatomic, retain, nullable) NSDictionary* customData;
 @property (nonatomic, retain, nullable) NSNumber* value;
+@property (nonatomic, retain, nullable) NSNumber* sla;
 
 @end
 

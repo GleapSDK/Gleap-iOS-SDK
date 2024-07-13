@@ -20,7 +20,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         //Gleap.setApiUrl("http://0.0.0.0:9000")
         //Gleap.setFrameUrl("http://0.0.0.0:3001/appnew.html")
-        Gleap.initialize(withToken: "Qi1LtkD1i5chYkhzEOLo2YrpqAOLuxvj")
+        Gleap.initialize(withToken: "xAhpa8UoNkm7Z5jaYexM0yKA6XAZs3yx")
         
         Gleap.sharedInstance().delegate = self
         
@@ -28,13 +28,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         Gleap.attachCustomData(["value": "Unicorn", "type": "Demo", "ExtraInfo": ["Age": "28", "City": "San Francisco", 12: 2999]])
         
         Gleap.showFeedbackButton(true)
-        
-        let userProp = GleapUserProperty()
-        userProp.name = "TEST1"
-        userProp.email = "lukas@gleap.io"
-        userProp.customData = ["test": "asdfasdf", "asdfasdfasdf": 123]
-        
-        Gleap.identifyContact("testuser2", andData: userProp)
         
         // Testing file attachments.
         if let data = "Dies ist ein test.".data(using: String.Encoding.utf8) {
@@ -46,6 +39,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         userProperty.email = "franz@gleap.io"
         userProperty.phone = "+1 (902) 123123"
         userProperty.value = 199.95
+        userProperty.sla = 61
         userProperty.plan = "Pro plan";
         userProperty.companyId = "29883";
         userProperty.companyName = "ACME inc.";

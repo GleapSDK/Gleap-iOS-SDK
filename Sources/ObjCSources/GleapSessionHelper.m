@@ -368,6 +368,10 @@ static id ObjectOrNull(id object)
         return YES;
     }
     
+    if ([self sessionDataNumberItemNeedsUpgrade: self.currentSession.sla compareTo: [newData objectForKey: @"sla"]]) {
+        return YES;
+    }
+    
     if ([self sessionDataNumberItemNeedsUpgrade: self.currentSession.value compareTo: [newData objectForKey: @"value"]]) {
         return YES;
     }
@@ -407,6 +411,7 @@ static id ObjectOrNull(id object)
         gleapSession.lang = [data objectForKey: @"lang"];
         gleapSession.companyId = [data objectForKey: @"companyId"];
         gleapSession.companyName = [data objectForKey: @"companyName"];
+        gleapSession.sla = [data objectForKey: @"sla"];
         gleapSession.plan = [data objectForKey: @"plan"];
     } @catch (id exp) {
         
