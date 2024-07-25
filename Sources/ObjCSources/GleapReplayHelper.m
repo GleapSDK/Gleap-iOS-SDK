@@ -101,14 +101,16 @@
     dispatch_async(dispatch_get_main_queue(), ^{
         if ([UIApplication sharedApplication].applicationState == UIApplicationStateActive) {
             UIImage *screenshot = [GleapScreenCaptureHelper captureScreen];
-            NSString *currentViewControllerName = [GleapUIHelper getTopMostViewControllerName];
-            
-            [self.replaySteps addObject: @{
-                @"screenname": currentViewControllerName,
-                @"image": screenshot,
-                @"interactions": [GleapTouchHelper getAndClearTouchEvents],
-                @"date": [GleapUIHelper getJSStringForNSDate: [[NSDate alloc] init]]
-            }];
+            if (screenshot != nil) {
+                NSString *currentViewControllerName = [GleapUIHelper getTopMostViewControllerName];
+                
+                [self.replaySteps addObject: @{
+                    @"screenname": currentViewControllerName,
+                    @"image": screenshot,
+                    @"interactions": [GleapTouchHelper getAndClearTouchEvents],
+                    @"date": [GleapUIHelper getJSStringForNSDate: [[NSDate alloc] init]]
+                }];
+            }
         }
     });
 }

@@ -1,10 +1,3 @@
-//
-//  GleapScreenCaptureHelper.m
-//  
-//
-//  Created by Lukas Boehler on 25.05.22.
-//
-
 #import "GleapScreenCaptureHelper.h"
 #import "GleapCore.h"
 
@@ -14,24 +7,36 @@
  Captures the current screen as UIImage.
  */
 + (UIImage *)captureScreen {
-    UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
-    
-    if (Gleap.sharedInstance.applicationType == FLUTTER) {
-        UIGraphicsBeginImageContextWithOptions([keyWindow bounds].size, false, [UIScreen mainScreen].scale);
-        NSArray *views = [keyWindow subviews];
-        for (int i = 0; i < views.count; i++) {
-            UIView *view = [views objectAtIndex: i];
-            [view drawViewHierarchyInRect: view.bounds afterScreenUpdates: true];
+    @try {
+        UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
+        CGSize screenSize = [keyWindow bounds].size;
+        
+        if (CGSizeEqualToSize(screenSize, CGSizeZero)) {
+            NSLog(@"Error: Screen size is zero");
+            return nil;
         }
-    } else {
-        UIGraphicsBeginImageContextWithOptions([keyWindow bounds].size, false, [UIScreen mainScreen].scale);
-        CGContextRef context = UIGraphicsGetCurrentContext();
-        [keyWindow.layer renderInContext: context];
+        
+        UIGraphicsImageRendererFormat *format = [UIGraphicsImageRendererFormat defaultFormat];
+        format.scale = [UIScreen mainScreen].scale;
+        
+        UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:screenSize format:format];
+        
+        UIImage *img = [renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull rendererContext) {
+            if (Gleap.sharedInstance.applicationType == FLUTTER) {
+                NSArray *views = [keyWindow subviews];
+                for (UIView *view in views) {
+                    [view drawViewHierarchyInRect:view.bounds afterScreenUpdates:YES];
+                }
+            } else {
+                [keyWindow.layer renderInContext:rendererContext.CGContext];
+            }
+        }];
+        
+        return img;
+    } @catch (NSException *exception) {
+        NSLog(@"Exception: %@", exception);
+        return nil;
     }
-    
-    UIImage *img = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
-    return img;
 }
 
 @end

@@ -583,7 +583,10 @@ static id ObjectOrNull(id object)
         }];
         
         // Attach current screenshot.
-        feedback.screenshot = [GleapScreenCaptureHelper captureScreen];
+        UIImage *screenshot = [GleapScreenCaptureHelper captureScreen];
+        if (screenshot != nil) {
+            feedback.screenshot = screenshot;
+        }
         
         // Attach exclude data.
         if (excludeData != nil) {

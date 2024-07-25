@@ -36,7 +36,10 @@
 }
 
 + (void)takeScreenshot {
-    [GleapScreenshotManager sharedInstance].screenshot = [GleapScreenCaptureHelper captureScreen];
+    UIImage *screenshot = [GleapScreenCaptureHelper captureScreen];
+    if (screenshot != nil) {
+        [GleapScreenshotManager sharedInstance].screenshot = screenshot;
+    }
 }
 
 @end
