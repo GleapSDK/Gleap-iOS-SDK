@@ -305,6 +305,21 @@ static id ObjectOrNull(id object)
     [Gleap startBot: @"" showBackButton: showBackButton];
 }
 
++ (void)openConversations {
+    [Gleap openConversations: false];
+}
+
++ (void)openConversations:(Boolean)showBackButton {
+    if ([Gleap open]) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": @"open-conversations",
+            @"data": @{
+                @"hideBackButton": @(!showBackButton)
+            },
+        }];
+    }
+}
+
 + (void)openConversation:(NSString *)shareToken {
     if ([Gleap open]) {
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{

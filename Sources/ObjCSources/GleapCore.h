@@ -89,6 +89,14 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)openChecklists:(Boolean)showBackButton;
 
 /**
+ * Opens the conversation overview.
+ * @author Gleap
+ *
+ */
++ (void)openConversations;
++ (void)openConversations:(Boolean)showBackButton;
+
+/**
  * Open a checklist.
  * @author Gleap
  *
