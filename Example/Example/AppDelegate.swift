@@ -16,11 +16,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.setDisableInAppNotifications(false);
         
-        Gleap.setLanguage("de")
-        
         //Gleap.setApiUrl("http://0.0.0.0:9000")
         //Gleap.setFrameUrl("http://0.0.0.0:3001/appnew.html")
-        Gleap.initialize(withToken: "ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV")
+        Gleap.initialize(withToken: "QoXkztrcfqtl706i9CLcI3O5mGeWCaNw")
         
         Gleap.sharedInstance().delegate = self
         

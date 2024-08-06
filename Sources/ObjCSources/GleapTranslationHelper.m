@@ -28,6 +28,9 @@
     self = [super init];
     if (self) {
         self.language = [[NSLocale preferredLanguages] firstObject];
+        if (self.language != nil) {
+            self.language = [self.language lowercaseString];
+        }
     }
     return self;
 }
