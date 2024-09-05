@@ -386,6 +386,21 @@ static id ObjectOrNull(id object)
                         @"name": @"feedback-sent",
                         @"data": data
                     }];
+                    
+                    @try {
+                        if (outboundId != nil) {
+                            // Notify about outbound sent event.
+                            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(outboundSent:)]) {
+                                [Gleap.sharedInstance.delegate outboundSent: @{
+                                    @"outboundId": outboundId,
+                                    @"outbound": action,
+                                    @"formData": formData,
+                                }];
+                            }
+                            
+                            [Gleap trackEvent: [NSString stringWithFormat: @"outbound-%@-submitted", outboundId] withData: formData];
+                        }
+                    } @catch (id exp) {}
                 } else {
                     NSError *error;
                     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];

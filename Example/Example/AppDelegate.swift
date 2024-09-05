@@ -18,7 +18,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         //Gleap.setApiUrl("http://0.0.0.0:9000")
         //Gleap.setFrameUrl("http://0.0.0.0:3001/appnew.html")
-        Gleap.initialize(withToken: "QoXkztrcfqtl706i9CLcI3O5mGeWCaNw")
+        Gleap.initialize(withToken: "qL1QaYaBwCZ7rweHFTT9zROoBkZNhM8w")
         
         Gleap.sharedInstance().delegate = self
         
@@ -116,6 +116,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     
     func feedbackSent(_ data: [AnyHashable : Any]) {
         NSLog("Feedback sent", data)
+    }
+    
+    func outboundSent(_ data: [AnyHashable : Any]) {
+        NSLog("Outbound sent", data)
     }
     
     func customActionCalled(_ customAction: String) {
