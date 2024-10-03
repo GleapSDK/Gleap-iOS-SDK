@@ -235,9 +235,15 @@
                 for (int i = 0; i < actions.count; i++) {
                     NSDictionary *action = [actions objectAtIndex: i];
                     if ([[action objectForKey: @"actionType"] isEqualToString: @"notification"]) {
+                        NSDictionary *data = action[@"data"];
+                        
                         // NOTIFICATIONS
-                        if (self.disableInAppNotifications == NO) {
-                            [GleapUIOverlayHelper showNotification: action];
+                        if (data != nil && data[@"checklist"] != nil && [data[@"checklist"][@"popupType"] isEqualToString:@"widget"]) {
+                            [Gleap openChecklist: data[@"checklist"][@"id"] andShowBackButton: YES];
+                        } else {
+                            if (!self.disableInAppNotifications) {
+                                [GleapUIOverlayHelper showNotification:action];
+                            }
                         }
                     } else if ([[action objectForKey: @"actionType"] isEqualToString: @"banner"]) {
                         // BANNER

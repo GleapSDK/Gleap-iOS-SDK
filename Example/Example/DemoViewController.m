@@ -31,7 +31,6 @@
 }
 
 - (IBAction)demo:(id)sender {
-    self.overrideUserInterfaceStyle = UIUserInterfaceStyleDark;
     [Gleap showFeedbackButton: NO];
 }
 

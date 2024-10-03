@@ -389,16 +389,16 @@ static id ObjectOrNull(id object)
                     
                     @try {
                         if (outboundId != nil) {
+                            [Gleap trackEvent: [NSString stringWithFormat: @"outbound-%@-submitted", outboundId] withData: formData];
+                            
                             // Notify about outbound sent event.
                             if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(outboundSent:)]) {
                                 [Gleap.sharedInstance.delegate outboundSent: @{
-                                    @"outboundId": outboundId,
-                                    @"outbound": action,
-                                    @"formData": formData,
+                                    @"outboundId": ObjectOrNull(outboundId),
+                                    @"outbound": ObjectOrNull(action),
+                                    @"formData": ObjectOrNull(formData),
                                 }];
                             }
-                            
-                            [Gleap trackEvent: [NSString stringWithFormat: @"outbound-%@-submitted", outboundId] withData: formData];
                         }
                     } @catch (id exp) {}
                 } else {
