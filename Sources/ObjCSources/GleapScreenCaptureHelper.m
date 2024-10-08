@@ -8,9 +8,29 @@
  */
 + (UIImage *)captureScreen {
     @try {
-        UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
-        CGSize screenSize = [keyWindow bounds].size;
+        // Ensure we're on the main thread
+        if (![NSThread isMainThread]) {
+            __block UIImage *capturedImage = nil;
+            dispatch_sync(dispatch_get_main_queue(), ^{
+                capturedImage = [self captureScreen];
+            });
+            return capturedImage;
+        }
         
+        // Check application state
+        UIApplicationState appState = [UIApplication sharedApplication].applicationState;
+        if (appState != UIApplicationStateActive) {
+            NSLog(@"Error: Application is not active");
+            return nil;
+        }
+        
+        UIWindow *keyWindow = [UIApplication sharedApplication].keyWindow;
+        if (!keyWindow) {
+            NSLog(@"Error: keyWindow is nil");
+            return nil;
+        }
+        
+        CGSize screenSize = keyWindow.bounds.size;
         if (CGSizeEqualToSize(screenSize, CGSizeZero)) {
             NSLog(@"Error: Screen size is zero");
             return nil;
@@ -23,18 +43,23 @@
         
         UIImage *img = [renderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull rendererContext) {
             if (Gleap.sharedInstance.applicationType == FLUTTER) {
-                NSArray *views = [keyWindow subviews];
+                NSArray *views = keyWindow.subviews;
                 for (UIView *view in views) {
-                    [view drawViewHierarchyInRect:view.bounds afterScreenUpdates:YES];
+                    if (!view.isHidden && view.alpha > 0.0 && CGRectIntersectsRect(keyWindow.bounds, view.frame)) {
+                        [view drawViewHierarchyInRect:view.bounds afterScreenUpdates:YES];
+                    }
                 }
             } else {
-                [keyWindow.layer renderInContext:rendererContext.CGContext];
+                BOOL success = [keyWindow drawViewHierarchyInRect:keyWindow.bounds afterScreenUpdates:NO];
+                if (!success) {
+                    NSLog(@"Error: drawViewHierarchyInRect failed");
+                }
             }
         }];
         
         return img;
     } @catch (NSException *exception) {
-        NSLog(@"Exception: %@", exception);
+        NSLog(@"Exception in captureScreen: %@\n%@", exception.reason, exception.callStackSymbols);
         return nil;
     }
 }

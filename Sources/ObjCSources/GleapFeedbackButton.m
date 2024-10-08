@@ -276,33 +276,36 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
 
 - (void)updateConstraintsForOrientation {
     if (![NSThread isMainThread]) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            @try {
-                [self updateConstraintsForOrientation];
-            } @catch (NSException *exception) {
-                
+        __weak typeof(self) weakSelf = self;
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            __strong typeof(weakSelf) strongSelf = weakSelf;
+            if (strongSelf) {
+                [strongSelf updateConstraintsForOrientation];
             }
         });
         return;
     }
     
+    // Ensure that the application is active
     UIApplicationState state = [[UIApplication sharedApplication] applicationState];
     if (state == UIApplicationStateBackground || state == UIApplicationStateInactive) {
         return;
     }
     
+    // Get the configuration safely
     NSDictionary *config = GleapConfigHelper.sharedInstance.config;
     if (config == nil) {
         return;
     }
     
-    NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
+    NSString *feedbackButtonPosition = [config objectForKey:@"feedbackButtonPosition"];
     if (feedbackButtonPosition == nil) {
         return;
     }
     
-    bool isClassicButton = [feedbackButtonPosition containsString: @"CLASSIC"];
+    BOOL isClassicButton = [feedbackButtonPosition containsString:@"CLASSIC"];
     
+    // Update layer properties safely
     if (isClassicButton) {
         self.layer.cornerRadius = 8.0;
         if (@available(iOS 11.0, *)) {
@@ -310,12 +313,17 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
         }
     }
     
-    if (self.safeAreaConstraint == nil || self.edgeConstraint == nil) {
+    // Ensure constraints are valid
+    if (!self.safeAreaConstraint || !self.edgeConstraint) {
         return;
     }
     
-    bool shouldActivateSafeAreaConstraint = NO;
-    bool shouldActivateEdgeConstraint = NO;
+    if (!self.safeAreaConstraint.firstItem || !self.edgeConstraint.firstItem) {
+        return;
+    }
+    
+    BOOL shouldActivateSafeAreaConstraint = NO;
+    BOOL shouldActivateEdgeConstraint = NO;
     
     @try {
         // Always pin iPad to edge.
@@ -375,31 +383,33 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
                 }
             }
         }
-        
-        NSMutableArray *toActivate = [[NSMutableArray alloc] init];
-        NSMutableArray *toDeactivate = [[NSMutableArray alloc] init];
+
+        NSMutableArray *toActivate = [NSMutableArray array];
+        NSMutableArray *toDeactivate = [NSMutableArray array];
         
         if (shouldActivateSafeAreaConstraint) {
-            [toActivate addObject: self.safeAreaConstraint];
+            [toActivate addObject:self.safeAreaConstraint];
         } else {
-            [toDeactivate addObject: self.safeAreaConstraint];
+            [toDeactivate addObject:self.safeAreaConstraint];
         }
         
         if (shouldActivateEdgeConstraint) {
-            [toActivate addObject: self.edgeConstraint];
+            [toActivate addObject:self.edgeConstraint];
         } else {
-            [toDeactivate addObject: self.edgeConstraint];
+            [toDeactivate addObject:self.edgeConstraint];
         }
         
+        // Deactivate constraints safely
         if (toDeactivate.count > 0) {
-            [NSLayoutConstraint deactivateConstraints: toDeactivate];
+            [NSLayoutConstraint deactivateConstraints:toDeactivate];
         }
         
+        // Activate constraints safely
         if (toActivate.count > 0) {
-            [NSLayoutConstraint activateConstraints: toActivate];
+            [NSLayoutConstraint activateConstraints:toActivate];
         }
-    } @catch (id anException) {
-        
+    } @catch (NSException *exception) {
+        // Handle exceptions if necessary
     }
 }
 
