@@ -75,6 +75,7 @@ static id ObjectOrNull(id object)
     self.blacklist = [[NSArray alloc] init];
     self.networkLogPropsToIgnore = [[NSArray alloc] init];
     self.initialized = NO;
+    self.notificationViewOffsetY = 20;
     self.applicationType = NATIVE;
     
     [[GleapMetaDataHelper sharedInstance] startSession];
@@ -86,6 +87,10 @@ static id ObjectOrNull(id object)
 
 + (void)setAutoActivationMethodsDisabled {
     [GleapActivationMethodHelper setAutoActivationMethodsDisabled];
+}
+
++ (void)setNotificationViewOffsetY: (int)offsetY {
+    [Gleap sharedInstance].notificationViewOffsetY = offsetY;
 }
 
 + (void)setLanguage: (NSString *)language {

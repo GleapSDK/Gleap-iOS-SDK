@@ -314,6 +314,8 @@
         [_notificationsContainerView.widthAnchor constraintEqualToConstant: width].active = YES;
         [_notificationsContainerView.heightAnchor constraintEqualToConstant: containerHeight].active = YES;
         
+        int notificationViewOffsetY = [Gleap sharedInstance].notificationViewOffsetY;
+        
         NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
         if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"]) {
             [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
@@ -329,7 +331,7 @@
                 [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: self.feedbackButton.topAnchor constant: -10].active = YES;
                 [_notificationsContainerView.leadingAnchor constraintEqualToAnchor: self.feedbackButton.leadingAnchor constant: 0].active = YES;
             } else {
-                [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
+                [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -notificationViewOffsetY].active = YES;
                 [_notificationsContainerView.leadingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.leadingAnchor constant: 20].active = YES;
             }
         } else if ([feedbackButtonPosition isEqualToString: @"BOTTOM_RIGHT"]) {
@@ -337,7 +339,7 @@
                 [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: self.feedbackButton.topAnchor constant: -10].active = YES;
                 [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: self.feedbackButton.trailingAnchor constant: 0].active = YES;
             } else {
-                [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
+                [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -notificationViewOffsetY].active = YES;
                 [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.trailingAnchor constant: -20].active = YES;
             }
         } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_NONE"]) {
@@ -345,7 +347,8 @@
                 [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: self.feedbackButton.topAnchor constant: -10].active = YES;
                 [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: self.feedbackButton.trailingAnchor constant: 0].active = YES;
             } else {
-                [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -20].active = YES;
+                
+                [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -notificationViewOffsetY].active = YES;
                 [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.trailingAnchor constant: -20].active = YES;
             }
         }

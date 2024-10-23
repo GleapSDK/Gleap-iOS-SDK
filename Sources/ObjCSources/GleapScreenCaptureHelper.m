@@ -24,7 +24,17 @@
             return nil;
         }
         
-        UIWindow *keyWindow = [UIApplication sharedApplication].keyWindow;
+        UIWindow *keyWindow = nil;
+        if (@available(iOS 13.0, *)) {
+            for (UIWindowScene *windowScene in [UIApplication sharedApplication].connectedScenes) {
+                if (windowScene.activationState == UISceneActivationStateForegroundActive) {
+                    keyWindow = windowScene.windows.firstObject;
+                    break;
+                }
+            }
+        } else {
+            keyWindow = [UIApplication sharedApplication].keyWindow;
+        }
         if (!keyWindow) {
             NSLog(@"Error: keyWindow is nil");
             return nil;

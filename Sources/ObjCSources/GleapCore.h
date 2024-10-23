@@ -82,6 +82,14 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)openNews:(Boolean)showBackButton;
 
 /**
+ * Sets an y offset for the notification view when the feedback button is set to hidden (either through the config or code overwrite).
+ * @author Gleap
+ *
+ * @param offsetY The Y offset of the notification view.
+ */
++ (void)setNotificationViewOffsetY: (int)offsetY;
+
+/**
  * Open the checklists overview.
  * @author Gleap
  *
@@ -543,6 +551,7 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 @property (nonatomic, retain) NSArray* blacklist;
 @property (nonatomic, retain) NSArray *networkLogPropsToIgnore;
 @property (nonatomic, assign) int initialized;
+@property (nonatomic, assign) int notificationViewOffsetY;
 @property (nonatomic, assign) GleapApplicationType applicationType;
 @property (nonatomic, weak) id <GleapDelegate> delegate;
 

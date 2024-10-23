@@ -215,7 +215,7 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
             
             if (@available(iOS 11, *)) {
                 UILayoutGuide *guide = window.safeAreaLayoutGuide;
-                _safeAreaConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeLeading relatedBy:NSLayoutRelationEqual toItem:guide attribute:NSLayoutAttributeLeading multiplier:1 constant: -(buttonHeight - 6)];
+                _safeAreaConstraint = [NSLayoutConstraint constraintWithItem: self attribute:NSLayoutAttributeLeading relatedBy:NSLayoutRelationEqual toItem: guide attribute:NSLayoutAttributeLeading multiplier:1 constant: -(buttonHeight - 6)];
             }
         } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_BOTTOM"]) {
             rotation = 0;
@@ -388,15 +388,15 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
         NSMutableArray *toDeactivate = [NSMutableArray array];
         
         if (shouldActivateSafeAreaConstraint) {
-            [toActivate addObject:self.safeAreaConstraint];
+            [toActivate addObject: self.safeAreaConstraint];
         } else {
-            [toDeactivate addObject:self.safeAreaConstraint];
+            [toDeactivate addObject: self.safeAreaConstraint];
         }
         
         if (shouldActivateEdgeConstraint) {
-            [toActivate addObject:self.edgeConstraint];
+            [toActivate addObject: self.edgeConstraint];
         } else {
-            [toDeactivate addObject:self.edgeConstraint];
+            [toDeactivate addObject: self.edgeConstraint];
         }
         
         // Deactivate constraints safely
@@ -406,42 +406,10 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
         
         // Activate constraints safely
         if (toActivate.count > 0) {
-            [NSLayoutConstraint activateConstraints:toActivate];
+            [NSLayoutConstraint activateConstraints: toActivate];
         }
     } @catch (NSException *exception) {
         // Handle exceptions if necessary
-    }
-}
-
-- (void)safelyActivateConstraints:(NSArray<NSLayoutConstraint *> *)constraints {
-    for (NSLayoutConstraint *constraint in constraints) {
-        if (constraint == nil) {
-            NSLog(@"Gleap: Attempted to activate a nil constraint.");
-            continue;
-        }
-
-        if (constraint.firstItem == nil || constraint.secondItem == nil) {
-            NSLog(@"Gleap: Constraint has nil items: %@", constraint);
-            continue;
-        }
-
-        UIView *firstView = [constraint.firstItem isKindOfClass:[UIView class]] ? (UIView *)constraint.firstItem : nil;
-        if (firstView && ![firstView isDescendantOfView: self]) {
-            NSLog(@"Gleap: First item of constraint is not in the view hierarchy: %@", constraint);
-            continue;
-        }
-        
-        UIView *secondView = [constraint.secondItem isKindOfClass:[UIView class]] ? (UIView *)constraint.secondItem : nil;
-        if (secondView && ![secondView isDescendantOfView: self]) {
-            NSLog(@"Gleap: Second item of constraint is not in the view hierarchy: %@", constraint);
-            continue;
-        }
-
-        @try {
-            [NSLayoutConstraint activateConstraints:@[constraint]];
-        } @catch (NSException *exception) {
-            NSLog(@"Gleap: Exception activating constraint: %@, Exception: %@", constraint, exception);
-        }
     }
 }
 
@@ -518,8 +486,20 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
     }
 }
 
+- (void)willMoveToSuperview:(UIView *)newSuperview {
+    if (!newSuperview) {
+        @try {
+            [[NSNotificationCenter defaultCenter] removeObserver:self name:UIDeviceOrientationDidChangeNotification object:nil];
+        } @catch (NSException *exception) {}
+    }
+    
+    [super willMoveToSuperview:newSuperview];
+}
+
 - (void)dealloc {
-    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIDeviceOrientationDidChangeNotification object:nil];
+    @try {
+        [[NSNotificationCenter defaultCenter] removeObserver:self name:UIDeviceOrientationDidChangeNotification object:nil];
+    } @catch (NSException *exception) {}
 }
 
 @end
