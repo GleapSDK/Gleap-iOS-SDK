@@ -326,7 +326,6 @@ static id ObjectOrNull(id object)
         }
         
         if ([name isEqualToString: @"open-url"] && messageData != nil) {
-            UIViewController *presentingViewController = self.presentingViewController;
             [self closeWidget:^{
                 [Gleap handleURL: (NSString *)messageData];
             }];
