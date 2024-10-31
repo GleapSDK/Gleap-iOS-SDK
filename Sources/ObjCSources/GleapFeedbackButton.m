@@ -404,6 +404,14 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
             [NSLayoutConstraint deactivateConstraints:toDeactivate];
         }
         
+        // Filter valid constraints
+        NSMutableArray<NSLayoutConstraint *> *validConstraints = [NSMutableArray array];
+        for (NSLayoutConstraint *constraint in toActivate) {
+            if (constraint && constraint.isActive == NO) { // Ensure constraint is valid and not already active
+                [validConstraints addObject:constraint];
+            }
+        }
+        
         // Activate constraints safely
         if (toActivate.count > 0) {
             [NSLayoutConstraint activateConstraints: toActivate];

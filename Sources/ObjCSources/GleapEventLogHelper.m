@@ -158,8 +158,13 @@
         return;
     }
     
+    NSArray *eventsToSend;
+    @synchronized (self.streamedLog) {
+        eventsToSend = [self.streamedLog copy];
+    }
+    
     // When websocket mode is enabled, don't send empty events.
-    if (self.webSocketEnabled && self.streamedLog.count == 0) {
+    if (self.webSocketEnabled && eventsToSend.count == 0) {
         return;
     }
     
@@ -171,7 +176,7 @@
     
     NSDictionary *data = @{
         @"time": [NSNumber numberWithDouble: [[GleapMetaDataHelper sharedInstance] sessionDuration]],
-        @"events": self.streamedLog,
+        @"events": eventsToSend,
         @"opened": @([Gleap isOpened]),
         @"ws": @(self.webSocketEnabled),
         @"type": @"ios",
@@ -224,7 +229,9 @@
     }
     
     // Clear items.
-    [self.streamedLog removeAllObjects];
+    @synchronized (self.streamedLog) {
+        [self.streamedLog removeAllObjects];
+    }
 }
 
 - (void)parseUpdate:(NSDictionary *)actionData {

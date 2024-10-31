@@ -32,10 +32,16 @@
 
 - (IBAction)demo:(id)sender {
     [Gleap showFeedbackButton: NO];
+    [Gleap trackEvent: @"test"];
+    [Gleap trackEvent: @"test"];
+    [Gleap trackEvent: @"test"];
+    [Gleap trackEvent: @"test"];
+    [Gleap trackEvent: @"test"];
 }
 
 - (IBAction)sendData:(id)sender {
     [Gleap showFeedbackButton: YES];
+    [Gleap trackEvent: @"test"];
 }
 
 @end
