@@ -18,7 +18,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         //Gleap.setApiUrl("http://0.0.0.0:9000")
         //Gleap.setFrameUrl("http://0.0.0.0:3001/appnew.html")
-        Gleap.initialize(withToken: "gbMLfLgtayFd2PeNJrjbxl6eB2OboAfn")
+        Gleap.initialize(withToken: "nKT6erqDUjwqfVN2xRkOG4XOf8NEEJ52")
         
         Gleap.sharedInstance().delegate = self
         
@@ -123,7 +123,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     }
     
     func customActionCalled(_ customAction: String) {
-        NSLog(customAction)
+        // Perform custom action.
+    }
+    
+    func customActionCalled(_ customAction: String, withShareToken shareToken: String?) {
+        // Perform custom action.
     }
 
     // MARK: UISceneSession Lifecycle

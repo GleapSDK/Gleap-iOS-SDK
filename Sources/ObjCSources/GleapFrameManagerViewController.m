@@ -320,6 +320,12 @@ static id ObjectOrNull(id object)
         }
         
         if ([name isEqualToString: @"run-custom-action"] && messageData != nil) {
+            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(customActionCalled:withShareToken:)]) {
+                NSString *shareToken = [message.body objectForKey: @"shareToken"];
+                
+                [Gleap.sharedInstance.delegate customActionCalled: (NSString *)messageData withShareToken: shareToken];
+            }
+            
             if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(customActionCalled:)]) {
                 [Gleap.sharedInstance.delegate customActionCalled: (NSString *)messageData];
             }

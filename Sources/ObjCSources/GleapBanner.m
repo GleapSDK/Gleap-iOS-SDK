@@ -146,7 +146,11 @@
         
         if ([name isEqualToString: @"start-custom-action"]) {
             if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(customActionCalled:)]) {
-                [Gleap.sharedInstance.delegate customActionCalled: (NSString *)[messageData objectForKey: @"action"]];
+                [Gleap.sharedInstance.delegate customActionCalled: (NSString *)[messageData objectForKey: @"action"] withShareToken: nil];
+            }
+            
+            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(customActionCalled:)]) {
+                [Gleap.sharedInstance.delegate customActionCalled: (NSString *)messageData];
             }
         }
         
