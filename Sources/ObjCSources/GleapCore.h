@@ -365,8 +365,6 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 /**
  * Clears all ticket attributes.
  * @author Gleap
- *
- * @param key The key you want to unset.
  */
 + (void)clearTicketAttributes;
 
