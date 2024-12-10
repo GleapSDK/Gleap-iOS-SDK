@@ -57,6 +57,7 @@
     WKUserContentController* userController = [[WKUserContentController alloc] init];
     [userController addScriptMessageHandler: self name: @"gleapBannerCallback"];
     webConfig.userContentController = userController;
+    webConfig.allowsInlineMediaPlayback = YES;
     
     self.webView = [[WKWebView alloc] initWithFrame:self.frame configuration: webConfig];
     self.webView.opaque = false;
@@ -78,6 +79,15 @@
     
     NSURLRequest * request = [NSURLRequest requestWithURL: [NSURL URLWithString: Gleap.sharedInstance.bannerUrl]];
     [self.webView loadRequest: request];
+}
+
+- (void)webView:(WKWebView *)webView
+     requestMediaCapturePermissionForOrigin:(WKSecurityOrigin *)origin
+     initiatedByFrame:(WKFrameInfo *)frame type:(WKMediaCaptureType)type
+     decisionHandler:(void (^)(WKPermissionDecision decision))decisionHandler
+     API_AVAILABLE(ios(15.0))
+{
+    decisionHandler(WKPermissionDecisionGrant);
 }
 
 - (void)sendMessageWithData:(NSDictionary *)data {

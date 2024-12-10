@@ -53,7 +53,21 @@
 }
 
 + (void)setTicketAttributeWithKey:(NSString *)key value:(id)value {
-    [[GleapCustomDataHelper sharedInstance].ticketAttributeData setObject: value forKey: key];
+    @try {
+        [[GleapCustomDataHelper sharedInstance].ticketAttributeData setObject: value forKey: key];
+    } @catch (id exp) {}
+}
+
++ (void)unsetTicketAttributeWithKey:(NSString *)key {
+    @try {
+        [[GleapCustomDataHelper sharedInstance].ticketAttributeData removeObjectForKey: key];
+    } @catch (id exp) {}
+}
+
++ (void)clearTicketAttributes {
+    @try {
+        [[GleapCustomDataHelper sharedInstance].ticketAttributeData removeAllObjects];
+    } @catch (NSException *exception) {}
 }
 
 /**

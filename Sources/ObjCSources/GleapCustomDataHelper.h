@@ -43,6 +43,8 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)clearCustomData;
 
 + (void)setTicketAttributeWithKey:(NSString *)key value:(id)value;
++ (void)unsetTicketAttributeWithKey:(NSString *)key;
++ (void)clearTicketAttributes;
 
 /**
  * Returns the custom data

@@ -355,6 +355,22 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)setTicketAttributeWithKey:(NSString *)key value:(id)value;
 
 /**
+ * Unsets the value of a ticket attribute.
+ * @author Gleap
+ *
+ * @param key The key you want to unset.
+ */
++ (void)unsetTicketAttributeWithKey:(NSString *)key;
+
+/**
+ * Clears all ticket attributes.
+ * @author Gleap
+ *
+ * @param key The key you want to unset.
+ */
++ (void)clearTicketAttributes;
+
+/**
  * Attaches custom data, which can be viewed in the Gleap dashboard. New data will be merged with existing custom data.
  * @author Gleap
  *

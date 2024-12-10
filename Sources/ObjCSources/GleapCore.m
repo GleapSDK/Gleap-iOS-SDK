@@ -682,6 +682,26 @@ static id ObjectOrNull(id object)
 }
 
 /**
+ * Unsets the value of a ticket attribute.
+ * @author Gleap
+ *
+ * @param key The key you want to unset.
+ */
++ (void)unsetTicketAttributeWithKey:(NSString *)key {
+    [GleapCustomDataHelper unsetTicketAttributeWithKey: key];
+}
+
+/**
+ * Clears all ticket attributes.
+ * @author Gleap
+ *
+ * @param key The key you want to unset.
+ */
++ (void)clearTicketAttributes {
+    [GleapCustomDataHelper clearTicketAttributes];
+}
+
+/**
  * Attach one key value pair to existing custom data.
  */
 + (void)setCustomData: (NSString *)value forKey: (NSString *)key {

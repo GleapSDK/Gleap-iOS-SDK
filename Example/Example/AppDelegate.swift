@@ -18,7 +18,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         //Gleap.setApiUrl("http://0.0.0.0:9000")
         //Gleap.setFrameUrl("http://0.0.0.0:3001/appnew.html")
-        Gleap.initialize(withToken: "nKT6erqDUjwqfVN2xRkOG4XOf8NEEJ52")
+        Gleap.initialize(withToken: "ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV")
         
         Gleap.sharedInstance().delegate = self
         
@@ -63,6 +63,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.setAiTools([aiTool])
         
+        Gleap.setTicketAttributeWithKey("testattr", value: "Some demo :)")
+        Gleap.setTicketAttributeWithKey("test2", value: "Some 1234 :)")
+        Gleap.unsetTicketAttribute(withKey: "testattr")
+        Gleap.clearTicketAttributes()
         Gleap.setTicketAttributeWithKey("testattr", value: "Some demo :)")
         Gleap.setTicketAttributeWithKey("test2", value: "Some 1234 :)")
         
