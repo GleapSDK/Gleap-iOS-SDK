@@ -5,26 +5,34 @@
 //  Created by Lukas Boehler on 28.03.21.
 //
 
+#import <objc/runtime.h>
+#import <objc/message.h>
 #import "GleapHttpTrafficRecorder.h"
 #import "GleapCore.h"
 #import "GleapUIHelper.h"
 #import "GleapWidgetManager.h"
 
-NSString * const GleapHTTPTrafficRecordingProgressRequestKey   = @"REQUEST_KEY";
-NSString * const GleapHTTPTrafficRecordingProgressResponseKey  = @"RESPONSE_KEY";
-NSString * const GleapHTTPTrafficRecordingProgressBodyDataKey  = @"BODY_DATA_KEY";
+NSString * const GleapHTTPTrafficRecordingProgressRequestKey    = @"REQUEST_KEY";
+NSString * const GleapHTTPTrafficRecordingProgressResponseKey   = @"RESPONSE_KEY";
+NSString * const GleapHTTPTrafficRecordingProgressBodyDataKey   = @"BODY_DATA_KEY";
 NSString * const GleapHTTPTrafficRecordingProgressStartDateKey  = @"REQUEST_START_DATE_KEY";
-NSString * const GleapHTTPTrafficRecordingProgressErrorKey     = @"ERROR_KEY";
+NSString * const GleapHTTPTrafficRecordingProgressErrorKey      = @"ERROR_KEY";
 
-@interface GleapHttpTrafficRecorder()
-@property(nonatomic, assign, readwrite) BOOL isRecording;
-@property(nonatomic, strong) NSString *recordingPath;
-@property(nonatomic, strong) NSURLSessionConfiguration *sessionConfig;
-@property(nonatomic, strong) NSMutableArray *requests;
-@property(nonatomic, assign) int maxRequestsInQueue;
+#pragma mark - Private Category on NSURLSession
+
+@interface NSURLSession (GleapSwizzling)
+- (NSURLSessionDataTask *)gleap_dataTaskWithRequest:(NSURLRequest *)request
+                                  completionHandler:(void (^)(NSData *data,
+                                                               NSURLResponse *response,
+                                                               NSError *error))completionHandler;
 @end
 
-@interface GleapRecordingProtocol : NSURLProtocol @end
+@interface GleapHttpTrafficRecorder ()
+@property (nonatomic, assign, readwrite) BOOL isRecording;
+@property (nonatomic, strong) NSMutableArray *requests;
+@property (nonatomic, assign) int maxRequestsInQueue;
+// Remove sessionConfig or protocol-related properties, because we're not using them anymore.
+@end
 
 @implementation GleapHttpTrafficRecorder
 
@@ -41,6 +49,38 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey     = @"ERROR_KEY";
         shared.blacklist = [[NSArray alloc] init];
     });
     return shared;
+}
+
+- (BOOL)startRecordingForSessionConfiguration:(NSURLSessionConfiguration *)sessionConfig {
+    return [self startRecording];
+}
+
+- (BOOL)startRecording {
+    if (self.isRecording) {
+        return YES; // Already recording
+    }
+    self.isRecording = YES;
+    
+    // Trigger the swizzling (see below)
+    [GleapHttpTrafficRecorder swizzleURLSessionIfNeeded];
+    
+    return YES;
+}
+
+- (void)stopRecording {
+    self.isRecording = NO;
+}
+
+- (void)setMaxRequests:(int)maxRequests {
+    self.maxRequestsInQueue = maxRequests;
+}
+
+- (void)clearLogs {
+    [self.requests removeAllObjects];
+}
+
+- (NSArray *)networkLogs {
+    return [self.requests copy];
 }
 
 - (NSArray *)filterNetworkLogs:(NSArray *)networkLogs {
@@ -142,262 +182,234 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey     = @"ERROR_KEY";
     return [processedNetworkLogs copy];
 }
 
-- (void)setMaxRequests:(int)maxRequests {
-    self.maxRequestsInQueue = maxRequests;
-}
-
-- (void)clearLogs {
-    [self.requests removeAllObjects];
-}
-
-- (NSArray *)networkLogs {
-    return [self.requests copy];
-}
-
-- (BOOL)startRecording{
-    return [self startRecordingForSessionConfiguration: nil];
-}
-
-- (BOOL)startRecordingForSessionConfiguration:(NSURLSessionConfiguration *)sessionConfig {
-    if (sessionConfig) {
-        self.sessionConfig = sessionConfig;
-        NSMutableOrderedSet *mutableProtocols = [[NSMutableOrderedSet alloc] initWithArray:sessionConfig.protocolClasses];
-        [mutableProtocols insertObject:[GleapRecordingProtocol class] atIndex:0];
-        sessionConfig.protocolClasses = [mutableProtocols array];
-    } else {
-        [NSURLProtocol registerClass: [GleapRecordingProtocol class]];
-    }
-    
-    self.isRecording = YES;
-    
-    return YES;
-}
-
-- (void)stopRecording{
-    if (self.isRecording){
-        if (self.sessionConfig) {
-            NSMutableArray *mutableProtocols = [[NSMutableArray alloc] initWithArray:self.sessionConfig.protocolClasses];
-            [mutableProtocols removeObject:[GleapRecordingProtocol class]];
-            self.sessionConfig.protocolClasses = mutableProtocols;
-            self.sessionConfig = nil;
-        } else {
-            [NSURLProtocol unregisterClass:[GleapRecordingProtocol class]];
-        }
-    }
-    
-    self.isRecording = NO;
-}
-
-+ (NSString *)stringFromDictionary:(NSDictionary *)dictionary {
-    if (dictionary == nil) {
-        return @"{}";
-    }
-    
-    @try {
-        NSError *error;
-        NSData *jsonData = [NSJSONSerialization dataWithJSONObject: dictionary
-                            options:NSJSONWritingPrettyPrinted
-                            error:&error];
-        NSString *jsonString;
-        if (jsonData) {
-            jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-            return jsonString;
-        } else {
-            return @"{}";
-        }
-    }
-    @catch (NSException *exception) {
-        return @"{}";
-    }
-}
-
 + (NSString *)stringFrom:(NSData *)data {
-    return [[NSString alloc] initWithData: data encoding: NSUTF8StringEncoding];
+    if (!data) {
+        return @"";
+    }
+    return [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] ?: @"";
 }
 
 + (BOOL)isTextBasedContentType:(NSString *)contentType {
-    if ([contentType containsString: @"text/"]) {
+    if ([contentType containsString:@"text/"]) {
         return true;
     }
-    if ([contentType containsString: @"application/javascript"]) {
+    if ([contentType containsString:@"application/javascript"]) {
         return true;
     }
-    if ([contentType containsString: @"application/xhtml+xml"]) {
+    if ([contentType containsString:@"application/xhtml+xml"]) {
         return true;
     }
-    if ([contentType containsString: @"application/json"]) {
+    if ([contentType containsString:@"application/json"]) {
         return true;
     }
-    if ([contentType containsString: @"application/xml"]) {
+    if ([contentType containsString:@"application/xml"]) {
         return true;
     }
-    if ([contentType containsString: @"application/x-www-form-urlencoded"]) {
+    if ([contentType containsString:@"application/x-www-form-urlencoded"]) {
         return true;
     }
-    if ([contentType containsString: @"multipart/"]) {
+    if ([contentType containsString:@"multipart/"]) {
         return true;
     }
     return false;
 }
 
-@end
+#pragma mark - Internal Logging
 
-#pragma mark - Private Protocol Class
-
-static NSString * const GleapRecordingProtocolHandledKey = @"GleapRecordingProtocolHandledKey";
-
-@interface GleapRecordingProtocol () <NSURLConnectionDelegate>
-
-@property (nonatomic, strong) NSURLConnection *connection;
-@property (nonatomic, strong) NSMutableData *mutableData;
-@property (nonatomic, strong) NSURLResponse *response;
-@property (nonatomic, strong) NSDate *startDate;
-
-@end
-
-
-@implementation GleapRecordingProtocol
-
-#pragma mark - NSURLProtocol overrides
-
-+ (BOOL)canInitWithRequest:(NSURLRequest *)request {
-    BOOL isHTTP = [request.URL.scheme isEqualToString:@"https"] || [request.URL.scheme isEqualToString:@"http"];
-    if ([NSURLProtocol propertyForKey: GleapRecordingProtocolHandledKey inRequest:request] || !isHTTP) {
-        return NO;
+/**
+ Wraps the "updateRecorderProgressDelegate" logic into a single method we can call
+ from our swizzled completion block.
+ */
++ (void)recordRequest:(NSURLRequest *)request
+             response:(NSURLResponse *)response
+                data:(NSData *)data
+               error:(NSError *)error
+           startTime:(NSDate *)startTime
+{
+    if (!request) {
+        return;
     }
     
-    return YES;
-}
+    NSMutableURLRequest *mutableRequest = [request isKindOfClass:[NSMutableURLRequest class]]
+        ? (NSMutableURLRequest *)request
+        : [request mutableCopy]; // We need mutable to pass into existing logging.
 
-+ (NSURLRequest *) canonicalRequestForRequest:(NSURLRequest *)request {
-    return request;
-}
-
-- (void) startLoading {
-    NSMutableURLRequest *newRequest = [self.request mutableCopy];
-    [NSURLProtocol setProperty: @YES forKey: GleapRecordingProtocolHandledKey inRequest: newRequest];
+    NSMutableDictionary *info = [NSMutableDictionary dictionary];
+    info[GleapHTTPTrafficRecordingProgressRequestKey] = mutableRequest;
+    info[GleapHTTPTrafficRecordingProgressStartDateKey] = (startTime ?: [NSDate date]);
     
-    self.startDate = [NSDate date];
-    self.connection = [NSURLConnection connectionWithRequest:newRequest delegate:self];
-}
-
-- (void) stopLoading {
-    [self.connection cancel];
-    self.mutableData = nil;
-}
-
-#pragma mark - NSURLConnectionDelegate
-
-- (void) connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response {
-    [self.client URLProtocol: self didReceiveResponse:response cacheStoragePolicy: NSURLCacheStorageNotAllowed];
-    
-    self.response = response;
-    self.mutableData = [[NSMutableData alloc] init];
-}
-
-- (void) connection:(NSURLConnection *)connection didReceiveData:(NSData *)data {
-    [self.client URLProtocol:self didLoadData:data];
-    
-    [self.mutableData appendData:data];
-}
-
-- (void) connectionDidFinishLoading:(NSURLConnection *)connection {
-    [self.client URLProtocolDidFinishLoading:self];
-    [self.class updateRecorderProgressDelegate: true
-                                      userInfo:@{GleapHTTPTrafficRecordingProgressRequestKey: self.request,
-                                                 GleapHTTPTrafficRecordingProgressResponseKey: self.response,
-                                                 GleapHTTPTrafficRecordingProgressBodyDataKey: self.mutableData,
-                                                 GleapHTTPTrafficRecordingProgressStartDateKey: self.startDate
-                                                 }];
-}
-
-- (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error {
-    [self.client URLProtocol:self didFailWithError:error];
-    
-    [self.class updateRecorderProgressDelegate: false
-                                      userInfo:@{GleapHTTPTrafficRecordingProgressRequestKey: self.request,
-                                                 GleapHTTPTrafficRecordingProgressErrorKey: error,
-                                                 GleapHTTPTrafficRecordingProgressStartDateKey: self.startDate
-                                                 }];
-}
-
-- (void)connection:(NSURLConnection *)connection didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
-    [self.client URLProtocol:self didReceiveAuthenticationChallenge:challenge];
-}
-
-- (void)connection:(NSURLConnection *)connection didCancelAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge {
-    [self.client URLProtocol:self didCancelAuthenticationChallenge:challenge];
-}
-
-- (NSURLRequest *)connection:(NSURLConnection *)connection willSendRequest:(NSURLRequest *)request redirectResponse:(NSURLResponse *)response {
-    if (response != nil) {
-        [[self client] URLProtocol:self wasRedirectedToRequest:request redirectResponse:response];
+    if (error) {
+        info[GleapHTTPTrafficRecordingProgressErrorKey] = error;
+        [self updateRecorderProgressDelegate:NO userInfo:info];
+    } else {
+        if (response) {
+            info[GleapHTTPTrafficRecordingProgressResponseKey] = response;
+        }
+        info[GleapHTTPTrafficRecordingProgressBodyDataKey] = (data ?: [NSData data]);
+        [self updateRecorderProgressDelegate:YES userInfo:info];
     }
-    return request;
 }
 
-#pragma mark - Recording Progress
-
-+ (void)updateRecorderProgressDelegate:(bool)success userInfo:(NSDictionary *)info {
-    NSMutableURLRequest *urlRequest = [info objectForKey: GleapHTTPTrafficRecordingProgressRequestKey];
-    NSMutableDictionary *request = [[NSMutableDictionary alloc] init];
+/**
+ This is your existing logic from GleapRecordingProtocol's +updateRecorderProgressDelegate:
+ */
++ (void)updateRecorderProgressDelegate:(BOOL)success userInfo:(NSDictionary *)info {
+    NSMutableURLRequest *urlRequest = info[GleapHTTPTrafficRecordingProgressRequestKey];
+    if (![urlRequest isKindOfClass:[NSMutableURLRequest class]]) {
+        return; // Safety check
+    }
     
-    [request setValue: [urlRequest HTTPMethod] forKey: @"type"];
-    [request setValue: [[urlRequest URL] absoluteString] forKey: @"url"];
-    [request setValue: [GleapUIHelper getJSStringForNSDate: [[NSDate alloc] init]] forKey: @"date"];
+    NSMutableDictionary *requestLog = [NSMutableDictionary dictionary];
+    [requestLog setValue:urlRequest.HTTPMethod forKey:@"type"];
+    [requestLog setValue:urlRequest.URL.absoluteString forKey:@"url"];
+    [requestLog setValue:[GleapUIHelper getJSStringForNSDate:[NSDate date]] forKey:@"date"];
     
-    NSDate *startLoadingDate = [info objectForKey: GleapHTTPTrafficRecordingProgressStartDateKey];
-    if (startLoadingDate != NULL) {
-        int duration = (int)([startLoadingDate timeIntervalSinceNow] * 1000 * -1);
-        [request setValue: [NSNumber numberWithDouble: duration] forKey: @"duration"];
+    NSDate *startLoadingDate = info[GleapHTTPTrafficRecordingProgressStartDateKey];
+    if (startLoadingDate) {
+        int duration = (int)([startLoadingDate timeIntervalSinceNow] * -1000);
+        [requestLog setValue:@(duration) forKey:@"duration"];
     }
     
     if (success) {
-        NSHTTPURLResponse *response = [info objectForKey: GleapHTTPTrafficRecordingProgressResponseKey];
-        NSData *data = [info objectForKey: GleapHTTPTrafficRecordingProgressBodyDataKey];
-        NSString *contentType = [[response allHeaderFields] objectForKey: @"Content-Type"];
+        NSHTTPURLResponse *response = info[GleapHTTPTrafficRecordingProgressResponseKey];
+        NSData *data = info[GleapHTTPTrafficRecordingProgressBodyDataKey];
+        NSString *contentType = @"";
         
-        [request setValue: @YES forKey: @"success"];
-        
-        NSMutableDictionary *requestObj = [[NSMutableDictionary alloc] init];
-        [requestObj setValue: [GleapHttpTrafficRecorder stringFrom: [urlRequest HTTPBody]] forKey: @"payload"];
-        [requestObj setValue: [urlRequest allHTTPHeaderFields] forKey: @"headers"];
-        [request setValue: requestObj forKey: @"request"];
-        
-        NSMutableDictionary *responseObj = [[NSMutableDictionary alloc] init];
-        [responseObj setValue: [NSNumber numberWithInteger: [response statusCode]] forKey: @"status"];
-        [responseObj setValue: [response allHeaderFields] forKey: @"headers"];
-        [responseObj setValue: contentType forKey: @"contentType"];
-        
-        // Add the response body only if smaller than 0.5MB and Content-Type is valid.
-        int maxBodySize = 1024 * 500;
-        if ([GleapHttpTrafficRecorder isTextBasedContentType: contentType] && data.length < maxBodySize) {
-            [responseObj setValue: [GleapHttpTrafficRecorder stringFrom: data] forKey: @"responseText"];
-        } else {
-            [responseObj setValue: @"<response_too_large>" forKey: @"responseText"];
+        if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
+            contentType = [((NSHTTPURLResponse *)response) allHeaderFields][@"Content-Type"] ?: @"";
         }
         
-        [request setValue: responseObj forKey: @"response"];
+        requestLog[@"success"] = @(YES);
+        
+        // Request details
+        NSMutableDictionary *reqObj = [NSMutableDictionary dictionary];
+        if (urlRequest.HTTPBody) {
+            reqObj[@"payload"] = [GleapHttpTrafficRecorder stringFrom:urlRequest.HTTPBody];
+        } else {
+            reqObj[@"payload"] = @"";
+        }
+        if (urlRequest.allHTTPHeaderFields) {
+            reqObj[@"headers"] = urlRequest.allHTTPHeaderFields;
+        }
+        requestLog[@"request"] = reqObj;
+        
+        // Response details
+        if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
+            NSHTTPURLResponse *httpResp = (NSHTTPURLResponse *)response;
+            NSMutableDictionary *respObj = [NSMutableDictionary dictionary];
+            respObj[@"status"] = @(httpResp.statusCode);
+            respObj[@"headers"] = httpResp.allHeaderFields ?: @{};
+            respObj[@"contentType"] = contentType;
+            
+            // Only store text-based content and only if under 0.5MB
+            int maxBodySize = 1024 * 500;
+            if ([GleapHttpTrafficRecorder isTextBasedContentType:contentType] && data.length < maxBodySize) {
+                respObj[@"responseText"] = [GleapHttpTrafficRecorder stringFrom:data];
+            } else {
+                respObj[@"responseText"] = @"<response_too_large>";
+            }
+            
+            requestLog[@"response"] = respObj;
+        }
+        
     } else {
-        [request setValue: @NO forKey: @"success"];
-        
-        NSError *error = [info objectForKey: GleapHTTPTrafficRecordingProgressErrorKey];
-        
-        NSMutableDictionary *responseObj = [[NSMutableDictionary alloc] init];
-        [responseObj setValue: [error localizedDescription] forKey: @"errorText"];
-        [request setValue: responseObj forKey: @"response"];
+        // Failure
+        requestLog[@"success"] = @(NO);
+        NSError *error = info[GleapHTTPTrafficRecordingProgressErrorKey];
+        NSMutableDictionary *respObj = [NSMutableDictionary dictionary];
+        if (error) {
+            respObj[@"errorText"] = error.localizedDescription ?: @"";
+        }
+        requestLog[@"response"] = respObj;
     }
     
-    // Don't process the network logs when the widget is opened.
+    // If widget is open, skip
     if ([[GleapWidgetManager sharedInstance] isOpened]) {
         return;
     }
     
+    // Add to queue
     GleapHttpTrafficRecorder *recorder = [GleapHttpTrafficRecorder sharedRecorder];
-    if (recorder.requests.count >= recorder.maxRequestsInQueue) {
-        [[recorder requests] removeObjectAtIndex: 0];
+    @synchronized (recorder.requests) {
+        if (recorder.requests.count >= recorder.maxRequestsInQueue) {
+            [recorder.requests removeObjectAtIndex:0];
+        }
+        [recorder.requests addObject:[requestLog copy]];
     }
-    [[recorder requests] addObject: [request copy]];
+}
+
+#pragma mark - Swizzling
+
++ (void)swizzleURLSessionIfNeeded {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        Class sessionClass = [NSURLSession class];
+        
+        // Original selector
+        SEL originalSEL = @selector(dataTaskWithRequest:completionHandler:);
+        Method originalMethod = class_getInstanceMethod(sessionClass, originalSEL);
+        if (!originalMethod) {
+            return;
+        }
+        
+        // Our swizzled selector
+        SEL swizzledSEL = @selector(gleap_dataTaskWithRequest:completionHandler:);
+        Method swizzledMethod = class_getInstanceMethod(sessionClass, swizzledSEL);
+        if (!swizzledMethod) {
+            // We’ll create it dynamically below
+            IMP swizzledImpl = (IMP)gleap_dataTaskWithRequest;
+            const char *typeEncoding = method_getTypeEncoding(originalMethod);
+            class_addMethod(sessionClass, swizzledSEL, swizzledImpl, typeEncoding);
+            swizzledMethod = class_getInstanceMethod(sessionClass, swizzledSEL);
+            if (!swizzledMethod) {
+                return;
+            }
+        }
+        
+        // Exchange the implementations
+        method_exchangeImplementations(originalMethod, swizzledMethod);
+    });
+}
+
+/**
+ Our custom C function that re-implements `dataTaskWithRequest:completionHandler:`.
+ 
+ We must cast `self` and arguments properly, then call the *swizzled* method to get
+ the actual NSURLSessionDataTask from the system, while wrapping the completion block
+ so we can capture the response/error.
+ */
+NSURLSessionDataTask * gleap_dataTaskWithRequest(id self,
+                                                 SEL _cmd,
+                                                 NSURLRequest *request,
+                                                 void (^completionHandler)(NSData *, NSURLResponse *, NSError *))
+{
+    // Cast `self` to NSURLSession
+    NSURLSession *session = (NSURLSession *)self;
+    if (!request) {
+        // Just call the original if request is nil
+        return [session gleap_dataTaskWithRequest:request completionHandler:completionHandler];
+    }
+    
+    __block NSDate *startTime = [NSDate date];
+    
+    // Wrap the original completion so we can log the result
+    void (^wrappedCompletion)(NSData *, NSURLResponse *, NSError *) =
+    ^(NSData *data, NSURLResponse *response, NSError *error) {
+        
+        // Log via Gleap
+        [GleapHttpTrafficRecorder recordRequest:request
+                                       response:response
+                                          data:data
+                                         error:error
+                                     startTime:startTime];
+        
+        // Call the original completion
+        if (completionHandler) {
+            completionHandler(data, response, error);
+        }
+    };
+    
+    return [session gleap_dataTaskWithRequest:request completionHandler:wrappedCompletion];
 }
 
 @end

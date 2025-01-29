@@ -27,16 +27,12 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view.
     
+    [Gleap startNetworkRecording];
+    
     self.button.layer.cornerRadius = 25;
 }
 
 - (IBAction)demo:(id)sender {
-    [Gleap showFeedbackButton: NO];
-    [Gleap trackEvent: @"test"];
-    [Gleap trackEvent: @"test"];
-    [Gleap trackEvent: @"test"];
-    [Gleap trackEvent: @"test"];
-    [Gleap trackEvent: @"test"];
 }
 
 - (IBAction)sendData:(id)sender {
