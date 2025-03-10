@@ -187,6 +187,10 @@
         if ([name isEqualToString: @"show-help-article"]) {
             [Gleap openHelpCenterArticle: [messageData objectForKey: @"articleId"] andShowBackButton: NO];
         }
+        
+        if ([name isEqualToString: @"show-checklist"]) {
+            [Gleap startChecklist: [messageData objectForKey: @"checklistId"] andShowBackButton: NO];
+        }
     }
 }
 
