@@ -40,10 +40,6 @@ static char GleapLoggingRecordedKey;
                                       completionHandler:(void (^)(NSData *data,
                                                                    NSURLResponse *response,
                                                                    NSError *error))completionHandler;
-- (NSURLSessionUploadTask *)gleap_uploadTaskWithStreamedRequest:(NSURLRequest *)request
-                                               completionHandler:(void (^)(NSData *data,
-                                                                           NSURLResponse *response,
-                                                                           NSError *error))completionHandler;
 - (NSURLSessionDownloadTask *)gleap_downloadTaskWithURL:(NSURL *)url
                                       completionHandler:(void (^)(NSURL *location,
                                                                   NSURLResponse *response,
@@ -359,19 +355,6 @@ static char GleapLoggingRecordedKey;
         }
         method_exchangeImplementations(originalUploadDataMethod, swizzledUploadDataMethod);
         
-        // Swizzle uploadTaskWithStreamedRequest:completionHandler:
-        SEL originalUploadStreamedSEL = @selector(uploadTaskWithStreamedRequest:completionHandler:);
-        Method originalUploadStreamedMethod = class_getInstanceMethod(sessionClass, originalUploadStreamedSEL);
-        SEL swizzledUploadStreamedSEL = @selector(gleap_uploadTaskWithStreamedRequest:completionHandler:);
-        Method swizzledUploadStreamedMethod = class_getInstanceMethod(sessionClass, swizzledUploadStreamedSEL);
-        if (!swizzledUploadStreamedMethod) {
-            IMP swizzledUploadStreamedImpl = (IMP)gleap_uploadTaskWithStreamedRequest;
-            const char *uploadStreamedTypeEncoding = method_getTypeEncoding(originalUploadStreamedMethod);
-            class_addMethod(sessionClass, swizzledUploadStreamedSEL, swizzledUploadStreamedImpl, uploadStreamedTypeEncoding);
-            swizzledUploadStreamedMethod = class_getInstanceMethod(sessionClass, swizzledUploadStreamedSEL);
-        }
-        method_exchangeImplementations(originalUploadStreamedMethod, swizzledUploadStreamedMethod);
-        
         // Swizzle downloadTaskWithURL:completionHandler:
         SEL originalDownloadURLSEL = @selector(downloadTaskWithURL:completionHandler:);
         Method originalDownloadURLMethod = class_getInstanceMethod(sessionClass, originalDownloadURLSEL);
@@ -483,29 +466,6 @@ NSURLSessionUploadTask * gleap_uploadTaskWithRequestFromData(id self,
     };
     
     task = [session gleap_uploadTaskWithRequest:request fromData:bodyData completionHandler:wrappedCompletion];
-    return task;
-}
-
-// uploadTaskWithStreamedRequest:completionHandler:
-NSURLSessionUploadTask * gleap_uploadTaskWithStreamedRequest(id self,
-                                                             SEL _cmd,
-                                                             NSURLRequest *request,
-                                                             void (^completionHandler)(NSData *, NSURLResponse *, NSError *)) {
-    NSURLSession *session = (NSURLSession *)self;
-    __block NSDate *startTime = [NSDate date];
-    __block NSURLSessionUploadTask *task = nil;
-    
-    void (^wrappedCompletion)(NSData *, NSURLResponse *, NSError *) = ^(NSData *data, NSURLResponse *response, NSError *error) {
-        if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
-            objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-            [GleapHttpTrafficRecorder recordRequest:request response:response data:data error:error startTime:startTime];
-        }
-        if (completionHandler) {
-            completionHandler(data, response, error);
-        }
-    };
-    
-    task = [session gleap_uploadTaskWithStreamedRequest:request completionHandler:wrappedCompletion];
     return task;
 }
 
