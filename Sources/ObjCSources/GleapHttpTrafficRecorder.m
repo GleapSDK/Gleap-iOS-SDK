@@ -1,8 +1,10 @@
 //
-//  GleapNetworkLogger.m
+//  GleapHttpTrafficRecorder.m
 //  Gleap
 //
 //  Created by Lukas Boehler on 28.03.21.
+//  Extended for comprehensive logging by swizzling additional NSURLSession methods.
+//  Now also ensures that each task is only logged once.
 //
 
 #import <objc/runtime.h>
@@ -12,11 +14,15 @@
 #import "GleapUIHelper.h"
 #import "GleapWidgetManager.h"
 
+// Keys used for logging dictionary.
 NSString * const GleapHTTPTrafficRecordingProgressRequestKey    = @"REQUEST_KEY";
 NSString * const GleapHTTPTrafficRecordingProgressResponseKey   = @"RESPONSE_KEY";
 NSString * const GleapHTTPTrafficRecordingProgressBodyDataKey   = @"BODY_DATA_KEY";
 NSString * const GleapHTTPTrafficRecordingProgressStartDateKey  = @"REQUEST_START_DATE_KEY";
 NSString * const GleapHTTPTrafficRecordingProgressErrorKey      = @"ERROR_KEY";
+
+// A static key for marking tasks as already logged.
+static char GleapLoggingRecordedKey;
 
 #pragma mark - Private Category on NSURLSession
 
@@ -25,19 +31,40 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey      = @"ERROR_KEY";
                                   completionHandler:(void (^)(NSData *data,
                                                                NSURLResponse *response,
                                                                NSError *error))completionHandler;
+- (NSURLSessionDataTask *)gleap_dataTaskWithURL:(NSURL *)url
+                              completionHandler:(void (^)(NSData *data,
+                                                           NSURLResponse *response,
+                                                           NSError *error))completionHandler;
+- (NSURLSessionUploadTask *)gleap_uploadTaskWithRequest:(NSURLRequest *)request
+                                               fromData:(NSData *)bodyData
+                                      completionHandler:(void (^)(NSData *data,
+                                                                   NSURLResponse *response,
+                                                                   NSError *error))completionHandler;
+- (NSURLSessionUploadTask *)gleap_uploadTaskWithStreamedRequest:(NSURLRequest *)request
+                                               completionHandler:(void (^)(NSData *data,
+                                                                           NSURLResponse *response,
+                                                                           NSError *error))completionHandler;
+- (NSURLSessionDownloadTask *)gleap_downloadTaskWithURL:(NSURL *)url
+                                      completionHandler:(void (^)(NSURL *location,
+                                                                  NSURLResponse *response,
+                                                                  NSError *error))completionHandler;
+- (NSURLSessionDownloadTask *)gleap_downloadTaskWithRequest:(NSURLRequest *)request
+                                        completionHandler:(void (^)(NSURL *location,
+                                                                    NSURLResponse *response,
+                                                                    NSError *error))completionHandler;
 @end
+
+#pragma mark - GleapHttpTrafficRecorder Interface
 
 @interface GleapHttpTrafficRecorder ()
 @property (nonatomic, assign, readwrite) BOOL isRecording;
 @property (nonatomic, strong) NSMutableArray *requests;
 @property (nonatomic, assign) int maxRequestsInQueue;
-// Remove sessionConfig or protocol-related properties, because we're not using them anymore.
 @end
 
 @implementation GleapHttpTrafficRecorder
 
-+ (instancetype)sharedRecorder
-{
++ (instancetype)sharedRecorder {
     static GleapHttpTrafficRecorder *shared = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -61,7 +88,7 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey      = @"ERROR_KEY";
     }
     self.isRecording = YES;
     
-    // Trigger the swizzling (see below)
+    // Trigger the swizzling
     [GleapHttpTrafficRecorder swizzleURLSessionIfNeeded];
     
     return YES;
@@ -84,98 +111,81 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey      = @"ERROR_KEY";
 }
 
 - (NSArray *)filterNetworkLogs:(NSArray *)networkLogs {
-    NSMutableArray* processedNetworkLogs = [[NSMutableArray alloc] init];
+    NSMutableArray *processedNetworkLogs = [[NSMutableArray alloc] init];
     
-    // Filter networklog properties.
-    for (int i = 0; i < [networkLogs count]; i++) {
-        NSMutableDictionary * log =  [[NSMutableDictionary alloc] initWithDictionary: [networkLogs objectAtIndex: i]];
-        
+    for (NSDictionary *originalLog in networkLogs) {
+        NSMutableDictionary *log = [NSMutableDictionary dictionaryWithDictionary:originalLog];
         @try {
-            NSArray *localNetworkLogPropsToIgnore = [self.networkLogPropsToIgnore arrayByAddingObjectsFromArray: [Gleap sharedInstance].networkLogPropsToIgnore];
+            NSArray *localNetworkLogPropsToIgnore = [self.networkLogPropsToIgnore arrayByAddingObjectsFromArray:[Gleap sharedInstance].networkLogPropsToIgnore];
             
-            if (localNetworkLogPropsToIgnore != nil && localNetworkLogPropsToIgnore.count >= 0) {
-                if ([log objectForKey: @"request"] != nil) {
-                    NSMutableDictionary *request = [[NSMutableDictionary alloc] initWithDictionary: [log objectForKey: @"request"]];
-                    if (request != nil && [request objectForKey: @"headers"]) {
-                        if ([request objectForKey: @"headers"] != nil && [[request objectForKey: @"headers"] isKindOfClass:[NSDictionary class]]) {
-                            NSMutableDictionary *mutableHeaders = [[NSMutableDictionary alloc] initWithDictionary: [request objectForKey: @"headers"]];
-                            [mutableHeaders removeObjectsForKeys: localNetworkLogPropsToIgnore];
-                            [request setObject: mutableHeaders forKey: @"headers"];
-                        }
+            if (localNetworkLogPropsToIgnore.count >= 0) {
+                if (log[@"request"]) {
+                    NSMutableDictionary *request = [NSMutableDictionary dictionaryWithDictionary:log[@"request"]];
+                    if (request[@"headers"] && [request[@"headers"] isKindOfClass:[NSDictionary class]]) {
+                        NSMutableDictionary *mutableHeaders = [NSMutableDictionary dictionaryWithDictionary:request[@"headers"]];
+                        [mutableHeaders removeObjectsForKeys:localNetworkLogPropsToIgnore];
+                        request[@"headers"] = mutableHeaders;
                     }
-                    
-                    if (request != nil && [request objectForKey: @"payload"]) {
-                        if ([request objectForKey: @"payload"] != nil) {
-                            NSError *jsonError;
-                            NSMutableDictionary *jsonObject = [NSJSONSerialization JSONObjectWithData:[[request objectForKey: @"payload"] dataUsingEncoding:NSUTF8StringEncoding]  options: NSJSONReadingMutableContainers error:&jsonError];
-                            if (jsonError == nil && jsonObject != nil) {
-                                if ([jsonObject isKindOfClass:[NSDictionary class]]) {
-                                    [jsonObject removeObjectsForKeys: localNetworkLogPropsToIgnore];
-                                }
-                                
-                                NSError *jsonDataError;
-                                NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonObject
-                                                                                   options:0
-                                                                                     error:&jsonDataError];
-                                if (jsonData != nil) {
-                                    NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                                    if (jsonString != nil) {
-                                        [request setObject: jsonString forKey: @"payload"];
-                                    }
+                    if (request[@"payload"]) {
+                        NSError *jsonError;
+                        NSMutableDictionary *jsonObject = [NSJSONSerialization JSONObjectWithData:[request[@"payload"] dataUsingEncoding:NSUTF8StringEncoding] options:NSJSONReadingMutableContainers error:&jsonError];
+                        if (!jsonError && jsonObject) {
+                            if ([jsonObject isKindOfClass:[NSDictionary class]]) {
+                                [jsonObject removeObjectsForKeys:localNetworkLogPropsToIgnore];
+                            }
+                            NSError *jsonDataError;
+                            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonObject options:0 error:&jsonDataError];
+                            if (jsonData) {
+                                NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                                if (jsonString) {
+                                    request[@"payload"] = jsonString;
                                 }
                             }
                         }
                     }
-                    if (request != nil) {
-                        [log setObject: request forKey: @"request"];
-                    }
+                    log[@"request"] = request;
                 }
                 
-                if ([log objectForKey: @"response"] != nil) {
-                    NSMutableDictionary *response = [[NSMutableDictionary alloc] initWithDictionary: [log objectForKey: @"response"]];
-                    if (response != nil && [response objectForKey: @"responseText"] != nil) {
+                if (log[@"response"]) {
+                    NSMutableDictionary *response = [NSMutableDictionary dictionaryWithDictionary:log[@"response"]];
+                    if (response[@"responseText"]) {
                         NSError *jsonError;
-                        id jsonObject = [NSJSONSerialization JSONObjectWithData:[[response objectForKey: @"responseText"] dataUsingEncoding:NSUTF8StringEncoding]  options: NSJSONReadingMutableContainers error:&jsonError];
-                        if (jsonError == nil && jsonObject != nil) {
+                        id jsonObject = [NSJSONSerialization JSONObjectWithData:[response[@"responseText"] dataUsingEncoding:NSUTF8StringEncoding] options:NSJSONReadingMutableContainers error:&jsonError];
+                        if (!jsonError && jsonObject) {
                             if ([jsonObject isKindOfClass:[NSDictionary class]]) {
-                                [jsonObject removeObjectsForKeys: localNetworkLogPropsToIgnore];
+                                [jsonObject removeObjectsForKeys:localNetworkLogPropsToIgnore];
                             }
-                            
                             NSError *jsonDataError;
-                            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonObject
-                                                                               options:0
-                                                                                 error:&jsonDataError];
-                            if (jsonData != nil) {
+                            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonObject options:0 error:&jsonDataError];
+                            if (jsonData) {
                                 NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                                if (jsonString != nil) {
-                                    [response setObject: jsonString forKey: @"responseText"];
+                                if (jsonString) {
+                                    response[@"responseText"] = jsonString;
                                 }
                             }
                         }
-                        
-                        [log setObject: response forKey: @"response"];
                     }
+                    log[@"response"] = response;
                 }
             }
+        } @catch (NSException *exception) {
+            // Exception handling if necessary.
         }
-        @catch (NSException *exception) {}
         
-        // Network log blacklist.
-        NSArray *blacklistItems = [self.blacklist arrayByAddingObjectsFromArray: [Gleap sharedInstance].blacklist];
-        
-        NSString *logUrl = [log objectForKey: @"url"];
+        // Blacklist filtering.
+        NSArray *blacklistItems = [self.blacklist arrayByAddingObjectsFromArray:[Gleap sharedInstance].blacklist];
+        NSString *logUrl = log[@"url"];
         BOOL shouldAddLog = YES;
-        if (logUrl != nil) {
-            for (int i = 0; i < blacklistItems.count; i++) {
-                NSString *currentBlacklistItem = [blacklistItems objectAtIndex: i];
-                if (currentBlacklistItem != nil && [logUrl containsString: currentBlacklistItem]) {
+        if (logUrl) {
+            for (NSString *currentBlacklistItem in blacklistItems) {
+                if (currentBlacklistItem && [logUrl containsString:currentBlacklistItem]) {
                     shouldAddLog = NO;
+                    break;
                 }
             }
         }
-        
         if (shouldAddLog) {
-            [processedNetworkLogs addObject: log];
+            [processedNetworkLogs addObject:log];
         }
     }
     
@@ -190,49 +200,31 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey      = @"ERROR_KEY";
 }
 
 + (BOOL)isTextBasedContentType:(NSString *)contentType {
-    if ([contentType containsString:@"text/"]) {
-        return true;
-    }
-    if ([contentType containsString:@"application/javascript"]) {
-        return true;
-    }
-    if ([contentType containsString:@"application/xhtml+xml"]) {
-        return true;
-    }
-    if ([contentType containsString:@"application/json"]) {
-        return true;
-    }
-    if ([contentType containsString:@"application/xml"]) {
-        return true;
-    }
-    if ([contentType containsString:@"application/x-www-form-urlencoded"]) {
-        return true;
-    }
-    if ([contentType containsString:@"multipart/"]) {
-        return true;
-    }
-    return false;
+    if ([contentType containsString:@"text/"]) return YES;
+    if ([contentType containsString:@"application/javascript"]) return YES;
+    if ([contentType containsString:@"application/xhtml+xml"]) return YES;
+    if ([contentType containsString:@"application/json"]) return YES;
+    if ([contentType containsString:@"application/xml"]) return YES;
+    if ([contentType containsString:@"application/x-www-form-urlencoded"]) return YES;
+    if ([contentType containsString:@"multipart/"]) return YES;
+    return NO;
 }
 
 #pragma mark - Internal Logging
 
-/**
- Wraps the "updateRecorderProgressDelegate" logic into a single method we can call
- from our swizzled completion block.
- */
 + (void)recordRequest:(NSURLRequest *)request
              response:(NSURLResponse *)response
-                data:(NSData *)data
-               error:(NSError *)error
-           startTime:(NSDate *)startTime
-{
+                 data:(NSData *)data
+                error:(NSError *)error
+            startTime:(NSDate *)startTime {
     if (!request) {
         return;
     }
     
+    // Create a mutable copy of the request.
     NSMutableURLRequest *mutableRequest = [request isKindOfClass:[NSMutableURLRequest class]]
         ? (NSMutableURLRequest *)request
-        : [request mutableCopy]; // We need mutable to pass into existing logging.
+        : [request mutableCopy];
 
     NSMutableDictionary *info = [NSMutableDictionary dictionary];
     info[GleapHTTPTrafficRecordingProgressRequestKey] = mutableRequest;
@@ -250,24 +242,21 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey      = @"ERROR_KEY";
     }
 }
 
-/**
- This is your existing logic from GleapRecordingProtocol's +updateRecorderProgressDelegate:
- */
 + (void)updateRecorderProgressDelegate:(BOOL)success userInfo:(NSDictionary *)info {
     NSMutableURLRequest *urlRequest = info[GleapHTTPTrafficRecordingProgressRequestKey];
     if (![urlRequest isKindOfClass:[NSMutableURLRequest class]]) {
-        return; // Safety check
+        return;
     }
     
     NSMutableDictionary *requestLog = [NSMutableDictionary dictionary];
-    [requestLog setValue:urlRequest.HTTPMethod forKey:@"type"];
-    [requestLog setValue:urlRequest.URL.absoluteString forKey:@"url"];
-    [requestLog setValue:[GleapUIHelper getJSStringForNSDate:[NSDate date]] forKey:@"date"];
+    requestLog[@"type"] = urlRequest.HTTPMethod;
+    requestLog[@"url"] = urlRequest.URL.absoluteString;
+    requestLog[@"date"] = [GleapUIHelper getJSStringForNSDate:[NSDate date]];
     
     NSDate *startLoadingDate = info[GleapHTTPTrafficRecordingProgressStartDateKey];
     if (startLoadingDate) {
         int duration = (int)([startLoadingDate timeIntervalSinceNow] * -1000);
-        [requestLog setValue:@(duration) forKey:@"duration"];
+        requestLog[@"duration"] = @(duration);
     }
     
     if (success) {
@@ -281,19 +270,11 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey      = @"ERROR_KEY";
         
         requestLog[@"success"] = @(YES);
         
-        // Request details
         NSMutableDictionary *reqObj = [NSMutableDictionary dictionary];
-        if (urlRequest.HTTPBody) {
-            reqObj[@"payload"] = [GleapHttpTrafficRecorder stringFrom:urlRequest.HTTPBody];
-        } else {
-            reqObj[@"payload"] = @"";
-        }
-        if (urlRequest.allHTTPHeaderFields) {
-            reqObj[@"headers"] = urlRequest.allHTTPHeaderFields;
-        }
+        reqObj[@"payload"] = urlRequest.HTTPBody ? [GleapHttpTrafficRecorder stringFrom:urlRequest.HTTPBody] : @"";
+        reqObj[@"headers"] = urlRequest.allHTTPHeaderFields ?: @{};
         requestLog[@"request"] = reqObj;
         
-        // Response details
         if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
             NSHTTPURLResponse *httpResp = (NSHTTPURLResponse *)response;
             NSMutableDictionary *respObj = [NSMutableDictionary dictionary];
@@ -301,7 +282,6 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey      = @"ERROR_KEY";
             respObj[@"headers"] = httpResp.allHeaderFields ?: @{};
             respObj[@"contentType"] = contentType;
             
-            // Only store text-based content and only if under 0.5MB
             int maxBodySize = 1024 * 500;
             if ([GleapHttpTrafficRecorder isTextBasedContentType:contentType] && data.length < maxBodySize) {
                 respObj[@"responseText"] = [GleapHttpTrafficRecorder stringFrom:data];
@@ -313,22 +293,17 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey      = @"ERROR_KEY";
         }
         
     } else {
-        // Failure
         requestLog[@"success"] = @(NO);
         NSError *error = info[GleapHTTPTrafficRecordingProgressErrorKey];
         NSMutableDictionary *respObj = [NSMutableDictionary dictionary];
-        if (error) {
-            respObj[@"errorText"] = error.localizedDescription ?: @"";
-        }
+        respObj[@"errorText"] = error.localizedDescription ?: @"";
         requestLog[@"response"] = respObj;
     }
     
-    // If widget is open, skip
     if ([[GleapWidgetManager sharedInstance] isOpened]) {
         return;
     }
     
-    // Add to queue
     GleapHttpTrafficRecorder *recorder = [GleapHttpTrafficRecorder sharedRecorder];
     @synchronized (recorder.requests) {
         if (recorder.requests.count >= recorder.maxRequestsInQueue) {
@@ -345,71 +320,241 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey      = @"ERROR_KEY";
     dispatch_once(&onceToken, ^{
         Class sessionClass = [NSURLSession class];
         
-        // Original selector
-        SEL originalSEL = @selector(dataTaskWithRequest:completionHandler:);
-        Method originalMethod = class_getInstanceMethod(sessionClass, originalSEL);
-        if (!originalMethod) {
-            return;
+        // Swizzle dataTaskWithRequest:completionHandler:
+        SEL originalDataTaskRequestSEL = @selector(dataTaskWithRequest:completionHandler:);
+        Method originalDataTaskRequestMethod = class_getInstanceMethod(sessionClass, originalDataTaskRequestSEL);
+        SEL swizzledDataTaskRequestSEL = @selector(gleap_dataTaskWithRequest:completionHandler:);
+        Method swizzledDataTaskRequestMethod = class_getInstanceMethod(sessionClass, swizzledDataTaskRequestSEL);
+        if (!swizzledDataTaskRequestMethod) {
+            IMP swizzledDataTaskRequestImpl = (IMP)gleap_dataTaskWithRequest;
+            const char *typeEncoding = method_getTypeEncoding(originalDataTaskRequestMethod);
+            class_addMethod(sessionClass, swizzledDataTaskRequestSEL, swizzledDataTaskRequestImpl, typeEncoding);
+            swizzledDataTaskRequestMethod = class_getInstanceMethod(sessionClass, swizzledDataTaskRequestSEL);
         }
+        method_exchangeImplementations(originalDataTaskRequestMethod, swizzledDataTaskRequestMethod);
         
-        // Our swizzled selector
-        SEL swizzledSEL = @selector(gleap_dataTaskWithRequest:completionHandler:);
-        Method swizzledMethod = class_getInstanceMethod(sessionClass, swizzledSEL);
-        if (!swizzledMethod) {
-            // We’ll create it dynamically below
-            IMP swizzledImpl = (IMP)gleap_dataTaskWithRequest;
-            const char *typeEncoding = method_getTypeEncoding(originalMethod);
-            class_addMethod(sessionClass, swizzledSEL, swizzledImpl, typeEncoding);
-            swizzledMethod = class_getInstanceMethod(sessionClass, swizzledSEL);
-            if (!swizzledMethod) {
-                return;
-            }
+        // Swizzle dataTaskWithURL:completionHandler:
+        SEL originalDataTaskURLSEL = @selector(dataTaskWithURL:completionHandler:);
+        Method originalDataTaskURLMethod = class_getInstanceMethod(sessionClass, originalDataTaskURLSEL);
+        SEL swizzledDataTaskURLSEL = @selector(gleap_dataTaskWithURL:completionHandler:);
+        Method swizzledDataTaskURLMethod = class_getInstanceMethod(sessionClass, swizzledDataTaskURLSEL);
+        if (!swizzledDataTaskURLMethod) {
+            IMP swizzledDataTaskURLImpl = (IMP)gleap_dataTaskWithURL;
+            const char *urlTypeEncoding = method_getTypeEncoding(originalDataTaskURLMethod);
+            class_addMethod(sessionClass, swizzledDataTaskURLSEL, swizzledDataTaskURLImpl, urlTypeEncoding);
+            swizzledDataTaskURLMethod = class_getInstanceMethod(sessionClass, swizzledDataTaskURLSEL);
         }
+        method_exchangeImplementations(originalDataTaskURLMethod, swizzledDataTaskURLMethod);
         
-        // Exchange the implementations
-        method_exchangeImplementations(originalMethod, swizzledMethod);
+        // Swizzle uploadTaskWithRequest:fromData:completionHandler:
+        SEL originalUploadDataSEL = @selector(uploadTaskWithRequest:fromData:completionHandler:);
+        Method originalUploadDataMethod = class_getInstanceMethod(sessionClass, originalUploadDataSEL);
+        SEL swizzledUploadDataSEL = @selector(gleap_uploadTaskWithRequest:fromData:completionHandler:);
+        Method swizzledUploadDataMethod = class_getInstanceMethod(sessionClass, swizzledUploadDataSEL);
+        if (!swizzledUploadDataMethod) {
+            IMP swizzledUploadDataImpl = (IMP)gleap_uploadTaskWithRequestFromData;
+            const char *uploadDataTypeEncoding = method_getTypeEncoding(originalUploadDataMethod);
+            class_addMethod(sessionClass, swizzledUploadDataSEL, swizzledUploadDataImpl, uploadDataTypeEncoding);
+            swizzledUploadDataMethod = class_getInstanceMethod(sessionClass, swizzledUploadDataSEL);
+        }
+        method_exchangeImplementations(originalUploadDataMethod, swizzledUploadDataMethod);
+        
+        // Swizzle uploadTaskWithStreamedRequest:completionHandler:
+        SEL originalUploadStreamedSEL = @selector(uploadTaskWithStreamedRequest:completionHandler:);
+        Method originalUploadStreamedMethod = class_getInstanceMethod(sessionClass, originalUploadStreamedSEL);
+        SEL swizzledUploadStreamedSEL = @selector(gleap_uploadTaskWithStreamedRequest:completionHandler:);
+        Method swizzledUploadStreamedMethod = class_getInstanceMethod(sessionClass, swizzledUploadStreamedSEL);
+        if (!swizzledUploadStreamedMethod) {
+            IMP swizzledUploadStreamedImpl = (IMP)gleap_uploadTaskWithStreamedRequest;
+            const char *uploadStreamedTypeEncoding = method_getTypeEncoding(originalUploadStreamedMethod);
+            class_addMethod(sessionClass, swizzledUploadStreamedSEL, swizzledUploadStreamedImpl, uploadStreamedTypeEncoding);
+            swizzledUploadStreamedMethod = class_getInstanceMethod(sessionClass, swizzledUploadStreamedSEL);
+        }
+        method_exchangeImplementations(originalUploadStreamedMethod, swizzledUploadStreamedMethod);
+        
+        // Swizzle downloadTaskWithURL:completionHandler:
+        SEL originalDownloadURLSEL = @selector(downloadTaskWithURL:completionHandler:);
+        Method originalDownloadURLMethod = class_getInstanceMethod(sessionClass, originalDownloadURLSEL);
+        SEL swizzledDownloadURLSEL = @selector(gleap_downloadTaskWithURL:completionHandler:);
+        Method swizzledDownloadURLMethod = class_getInstanceMethod(sessionClass, swizzledDownloadURLSEL);
+        if (!swizzledDownloadURLMethod) {
+            IMP swizzledDownloadURLImpl = (IMP)gleap_downloadTaskWithURL;
+            const char *downloadURLTypeEncoding = method_getTypeEncoding(originalDownloadURLMethod);
+            class_addMethod(sessionClass, swizzledDownloadURLSEL, swizzledDownloadURLImpl, downloadURLTypeEncoding);
+            swizzledDownloadURLMethod = class_getInstanceMethod(sessionClass, swizzledDownloadURLSEL);
+        }
+        method_exchangeImplementations(originalDownloadURLMethod, swizzledDownloadURLMethod);
+        
+        // Swizzle downloadTaskWithRequest:completionHandler:
+        SEL originalDownloadRequestSEL = @selector(downloadTaskWithRequest:completionHandler:);
+        Method originalDownloadRequestMethod = class_getInstanceMethod(sessionClass, originalDownloadRequestSEL);
+        SEL swizzledDownloadRequestSEL = @selector(gleap_downloadTaskWithRequest:completionHandler:);
+        Method swizzledDownloadRequestMethod = class_getInstanceMethod(sessionClass, swizzledDownloadRequestSEL);
+        if (!swizzledDownloadRequestMethod) {
+            IMP swizzledDownloadRequestImpl = (IMP)gleap_downloadTaskWithRequest;
+            const char *downloadRequestTypeEncoding = method_getTypeEncoding(originalDownloadRequestMethod);
+            class_addMethod(sessionClass, swizzledDownloadRequestSEL, swizzledDownloadRequestImpl, downloadRequestTypeEncoding);
+            swizzledDownloadRequestMethod = class_getInstanceMethod(sessionClass, swizzledDownloadRequestSEL);
+        }
+        method_exchangeImplementations(originalDownloadRequestMethod, swizzledDownloadRequestMethod);
     });
 }
 
-/**
- Our custom C function that re-implements `dataTaskWithRequest:completionHandler:`.
- 
- We must cast `self` and arguments properly, then call the *swizzled* method to get
- the actual NSURLSessionDataTask from the system, while wrapping the completion block
- so we can capture the response/error.
- */
+#pragma mark - Swizzled Method Implementations
+
+// dataTaskWithRequest:completionHandler:
 NSURLSessionDataTask * gleap_dataTaskWithRequest(id self,
                                                  SEL _cmd,
                                                  NSURLRequest *request,
-                                                 void (^completionHandler)(NSData *, NSURLResponse *, NSError *))
-{
-    // Cast `self` to NSURLSession
+                                                 void (^completionHandler)(NSData *, NSURLResponse *, NSError *)) {
     NSURLSession *session = (NSURLSession *)self;
+    
     if (!request) {
-        // Just call the original if request is nil
         return [session gleap_dataTaskWithRequest:request completionHandler:completionHandler];
     }
     
     __block NSDate *startTime = [NSDate date];
+    __block NSURLSessionDataTask *task = nil;
     
-    // Wrap the original completion so we can log the result
-    void (^wrappedCompletion)(NSData *, NSURLResponse *, NSError *) =
-    ^(NSData *data, NSURLResponse *response, NSError *error) {
-        
-        // Log via Gleap
-        [GleapHttpTrafficRecorder recordRequest:request
-                                       response:response
-                                          data:data
-                                         error:error
-                                     startTime:startTime];
-        
-        // Call the original completion
+    void (^wrappedCompletion)(NSData *, NSURLResponse *, NSError *) = ^(NSData *data, NSURLResponse *response, NSError *error) {
+        // Check if the task has been logged already.
+        if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
+            objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            [GleapHttpTrafficRecorder recordRequest:request response:response data:data error:error startTime:startTime];
+        }
         if (completionHandler) {
             completionHandler(data, response, error);
         }
     };
     
-    return [session gleap_dataTaskWithRequest:request completionHandler:wrappedCompletion];
+    task = [session gleap_dataTaskWithRequest:request completionHandler:wrappedCompletion];
+    return task;
+}
+
+// dataTaskWithURL:completionHandler:
+NSURLSessionDataTask * gleap_dataTaskWithURL(id self,
+                                             SEL _cmd,
+                                             NSURL *url,
+                                             void (^completionHandler)(NSData *, NSURLResponse *, NSError *)) {
+    NSURLSession *session = (NSURLSession *)self;
+    
+    NSURLRequest *request = [NSURLRequest requestWithURL:url];
+    __block NSDate *startTime = [NSDate date];
+    __block NSURLSessionDataTask *task = nil;
+    
+    void (^wrappedCompletion)(NSData *, NSURLResponse *, NSError *) = ^(NSData *data, NSURLResponse *response, NSError *error) {
+        if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
+            objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            [GleapHttpTrafficRecorder recordRequest:request response:response data:data error:error startTime:startTime];
+        }
+        if (completionHandler) {
+            completionHandler(data, response, error);
+        }
+    };
+    
+    task = [session gleap_dataTaskWithURL:url completionHandler:wrappedCompletion];
+    return task;
+}
+
+// uploadTaskWithRequest:fromData:completionHandler:
+NSURLSessionUploadTask * gleap_uploadTaskWithRequestFromData(id self,
+                                                             SEL _cmd,
+                                                             NSURLRequest *request,
+                                                             NSData *bodyData,
+                                                             void (^completionHandler)(NSData *, NSURLResponse *, NSError *)) {
+    NSURLSession *session = (NSURLSession *)self;
+    __block NSDate *startTime = [NSDate date];
+    __block NSURLSessionUploadTask *task = nil;
+    
+    // Create mutable copy if needed.
+    NSMutableURLRequest *mutableRequest = [request mutableCopy];
+    if (bodyData) {
+        mutableRequest.HTTPBody = bodyData;
+    }
+    
+    void (^wrappedCompletion)(NSData *, NSURLResponse *, NSError *) = ^(NSData *data, NSURLResponse *response, NSError *error) {
+        if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
+            objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            [GleapHttpTrafficRecorder recordRequest:request response:response data:data error:error startTime:startTime];
+        }
+        if (completionHandler) {
+            completionHandler(data, response, error);
+        }
+    };
+    
+    task = [session gleap_uploadTaskWithRequest:request fromData:bodyData completionHandler:wrappedCompletion];
+    return task;
+}
+
+// uploadTaskWithStreamedRequest:completionHandler:
+NSURLSessionUploadTask * gleap_uploadTaskWithStreamedRequest(id self,
+                                                             SEL _cmd,
+                                                             NSURLRequest *request,
+                                                             void (^completionHandler)(NSData *, NSURLResponse *, NSError *)) {
+    NSURLSession *session = (NSURLSession *)self;
+    __block NSDate *startTime = [NSDate date];
+    __block NSURLSessionUploadTask *task = nil;
+    
+    void (^wrappedCompletion)(NSData *, NSURLResponse *, NSError *) = ^(NSData *data, NSURLResponse *response, NSError *error) {
+        if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
+            objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            [GleapHttpTrafficRecorder recordRequest:request response:response data:data error:error startTime:startTime];
+        }
+        if (completionHandler) {
+            completionHandler(data, response, error);
+        }
+    };
+    
+    task = [session gleap_uploadTaskWithStreamedRequest:request completionHandler:wrappedCompletion];
+    return task;
+}
+
+// downloadTaskWithURL:completionHandler:
+NSURLSessionDownloadTask * gleap_downloadTaskWithURL(id self,
+                                                     SEL _cmd,
+                                                     NSURL *url,
+                                                     void (^completionHandler)(NSURL *, NSURLResponse *, NSError *)) {
+    NSURLSession *session = (NSURLSession *)self;
+    
+    NSURLRequest *request = [NSURLRequest requestWithURL:url];
+    __block NSDate *startTime = [NSDate date];
+    __block NSURLSessionDownloadTask *task = nil;
+    
+    void (^wrappedCompletion)(NSURL *, NSURLResponse *, NSError *) = ^(NSURL *location, NSURLResponse *response, NSError *error) {
+        if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
+            objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            [GleapHttpTrafficRecorder recordRequest:request response:response data:nil error:error startTime:startTime];
+        }
+        if (completionHandler) {
+            completionHandler(location, response, error);
+        }
+    };
+    
+    task = [session gleap_downloadTaskWithURL:url completionHandler:wrappedCompletion];
+    return task;
+}
+
+// downloadTaskWithRequest:completionHandler:
+NSURLSessionDownloadTask * gleap_downloadTaskWithRequest(id self,
+                                                         SEL _cmd,
+                                                         NSURLRequest *request,
+                                                         void (^completionHandler)(NSURL *, NSURLResponse *, NSError *)) {
+    NSURLSession *session = (NSURLSession *)self;
+    __block NSDate *startTime = [NSDate date];
+    __block NSURLSessionDownloadTask *task = nil;
+    
+    void (^wrappedCompletion)(NSURL *, NSURLResponse *, NSError *) = ^(NSURL *location, NSURLResponse *response, NSError *error) {
+        if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
+            objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            [GleapHttpTrafficRecorder recordRequest:request response:response data:nil error:error startTime:startTime];
+        }
+        if (completionHandler) {
+            completionHandler(location, response, error);
+        }
+    };
+    
+    task = [session gleap_downloadTaskWithRequest:request completionHandler:wrappedCompletion];
+    return task;
 }
 
 @end

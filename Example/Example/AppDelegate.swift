@@ -22,6 +22,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.sharedInstance().delegate = self
         
+        Gleap.startNetworkRecording()
+        
         // Attach custom data sample.
         Gleap.attachCustomData(["value": "Unicorn", "type": "Demo", "ExtraInfo": ["Age": "28", "City": "San Francisco", 12: 2999]])
         
