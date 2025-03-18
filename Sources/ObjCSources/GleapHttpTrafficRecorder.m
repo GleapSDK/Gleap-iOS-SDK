@@ -23,6 +23,8 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey      = @"ERROR_KEY";
 
 // A static key for marking tasks as already logged.
 static char GleapLoggingRecordedKey;
+// A static key for accumulating response data in delegate-based sessions.
+static char GleapAccumulatedDataKey;
 
 #pragma mark - Private Category on NSURLSession
 
@@ -76,23 +78,18 @@ static char GleapLoggingRecordedKey;
 
 #pragma mark - Extended Start Recording
 
-// This method is called when you pass in a custom session configuration.
 - (BOOL)startRecordingForSessionConfiguration:(NSURLSessionConfiguration *)sessionConfig {
     BOOL result = [self startRecording];
-    // In addition to default swizzling, swizzle session creation for the given configuration.
     [GleapHttpTrafficRecorder swizzleSessionCreationForConfiguration:sessionConfig];
     return result;
 }
 
 - (BOOL)startRecording {
     if (self.isRecording) {
-        return YES; // Already recording
+        return YES;
     }
     self.isRecording = YES;
-    
-    // Trigger the default NSURLSession swizzling.
     [GleapHttpTrafficRecorder swizzleURLSessionIfNeeded];
-    
     return YES;
 }
 
@@ -171,7 +168,7 @@ static char GleapLoggingRecordedKey;
                 }
             }
         } @catch (NSException *exception) {
-            // Exception handling if necessary.
+            // Exception caught; logging can be added here if needed.
         }
         
         // Blacklist filtering.
@@ -223,24 +220,27 @@ static char GleapLoggingRecordedKey;
         return;
     }
     
-    // Create a mutable copy of the request.
-    NSMutableURLRequest *mutableRequest = [request isKindOfClass:[NSMutableURLRequest class]]
-        ? (NSMutableURLRequest *)request
-        : [request mutableCopy];
+    @try {
+        NSMutableURLRequest *mutableRequest = [request isKindOfClass:[NSMutableURLRequest class]]
+            ? (NSMutableURLRequest *)request
+            : [request mutableCopy];
 
-    NSMutableDictionary *info = [NSMutableDictionary dictionary];
-    info[GleapHTTPTrafficRecordingProgressRequestKey] = mutableRequest;
-    info[GleapHTTPTrafficRecordingProgressStartDateKey] = (startTime ?: [NSDate date]);
-    
-    if (error) {
-        info[GleapHTTPTrafficRecordingProgressErrorKey] = error;
-        [self updateRecorderProgressDelegate:NO userInfo:info];
-    } else {
-        if (response) {
-            info[GleapHTTPTrafficRecordingProgressResponseKey] = response;
+        NSMutableDictionary *info = [NSMutableDictionary dictionary];
+        info[GleapHTTPTrafficRecordingProgressRequestKey] = mutableRequest;
+        info[GleapHTTPTrafficRecordingProgressStartDateKey] = (startTime ?: [NSDate date]);
+        
+        if (error) {
+            info[GleapHTTPTrafficRecordingProgressErrorKey] = error;
+            [self updateRecorderProgressDelegate:NO userInfo:info];
+        } else {
+            if (response) {
+                info[GleapHTTPTrafficRecordingProgressResponseKey] = response;
+            }
+            info[GleapHTTPTrafficRecordingProgressBodyDataKey] = (data ?: [NSData data]);
+            [self updateRecorderProgressDelegate:YES userInfo:info];
         }
-        info[GleapHTTPTrafficRecordingProgressBodyDataKey] = (data ?: [NSData data]);
-        [self updateRecorderProgressDelegate:YES userInfo:info];
+    } @catch (NSException *exception) {
+        // Exception caught during recordRequest; fail gracefully.
     }
 }
 
@@ -250,68 +250,72 @@ static char GleapLoggingRecordedKey;
         return;
     }
     
-    NSMutableDictionary *requestLog = [NSMutableDictionary dictionary];
-    requestLog[@"type"] = urlRequest.HTTPMethod;
-    requestLog[@"url"] = urlRequest.URL.absoluteString;
-    requestLog[@"date"] = [GleapUIHelper getJSStringForNSDate:[NSDate date]];
-    
-    NSDate *startLoadingDate = info[GleapHTTPTrafficRecordingProgressStartDateKey];
-    if (startLoadingDate) {
-        int duration = (int)([startLoadingDate timeIntervalSinceNow] * -1000);
-        requestLog[@"duration"] = @(duration);
-    }
-    
-    if (success) {
-        NSHTTPURLResponse *response = info[GleapHTTPTrafficRecordingProgressResponseKey];
-        NSData *data = info[GleapHTTPTrafficRecordingProgressBodyDataKey];
-        NSString *contentType = @"";
+    @try {
+        NSMutableDictionary *requestLog = [NSMutableDictionary dictionary];
+        requestLog[@"type"] = urlRequest.HTTPMethod;
+        requestLog[@"url"] = urlRequest.URL.absoluteString;
+        requestLog[@"date"] = [GleapUIHelper getJSStringForNSDate:[NSDate date]];
         
-        if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
-            contentType = [((NSHTTPURLResponse *)response) allHeaderFields][@"Content-Type"] ?: @"";
+        NSDate *startLoadingDate = info[GleapHTTPTrafficRecordingProgressStartDateKey];
+        if (startLoadingDate) {
+            int duration = (int)([startLoadingDate timeIntervalSinceNow] * -1000);
+            requestLog[@"duration"] = @(duration);
         }
         
-        requestLog[@"success"] = @(YES);
-        
-        NSMutableDictionary *reqObj = [NSMutableDictionary dictionary];
-        reqObj[@"payload"] = urlRequest.HTTPBody ? [GleapHttpTrafficRecorder stringFrom:urlRequest.HTTPBody] : @"";
-        reqObj[@"headers"] = urlRequest.allHTTPHeaderFields ?: @{};
-        requestLog[@"request"] = reqObj;
-        
-        if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
-            NSHTTPURLResponse *httpResp = (NSHTTPURLResponse *)response;
-            NSMutableDictionary *respObj = [NSMutableDictionary dictionary];
-            respObj[@"status"] = @(httpResp.statusCode);
-            respObj[@"headers"] = httpResp.allHeaderFields ?: @{};
-            respObj[@"contentType"] = contentType;
+        if (success) {
+            NSHTTPURLResponse *response = info[GleapHTTPTrafficRecordingProgressResponseKey];
+            NSData *data = info[GleapHTTPTrafficRecordingProgressBodyDataKey];
+            NSString *contentType = @"";
             
-            int maxBodySize = 1024 * 500;
-            if ([GleapHttpTrafficRecorder isTextBasedContentType:contentType] && data.length < maxBodySize) {
-                respObj[@"responseText"] = [GleapHttpTrafficRecorder stringFrom:data];
-            } else {
-                respObj[@"responseText"] = @"<response_too_large>";
+            if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
+                contentType = [((NSHTTPURLResponse *)response) allHeaderFields][@"Content-Type"] ?: @"";
             }
             
+            requestLog[@"success"] = @(YES);
+            
+            NSMutableDictionary *reqObj = [NSMutableDictionary dictionary];
+            reqObj[@"payload"] = urlRequest.HTTPBody ? [GleapHttpTrafficRecorder stringFrom:urlRequest.HTTPBody] : @"";
+            reqObj[@"headers"] = urlRequest.allHTTPHeaderFields ?: @{};
+            requestLog[@"request"] = reqObj;
+            
+            if ([response isKindOfClass:[NSHTTPURLResponse class]]) {
+                NSHTTPURLResponse *httpResp = (NSHTTPURLResponse *)response;
+                NSMutableDictionary *respObj = [NSMutableDictionary dictionary];
+                respObj[@"status"] = @(httpResp.statusCode);
+                respObj[@"headers"] = httpResp.allHeaderFields ?: @{};
+                respObj[@"contentType"] = contentType;
+                
+                int maxBodySize = 1024 * 500;
+                if ([GleapHttpTrafficRecorder isTextBasedContentType:contentType] && data.length < maxBodySize) {
+                    respObj[@"responseText"] = [GleapHttpTrafficRecorder stringFrom:data];
+                } else {
+                    respObj[@"responseText"] = @"<response_too_large>";
+                }
+                
+                requestLog[@"response"] = respObj;
+            }
+            
+        } else {
+            requestLog[@"success"] = @(NO);
+            NSError *error = info[GleapHTTPTrafficRecordingProgressErrorKey];
+            NSMutableDictionary *respObj = [NSMutableDictionary dictionary];
+            respObj[@"errorText"] = error.localizedDescription ?: @"";
             requestLog[@"response"] = respObj;
         }
         
-    } else {
-        requestLog[@"success"] = @(NO);
-        NSError *error = info[GleapHTTPTrafficRecordingProgressErrorKey];
-        NSMutableDictionary *respObj = [NSMutableDictionary dictionary];
-        respObj[@"errorText"] = error.localizedDescription ?: @"";
-        requestLog[@"response"] = respObj;
-    }
-    
-    if ([[GleapWidgetManager sharedInstance] isOpened]) {
-        return;
-    }
-    
-    GleapHttpTrafficRecorder *recorder = [GleapHttpTrafficRecorder sharedRecorder];
-    @synchronized (recorder.requests) {
-        if (recorder.requests.count >= recorder.maxRequestsInQueue) {
-            [recorder.requests removeObjectAtIndex:0];
+        if ([[GleapWidgetManager sharedInstance] isOpened]) {
+            return;
         }
-        [recorder.requests addObject:[requestLog copy]];
+        
+        GleapHttpTrafficRecorder *recorder = [GleapHttpTrafficRecorder sharedRecorder];
+        @synchronized (recorder.requests) {
+            if (recorder.requests.count >= recorder.maxRequestsInQueue) {
+                [recorder.requests removeObjectAtIndex:0];
+            }
+            [recorder.requests addObject:[requestLog copy]];
+        }
+    } @catch (NSException *exception) {
+        // Exception caught during updating recorder progress.
     }
 }
 
@@ -322,7 +326,7 @@ static char GleapLoggingRecordedKey;
     dispatch_once(&onceToken, ^{
         Class sessionClass = [NSURLSession class];
         
-        // Swizzle dataTaskWithRequest:completionHandler:
+        // dataTaskWithRequest:completionHandler:
         SEL originalDataTaskRequestSEL = @selector(dataTaskWithRequest:completionHandler:);
         Method originalDataTaskRequestMethod = class_getInstanceMethod(sessionClass, originalDataTaskRequestSEL);
         SEL swizzledDataTaskRequestSEL = @selector(gleap_dataTaskWithRequest:completionHandler:);
@@ -335,7 +339,7 @@ static char GleapLoggingRecordedKey;
         }
         method_exchangeImplementations(originalDataTaskRequestMethod, swizzledDataTaskRequestMethod);
         
-        // Swizzle dataTaskWithURL:completionHandler:
+        // dataTaskWithURL:completionHandler:
         SEL originalDataTaskURLSEL = @selector(dataTaskWithURL:completionHandler:);
         Method originalDataTaskURLMethod = class_getInstanceMethod(sessionClass, originalDataTaskURLSEL);
         SEL swizzledDataTaskURLSEL = @selector(gleap_dataTaskWithURL:completionHandler:);
@@ -348,7 +352,7 @@ static char GleapLoggingRecordedKey;
         }
         method_exchangeImplementations(originalDataTaskURLMethod, swizzledDataTaskURLMethod);
         
-        // Swizzle uploadTaskWithRequest:fromData:completionHandler:
+        // uploadTaskWithRequest:fromData:completionHandler:
         SEL originalUploadDataSEL = @selector(uploadTaskWithRequest:fromData:completionHandler:);
         Method originalUploadDataMethod = class_getInstanceMethod(sessionClass, originalUploadDataSEL);
         SEL swizzledUploadDataSEL = @selector(gleap_uploadTaskWithRequest:fromData:completionHandler:);
@@ -361,7 +365,7 @@ static char GleapLoggingRecordedKey;
         }
         method_exchangeImplementations(originalUploadDataMethod, swizzledUploadDataMethod);
         
-        // Swizzle downloadTaskWithURL:completionHandler:
+        // downloadTaskWithURL:completionHandler:
         SEL originalDownloadURLSEL = @selector(downloadTaskWithURL:completionHandler:);
         Method originalDownloadURLMethod = class_getInstanceMethod(sessionClass, originalDownloadURLSEL);
         SEL swizzledDownloadURLSEL = @selector(gleap_downloadTaskWithURL:completionHandler:);
@@ -374,7 +378,7 @@ static char GleapLoggingRecordedKey;
         }
         method_exchangeImplementations(originalDownloadURLMethod, swizzledDownloadURLMethod);
         
-        // Swizzle downloadTaskWithRequest:completionHandler:
+        // downloadTaskWithRequest:completionHandler:
         SEL originalDownloadRequestSEL = @selector(downloadTaskWithRequest:completionHandler:);
         Method originalDownloadRequestMethod = class_getInstanceMethod(sessionClass, originalDownloadRequestSEL);
         SEL swizzledDownloadRequestSEL = @selector(gleap_downloadTaskWithRequest:completionHandler:);
@@ -397,7 +401,6 @@ NSURLSessionDataTask * gleap_dataTaskWithRequest(id self,
                                                  NSURLRequest *request,
                                                  void (^completionHandler)(NSData *, NSURLResponse *, NSError *)) {
     NSURLSession *session = (NSURLSession *)self;
-    
     if (!request) {
         return [session gleap_dataTaskWithRequest:request completionHandler:completionHandler];
     }
@@ -406,10 +409,13 @@ NSURLSessionDataTask * gleap_dataTaskWithRequest(id self,
     __block NSURLSessionDataTask *task = nil;
     
     void (^wrappedCompletion)(NSData *, NSURLResponse *, NSError *) = ^(NSData *data, NSURLResponse *response, NSError *error) {
-        // Check if the task has been logged already.
-        if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
-            objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-            [GleapHttpTrafficRecorder recordRequest:request response:response data:data error:error startTime:startTime];
+        @try {
+            if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
+                objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                [GleapHttpTrafficRecorder recordRequest:request response:response data:data error:error startTime:startTime];
+            }
+        } @catch (NSException *exception) {
+            // Handle exception silently.
         }
         if (completionHandler) {
             completionHandler(data, response, error);
@@ -426,16 +432,17 @@ NSURLSessionDataTask * gleap_dataTaskWithURL(id self,
                                              NSURL *url,
                                              void (^completionHandler)(NSData *, NSURLResponse *, NSError *)) {
     NSURLSession *session = (NSURLSession *)self;
-    
     NSURLRequest *request = [NSURLRequest requestWithURL:url];
     __block NSDate *startTime = [NSDate date];
     __block NSURLSessionDataTask *task = nil;
     
     void (^wrappedCompletion)(NSData *, NSURLResponse *, NSError *) = ^(NSData *data, NSURLResponse *response, NSError *error) {
-        if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
-            objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-            [GleapHttpTrafficRecorder recordRequest:request response:response data:data error:error startTime:startTime];
-        }
+        @try {
+            if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
+                objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                [GleapHttpTrafficRecorder recordRequest:request response:response data:data error:error startTime:startTime];
+            }
+        } @catch (NSException *exception) {}
         if (completionHandler) {
             completionHandler(data, response, error);
         }
@@ -455,17 +462,18 @@ NSURLSessionUploadTask * gleap_uploadTaskWithRequestFromData(id self,
     __block NSDate *startTime = [NSDate date];
     __block NSURLSessionUploadTask *task = nil;
     
-    // Create mutable copy if needed.
     NSMutableURLRequest *mutableRequest = [request mutableCopy];
     if (bodyData) {
         mutableRequest.HTTPBody = bodyData;
     }
     
     void (^wrappedCompletion)(NSData *, NSURLResponse *, NSError *) = ^(NSData *data, NSURLResponse *response, NSError *error) {
-        if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
-            objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-            [GleapHttpTrafficRecorder recordRequest:request response:response data:data error:error startTime:startTime];
-        }
+        @try {
+            if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
+                objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                [GleapHttpTrafficRecorder recordRequest:request response:response data:data error:error startTime:startTime];
+            }
+        } @catch (NSException *exception) {}
         if (completionHandler) {
             completionHandler(data, response, error);
         }
@@ -481,16 +489,17 @@ NSURLSessionDownloadTask * gleap_downloadTaskWithURL(id self,
                                                      NSURL *url,
                                                      void (^completionHandler)(NSURL *, NSURLResponse *, NSError *)) {
     NSURLSession *session = (NSURLSession *)self;
-    
     NSURLRequest *request = [NSURLRequest requestWithURL:url];
     __block NSDate *startTime = [NSDate date];
     __block NSURLSessionDownloadTask *task = nil;
     
     void (^wrappedCompletion)(NSURL *, NSURLResponse *, NSError *) = ^(NSURL *location, NSURLResponse *response, NSError *error) {
-        if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
-            objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-            [GleapHttpTrafficRecorder recordRequest:request response:response data:nil error:error startTime:startTime];
-        }
+        @try {
+            if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
+                objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                [GleapHttpTrafficRecorder recordRequest:request response:response data:nil error:error startTime:startTime];
+            }
+        } @catch (NSException *exception) {}
         if (completionHandler) {
             completionHandler(location, response, error);
         }
@@ -510,10 +519,12 @@ NSURLSessionDownloadTask * gleap_downloadTaskWithRequest(id self,
     __block NSURLSessionDownloadTask *task = nil;
     
     void (^wrappedCompletion)(NSURL *, NSURLResponse *, NSError *) = ^(NSURL *location, NSURLResponse *response, NSError *error) {
-        if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
-            objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-            [GleapHttpTrafficRecorder recordRequest:request response:response data:nil error:error startTime:startTime];
-        }
+        @try {
+            if (!objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
+                objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                [GleapHttpTrafficRecorder recordRequest:request response:response data:nil error:error startTime:startTime];
+            }
+        } @catch (NSException *exception) {}
         if (completionHandler) {
             completionHandler(location, response, error);
         }
@@ -525,8 +536,6 @@ NSURLSessionDownloadTask * gleap_downloadTaskWithRequest(id self,
 
 #pragma mark - Extended Swizzling for Custom Session Configurations
 
-// Swizzle the class method that creates NSURLSession instances so that if a session is created using
-// the provided configuration, its delegate gets swizzled.
 + (void)swizzleSessionCreationForConfiguration:(NSURLSessionConfiguration *)configuration {
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -536,9 +545,7 @@ NSURLSessionDownloadTask * gleap_downloadTaskWithRequest(id self,
         IMP originalIMP = method_getImplementation(originalMethod);
         
         id swizzledBlock = ^NSURLSession *(Class _self, NSURLSessionConfiguration *config, id delegate, NSOperationQueue *queue) {
-            // Create the session by calling the original implementation.
             NSURLSession *session = ((NSURLSession *(*)(id, SEL, NSURLSessionConfiguration *, id, NSOperationQueue *))originalIMP)(_self, originalSelector, config, delegate, queue);
-            // If the configuration matches, swizzle the delegate to intercept delegate callbacks.
             if ([config isEqual:configuration] && delegate) {
                 [GleapHttpTrafficRecorder swizzleDelegateForSessionDelegate:delegate];
             }
@@ -550,31 +557,60 @@ NSURLSessionDownloadTask * gleap_downloadTaskWithRequest(id self,
     });
 }
 
-// Swizzle the delegate's URLSession:task:didCompleteWithError: method so that we record traffic.
 + (void)swizzleDelegateForSessionDelegate:(id)delegate {
     if (!delegate) {
         return;
     }
     Class delegateClass = object_getClass(delegate);
-    SEL selector = @selector(URLSession:task:didCompleteWithError:);
-    Method method = class_getInstanceMethod(delegateClass, selector);
-    if (!method) {
-        return;
+    
+    // Swizzle URLSession:task:didCompleteWithError:
+    SEL completeSelector = @selector(URLSession:task:didCompleteWithError:);
+    Method completeMethod = class_getInstanceMethod(delegateClass, completeSelector);
+    if (completeMethod) {
+        IMP originalCompleteIMP = method_getImplementation(completeMethod);
+        id swizzledCompleteBlock = ^(id self, NSURLSession *session, NSURLSessionTask *task, NSError *error) {
+            @try {
+                ((void (*)(id, SEL, NSURLSession *, NSURLSessionTask *, NSError *))originalCompleteIMP)(self, completeSelector, session, task, error);
+                
+                NSData *accumulatedData = nil;
+                if ([task isKindOfClass:[NSURLSessionDataTask class]]) {
+                    accumulatedData = objc_getAssociatedObject(task, &GleapAccumulatedDataKey);
+                }
+                
+                NSURLRequest *request = task.originalRequest;
+                NSURLResponse *response = task.response;
+                NSDate *startTime = [NSDate date];
+                [GleapHttpTrafficRecorder recordRequest:request response:response data:accumulatedData error:error startTime:startTime];
+            } @catch (NSException *exception) {
+                // Exception caught in didCompleteWithError; fail silently.
+            }
+        };
+        IMP swizzledCompleteIMP = imp_implementationWithBlock(swizzledCompleteBlock);
+        class_replaceMethod(delegateClass, completeSelector, swizzledCompleteIMP, method_getTypeEncoding(completeMethod));
     }
     
-    IMP originalIMP = method_getImplementation(method);
-    id swizzledBlock = ^(id self, NSURLSession *session, NSURLSessionTask *task, NSError *error) {
-        // Call the original delegate method.
-        ((void (*)(id, SEL, NSURLSession *, NSURLSessionTask *, NSError *))originalIMP)(self, selector, session, task, error);
-        // Record the request.
-        NSURLRequest *request = task.originalRequest;
-        NSURLResponse *response = task.response;
-        NSDate *startTime = [NSDate date]; // Ideally, you would have stored the task’s real start time.
-        [GleapHttpTrafficRecorder recordRequest:request response:response data:nil error:error startTime:startTime];
-    };
-    
-    IMP swizzledIMP = imp_implementationWithBlock(swizzledBlock);
-    class_replaceMethod(delegateClass, selector, swizzledIMP, method_getTypeEncoding(method));
+    // Swizzle URLSession:dataTask:didReceiveData:
+    SEL receiveDataSelector = @selector(URLSession:dataTask:didReceiveData:);
+    Method receiveDataMethod = class_getInstanceMethod(delegateClass, receiveDataSelector);
+    if (receiveDataMethod) {
+        IMP originalReceiveDataIMP = method_getImplementation(receiveDataMethod);
+        id swizzledReceiveDataBlock = ^(id self, NSURLSession *session, NSURLSessionDataTask *dataTask, NSData *data) {
+            @try {
+                NSMutableData *accumulatedData = objc_getAssociatedObject(dataTask, &GleapAccumulatedDataKey);
+                if (!accumulatedData) {
+                    accumulatedData = [NSMutableData data];
+                    objc_setAssociatedObject(dataTask, &GleapAccumulatedDataKey, accumulatedData, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                }
+                [accumulatedData appendData:data];
+                
+                ((void (*)(id, SEL, NSURLSession *, NSURLSessionDataTask *, NSData *))originalReceiveDataIMP)(self, receiveDataSelector, session, dataTask, data);
+            } @catch (NSException *exception) {
+                // Exception caught in didReceiveData; fail silently.
+            }
+        };
+        IMP swizzledReceiveDataIMP = imp_implementationWithBlock(swizzledReceiveDataBlock);
+        class_replaceMethod(delegateClass, receiveDataSelector, swizzledReceiveDataIMP, method_getTypeEncoding(receiveDataMethod));
+    }
 }
 
 @end
