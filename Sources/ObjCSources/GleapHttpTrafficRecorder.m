@@ -74,8 +74,14 @@ static char GleapLoggingRecordedKey;
     return shared;
 }
 
+#pragma mark - Extended Start Recording
+
+// This method is called when you pass in a custom session configuration.
 - (BOOL)startRecordingForSessionConfiguration:(NSURLSessionConfiguration *)sessionConfig {
-    return [self startRecording];
+    BOOL result = [self startRecording];
+    // In addition to default swizzling, swizzle session creation for the given configuration.
+    [GleapHttpTrafficRecorder swizzleSessionCreationForConfiguration:sessionConfig];
+    return result;
 }
 
 - (BOOL)startRecording {
@@ -84,7 +90,7 @@ static char GleapLoggingRecordedKey;
     }
     self.isRecording = YES;
     
-    // Trigger the swizzling
+    // Trigger the default NSURLSession swizzling.
     [GleapHttpTrafficRecorder swizzleURLSessionIfNeeded];
     
     return YES;
@@ -515,6 +521,60 @@ NSURLSessionDownloadTask * gleap_downloadTaskWithRequest(id self,
     
     task = [session gleap_downloadTaskWithRequest:request completionHandler:wrappedCompletion];
     return task;
+}
+
+#pragma mark - Extended Swizzling for Custom Session Configurations
+
+// Swizzle the class method that creates NSURLSession instances so that if a session is created using
+// the provided configuration, its delegate gets swizzled.
++ (void)swizzleSessionCreationForConfiguration:(NSURLSessionConfiguration *)configuration {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        Class sessionClass = object_getClass([NSURLSession class]);
+        SEL originalSelector = @selector(sessionWithConfiguration:delegate:delegateQueue:);
+        Method originalMethod = class_getClassMethod([NSURLSession class], originalSelector);
+        IMP originalIMP = method_getImplementation(originalMethod);
+        
+        id swizzledBlock = ^NSURLSession *(Class _self, NSURLSessionConfiguration *config, id delegate, NSOperationQueue *queue) {
+            // Create the session by calling the original implementation.
+            NSURLSession *session = ((NSURLSession *(*)(id, SEL, NSURLSessionConfiguration *, id, NSOperationQueue *))originalIMP)(_self, originalSelector, config, delegate, queue);
+            // If the configuration matches, swizzle the delegate to intercept delegate callbacks.
+            if ([config isEqual:configuration] && delegate) {
+                [GleapHttpTrafficRecorder swizzleDelegateForSessionDelegate:delegate];
+            }
+            return session;
+        };
+        
+        IMP swizzledIMP = imp_implementationWithBlock(swizzledBlock);
+        class_replaceMethod(sessionClass, originalSelector, swizzledIMP, method_getTypeEncoding(originalMethod));
+    });
+}
+
+// Swizzle the delegate's URLSession:task:didCompleteWithError: method so that we record traffic.
++ (void)swizzleDelegateForSessionDelegate:(id)delegate {
+    if (!delegate) {
+        return;
+    }
+    Class delegateClass = object_getClass(delegate);
+    SEL selector = @selector(URLSession:task:didCompleteWithError:);
+    Method method = class_getInstanceMethod(delegateClass, selector);
+    if (!method) {
+        return;
+    }
+    
+    IMP originalIMP = method_getImplementation(method);
+    id swizzledBlock = ^(id self, NSURLSession *session, NSURLSessionTask *task, NSError *error) {
+        // Call the original delegate method.
+        ((void (*)(id, SEL, NSURLSession *, NSURLSessionTask *, NSError *))originalIMP)(self, selector, session, task, error);
+        // Record the request.
+        NSURLRequest *request = task.originalRequest;
+        NSURLResponse *response = task.response;
+        NSDate *startTime = [NSDate date]; // Ideally, you would have stored the task’s real start time.
+        [GleapHttpTrafficRecorder recordRequest:request response:response data:nil error:error startTime:startTime];
+    };
+    
+    IMP swizzledIMP = imp_implementationWithBlock(swizzledBlock);
+    class_replaceMethod(delegateClass, selector, swizzledIMP, method_getTypeEncoding(method));
 }
 
 @end
