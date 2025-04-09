@@ -304,7 +304,7 @@ static id ObjectOrNull(id object)
             return;
         }
         
-        if (jsonResponse != nil && [jsonResponse objectForKey: @"errors"] == nil) {
+        if (jsonResponse != nil && [jsonResponse objectForKey: @"errors"] == nil && [jsonResponse objectForKey: @"error"] == nil) {
             // Send unregister of previous group.
             [self sendPushMessageUnregister];
             
@@ -360,6 +360,10 @@ static id ObjectOrNull(id object)
         return YES;
     }
     
+    if ([self sessionDataItemNeedsUpgrade: self.currentSession.avatar compareTo: [newData objectForKey: @"avatar"]]) {
+        return YES;
+    }
+    
     if ([self sessionDataItemNeedsUpgrade: self.currentSession.companyId compareTo: [newData objectForKey: @"companyId"]]) {
         return YES;
     }
@@ -411,6 +415,7 @@ static id ObjectOrNull(id object)
         gleapSession.lang = [data objectForKey: @"lang"];
         gleapSession.companyId = [data objectForKey: @"companyId"];
         gleapSession.companyName = [data objectForKey: @"companyName"];
+        gleapSession.avatar = [data objectForKey: @"avatar"];
         gleapSession.sla = [data objectForKey: @"sla"];
         gleapSession.plan = [data objectForKey: @"plan"];
     } @catch (id exp) {

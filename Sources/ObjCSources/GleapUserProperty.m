@@ -33,6 +33,9 @@
     if (self != nil && self.companyName != nil) {
         [sessionRequestData setValue: self.companyName forKey: @"companyName"];
     }
+    if (self != nil && self.avatar != nil) {
+        [sessionRequestData setValue: self.avatar forKey: @"avatar"];
+    }
     if (self != nil && self.value != nil) {
         [sessionRequestData setValue: self.value forKey: @"value"];
     }

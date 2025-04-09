@@ -27,6 +27,7 @@ static id ObjectOrNull(id object)
         @"phone": ObjectOrNull(self.phone),
         @"companyId": ObjectOrNull(self.companyId),
         @"companyName": ObjectOrNull(self.companyName),
+        @"avatar": ObjectOrNull(self.avatar),
         @"plan": ObjectOrNull(self.plan),
         @"customData": ObjectOrNull(self.customData)
     };

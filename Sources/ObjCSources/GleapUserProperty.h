@@ -20,6 +20,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, retain) NSString* plan;
 @property (nonatomic, retain) NSString* companyName;
 @property (nonatomic, retain) NSString* companyId;
+@property (nonatomic, retain) NSString* avatar;
 @property (nonatomic, retain) NSDictionary* customData;
 
 - (NSDictionary *)dataDictToSendWith:(NSString * _Nullable)userId and:(NSString * _Nullable)userHash;

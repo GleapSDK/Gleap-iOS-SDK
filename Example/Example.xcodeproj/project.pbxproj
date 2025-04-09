@@ -20,7 +20,6 @@
 
 /* Begin PBXFileReference section */
 		DF08420F2847572700670447 /* testimage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = testimage.png; sourceTree = "<group>"; };
-		DF0842112847583A00670447 /* 6881.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = 6881.pdf; sourceTree = "<group>"; };
 		DF0FF1A1275CBAD80070507E /* Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Example.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DF0FF1A4275CBAD80070507E /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		DF0FF1A6275CBAD80070507E /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -68,7 +67,6 @@
 		DF0FF1A3275CBAD80070507E /* Example */ = {
 			isa = PBXGroup;
 			children = (
-				DF0842112847583A00670447 /* 6881.pdf */,
 				DF08420F2847572700670447 /* testimage.png */,
 				DF0FF1A4275CBAD80070507E /* AppDelegate.swift */,
 				DF0FF1A6275CBAD80070507E /* SceneDelegate.swift */,
@@ -329,7 +327,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 7UGU2CH934;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Example/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -363,7 +361,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 7UGU2CH934;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Example/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

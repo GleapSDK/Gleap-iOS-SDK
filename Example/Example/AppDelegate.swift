@@ -19,6 +19,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         //Gleap.setApiUrl("http://0.0.0.0:9000")
         //Gleap.setFrameUrl("http://0.0.0.0:3001/appnew.html")
         Gleap.initialize(withToken: "ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV")
+        Gleap.setDisableInAppNotifications(true)
         
         Gleap.sharedInstance().delegate = self
         
@@ -42,6 +43,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         userProperty.sla = 61
         userProperty.plan = "Pro plan";
         userProperty.companyId = "29883";
+        userProperty.avatar = "https://picsum.photos/536/354";
         userProperty.companyName = "ACME inc.";
         userProperty.customData = ["key1": "Custom data"];
 
@@ -64,6 +66,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
             ])
         
         Gleap.setAiTools([aiTool])
+        
+        Gleap.setCustomData("asdfasdf", forKey: "asdfaksdfasdfasdfa sdfasdfasdf")
+        Gleap.setTags(["Casco"])
         
         Gleap.setTicketAttributeWithKey("testattr", value: "Some demo :)")
         Gleap.setTicketAttributeWithKey("test2", value: "Some 1234 :)")
