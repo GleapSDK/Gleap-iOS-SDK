@@ -59,6 +59,15 @@
     }];
 }
 
++ (void)showModal:(NSDictionary *)modalData {
+    GleapWindowChecker *windowChecker = [[GleapWindowChecker alloc] init];
+    [windowChecker waitForKeyWindowToBeReadyWithCompletion:^{
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [[GleapUIOverlayHelper sharedInstance].uiOverlayViewController showModal: modalData];
+        });
+    }];
+}
+
 + (void)showFeedbackButton:(bool)show {
     [GleapUIOverlayHelper sharedInstance].showButtonExternalOverwrite = YES;
     [GleapUIOverlayHelper sharedInstance].showButton = show;

@@ -72,6 +72,7 @@ static id ObjectOrNull(id object)
     self.wsApiUrl = @"wss://ws.gleap.io";
     self.frameUrl = @"https://messenger-app.gleap.io/appnew";
     self.bannerUrl = @"https://outboundmedia.gleap.io";
+    self.modalUrl = @"https://outboundmedia.gleap.io/modal";
     self.blacklist = [[NSArray alloc] init];
     self.networkLogPropsToIgnore = [[NSArray alloc] init];
     self.initialized = NO;

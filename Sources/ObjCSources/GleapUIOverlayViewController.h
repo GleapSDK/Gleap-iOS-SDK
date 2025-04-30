@@ -8,6 +8,7 @@
 #import <UIKit/UIKit.h>
 #import "GleapFeedbackButton.h"
 #import "GleapBanner.h"
+#import "GleapModal.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -18,12 +19,14 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)updateUI;
 - (void)initializeUI;
 - (void)showBanner:(NSDictionary *)bannerData;
+- (void)showModal:(NSDictionary *)modalData;
 - (void)updateUIPositions;
 
 @property (nonatomic, retain) NSMutableArray *internalNotifications;
 @property (nonatomic, retain) GleapFeedbackButton *feedbackButton;
 @property (nonatomic, retain) UIView *notificationsContainerView;
 @property (nonatomic, retain, nullable) GleapBanner *banner;
+@property (nonatomic, retain, nullable) GleapModal *modal;
 @property (nonatomic, retain) NSMutableArray *notificationViews;
 
 @end

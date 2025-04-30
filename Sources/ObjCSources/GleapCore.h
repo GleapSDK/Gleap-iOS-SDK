@@ -563,6 +563,7 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 @property (nonatomic, retain) NSString *wsApiUrl;
 @property (nonatomic, retain) NSString* frameUrl;
 @property (nonatomic, retain) NSString* bannerUrl;
+@property (nonatomic, retain) NSString* modalUrl;
 @property (nonatomic, retain) NSArray* blacklist;
 @property (nonatomic, retain) NSArray *networkLogPropsToIgnore;
 @property (nonatomic, assign) int initialized;

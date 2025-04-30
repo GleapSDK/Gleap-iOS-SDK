@@ -97,6 +97,7 @@
     [self bringViewToFront: self.feedbackButton];
     [self bringViewToFront: self.notificationsContainerView];
     [self bringViewToFront: self.banner];
+    [self bringViewToFront: self.modal];
 }
 
 - (void)showBanner:(NSDictionary *)bannerData {
@@ -152,6 +153,70 @@
     });
 }
 
+- (void)showModal:(NSDictionary *)modalData {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        UIWindow *keyWindow = [self getKeyWindow];
+        if (!keyWindow) {
+            return;
+        }
+
+        // If a modal is already showing, remove it first
+        if (self.modal) {
+            [self.modal removeFromSuperview];
+            self.modal = nil;
+        }
+
+        // Create the modal full-screen
+        self.modal = [[GleapModal alloc] initWithFrame:keyWindow.bounds];
+        self.modal.translatesAutoresizingMaskIntoConstraints = NO;
+        self.modal.layer.zPosition = INT_MAX;
+        self.modal.alpha = 0.0; // start hidden
+        [keyWindow addSubview:self.modal];
+
+        @try {
+            // Pin to all edges of the window
+            [keyWindow addConstraints:@[
+                [NSLayoutConstraint constraintWithItem:self.modal
+                                             attribute:NSLayoutAttributeLeading
+                                             relatedBy:NSLayoutRelationEqual
+                                                toItem:keyWindow
+                                             attribute:NSLayoutAttributeLeading
+                                            multiplier:1.0
+                                              constant:0],
+                [NSLayoutConstraint constraintWithItem:self.modal
+                                             attribute:NSLayoutAttributeTrailing
+                                             relatedBy:NSLayoutRelationEqual
+                                                toItem:keyWindow
+                                             attribute:NSLayoutAttributeTrailing
+                                            multiplier:1.0
+                                              constant:0],
+                [NSLayoutConstraint constraintWithItem:self.modal
+                                             attribute:NSLayoutAttributeTop
+                                             relatedBy:NSLayoutRelationEqual
+                                                toItem:keyWindow
+                                             attribute:NSLayoutAttributeTop
+                                            multiplier:1.0
+                                              constant:0],
+                [NSLayoutConstraint constraintWithItem:self.modal
+                                             attribute:NSLayoutAttributeBottom
+                                             relatedBy:NSLayoutRelationEqual
+                                                toItem:keyWindow
+                                             attribute:NSLayoutAttributeBottom
+                                            multiplier:1.0
+                                              constant:0],
+            ]];
+        } @catch (NSException *exception) {
+            // nothing to do
+        }
+
+        // Configure with data and fade in
+        [self.modal setupWithData:modalData];
+        [UIView animateWithDuration:0.3 animations:^{
+            self.modal.alpha = 1.0;
+        }];
+    });
+}
+
 - (void)setNotifications:(NSMutableArray *)notifications {
     self.internalNotifications = notifications;
     [self renderNotifications];
@@ -190,10 +255,16 @@
             if (self.banner != nil) {
                 self.banner.alpha = 0.0;
             }
+            if (self.modal != nil) {
+                self.modal.alpha = 0.0;
+            }
         } completion:^(BOOL finished) {
             [self.feedbackButton setUserInteractionEnabled: NO];
             if (self.banner != nil) {
                 [self.banner setUserInteractionEnabled: NO];
+            }
+            if (self.modal != nil) {
+                [self.modal setUserInteractionEnabled: NO];
             }
         }];
     } else {
@@ -202,10 +273,16 @@
             if (self.banner != nil) {
                 self.banner.alpha = 1.0;
             }
+            if (self.modal != nil) {
+                self.modal.alpha = 1.0;
+            }
         } completion:^(BOOL finished) {
             [self.feedbackButton setUserInteractionEnabled: YES];
             if (self.banner != nil) {
                 [self.banner setUserInteractionEnabled: YES];
+            }
+            if (self.modal != nil) {
+                [self.modal setUserInteractionEnabled: YES];
             }
         }];
     }

@@ -18,6 +18,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)updateNotificationCount:(int)notificationCount;
 + (void)showFeedbackButton:(bool)show;
 + (void)showBanner:(NSDictionary *)bannerData;
++ (void)showModal:(NSDictionary *)modalData;
 + (void)clear;
 + (void)updateUI;
 

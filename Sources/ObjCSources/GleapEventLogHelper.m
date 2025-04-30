@@ -255,6 +255,9 @@
                     } else if ([[action objectForKey: @"actionType"] isEqualToString: @"banner"]) {
                         // BANNER
                         [GleapUIOverlayHelper showBanner: action];
+                    } else if ([[action objectForKey: @"actionType"] isEqualToString: @"modal"]) {
+                        // BANNER
+                        [GleapUIOverlayHelper showModal: action];
                     } else {
                         // FEEDBACK FORMS
                         if ([action objectForKey: @"actionType"] != nil) {
