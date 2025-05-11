@@ -462,6 +462,7 @@ static id ObjectOrNull(id object)
     self.webView.scrollView.bounces = NO;
     self.webView.scrollView.alwaysBounceVertical = NO;
     self.webView.scrollView.alwaysBounceHorizontal = NO;
+    self.webView.scrollView.scrollEnabled = NO;
     self.webView.allowsBackForwardNavigationGestures = NO;
     
     if (@available(iOS 11.0, *)) {
