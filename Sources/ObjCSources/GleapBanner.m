@@ -65,6 +65,7 @@
     self.webView.scrollView.backgroundColor = UIColor.clearColor;
     self.webView.navigationDelegate = self;
     self.webView.UIDelegate = self;
+    self.webView.scrollView.scrollEnabled = NO;
     self.webView.scrollView.bounces = NO;
     self.webView.scrollView.alwaysBounceVertical = NO;
     self.webView.scrollView.alwaysBounceHorizontal = NO;

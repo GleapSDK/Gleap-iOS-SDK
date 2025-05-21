@@ -83,6 +83,13 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)openNews:(Boolean)showBackButton;
 
 /**
+ * Close widget on external link open.
+ * @author Gleap
+ *
+ */
++ (void)setCloseWidgetOnExternalLinkOpen:(Boolean)closeWidget;
+
+/**
  * Sets an y offset for the notification view when the feedback button is set to hidden (either through the config or code overwrite).
  * @author Gleap
  *
@@ -567,6 +574,7 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 @property (nonatomic, retain) NSArray* blacklist;
 @property (nonatomic, retain) NSArray *networkLogPropsToIgnore;
 @property (nonatomic, assign) int initialized;
+@property (nonatomic, assign) bool closeWidgetOnExternalLinkOpen;
 @property (nonatomic, assign) int notificationViewOffsetY;
 @property (nonatomic, assign) GleapApplicationType applicationType;
 @property (nonatomic, weak) id <GleapDelegate> delegate;

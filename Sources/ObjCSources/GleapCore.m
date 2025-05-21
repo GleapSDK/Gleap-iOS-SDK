@@ -76,6 +76,7 @@ static id ObjectOrNull(id object)
     self.blacklist = [[NSArray alloc] init];
     self.networkLogPropsToIgnore = [[NSArray alloc] init];
     self.initialized = NO;
+    self.closeWidgetOnExternalLinkOpen = NO;
     self.notificationViewOffsetY = 20;
     self.applicationType = NATIVE;
     
@@ -737,6 +738,10 @@ static id ObjectOrNull(id object)
  */
 + (void)removeAllAttachments {
     [GleapAttachmentHelper removeAllAttachments];
+}
+
++ (void)setCloseWidgetOnExternalLinkOpen:(Boolean)closeWidget {
+    Gleap.sharedInstance.closeWidgetOnExternalLinkOpen = closeWidget;
 }
 
 /**

@@ -97,6 +97,7 @@
     self.webView.layer.cornerRadius = 20.0;
     self.webView.layer.masksToBounds = YES;
     self.webView.scrollView.bounces = NO;
+    self.webView.scrollView.scrollEnabled = NO;
     self.webView.scrollView.alwaysBounceHorizontal = NO;
     self.webView.scrollView.alwaysBounceVertical = NO;
     if (@available(iOS 11.0, *)) {

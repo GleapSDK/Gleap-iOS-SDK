@@ -332,9 +332,13 @@ static id ObjectOrNull(id object)
         }
         
         if ([name isEqualToString: @"open-url"] && messageData != nil) {
-            [self closeWidget:^{
+            if (Gleap.sharedInstance.closeWidgetOnExternalLinkOpen == YES) {
+                [self closeWidget:^{
+                    [Gleap handleURL: (NSString *)messageData];
+                }];
+            } else {
                 [Gleap handleURL: (NSString *)messageData];
-            }];
+            }
         }
         
         if ([name isEqualToString: @"notify-event"] && messageData != nil) {

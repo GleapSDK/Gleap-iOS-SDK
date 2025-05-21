@@ -16,9 +16,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.setDisableInAppNotifications(false);
         
-        //Gleap.setApiUrl("http://0.0.0.0:9000")
-        //Gleap.setFrameUrl("http://0.0.0.0:3001/appnew.html")
-        Gleap.initialize(withToken: "CnH8klmCyIqhTn7a4O9ozy2bCb6XrsgV")
+        //Gleap.setApiUrl("https://878aed31ea8c.ngrok.app")
+        //Gleap.setFrameUrl("https://9307d14a7212.ngrok.app/appnew.html")
+        Gleap.initialize(withToken: "ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV")
         Gleap.setDisableInAppNotifications(true)
         
         Gleap.sharedInstance().delegate = self
@@ -93,6 +93,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         print(toolExecution["params"] ?? "No params.")
     }
     
+    
+    
     func registerPushMessageGroup(_ pushMessageGroup: String) {
         NSLog("Register: " + pushMessageGroup)
     }
@@ -135,10 +137,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
     
     func customActionCalled(_ customAction: String) {
         // Perform custom action.
+        
+        NSLog(customAction)
     }
     
     func customActionCalled(_ customAction: String, withShareToken shareToken: String?) {
         // Perform custom action.
+        
+        NSLog(shareToken ?? "none")
     }
 
     // MARK: UISceneSession Lifecycle
