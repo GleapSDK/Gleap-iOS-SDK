@@ -119,8 +119,13 @@
     self.widgetOpened = YES;
     
     dispatch_async(dispatch_get_main_queue(), ^{
-        // Pre widget open hook.
-        [GleapScreenshotManager takeScreenshot];
+        // Pre widget open hook with error handling.
+        [GleapScreenshotManager takeScreenshotWithCompletion:^(UIImage *screenshot, NSError *error) {
+            if (error) {
+                NSLog(@"Gleap: Screenshot failed before opening widget: %@", error.localizedDescription);
+                // Continue opening widget even if screenshot fails
+            }
+        }];
         [[GleapMetaDataHelper sharedInstance] updateLastScreenName];
         
         self.gleapWidget = [[GleapFrameManagerViewController alloc] initWithFormat: type];

@@ -16,6 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (UIImage *)getScreenshot;
 + (UIImage *)getScreenshotToAttach;
 + (void)takeScreenshot;
++ (void)takeScreenshotWithCompletion:(void(^_Nullable)(UIImage * _Nullable screenshot, NSError * _Nullable error))completion;
 
 @property (strong, nonatomic, nullable) UIImage *screenshot;
 @property (strong, nonatomic, nullable) UIImage *updatedScreenshot;
