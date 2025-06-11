@@ -806,11 +806,19 @@ static id ObjectOrNull(id object)
 
 + (void)openURLExternally:(NSURL *)url fromViewController:(UIViewController *)presentingViewController {
     @try {
-        if ([SFSafariViewController class]) {
-            SFSafariViewController *viewController = [[SFSafariViewController alloc] initWithURL: url];
-            viewController.modalPresentationStyle = UIModalPresentationFormSheet;
-            viewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
-            [presentingViewController presentViewController:viewController animated:YES completion:nil];
+        if ([url.scheme isEqualToString:@"http"] || [url.scheme isEqualToString:@"https"]) {
+            if ([SFSafariViewController class]) {
+                SFSafariViewController *viewController = [[SFSafariViewController alloc] initWithURL: url];
+                viewController.modalPresentationStyle = UIModalPresentationFormSheet;
+                viewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
+                [presentingViewController presentViewController:viewController animated:YES completion:nil];
+            } else {
+                if ([[UIApplication sharedApplication] canOpenURL: url]) {
+                    if (@available(iOS 10.0, *)) {
+                        [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
+                    }
+                }
+            }
         } else {
             if ([[UIApplication sharedApplication] canOpenURL: url]) {
                 if (@available(iOS 10.0, *)) {
