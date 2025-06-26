@@ -805,30 +805,38 @@ static id ObjectOrNull(id object)
 }
 
 + (void)openURLExternally:(NSURL *)url fromViewController:(UIViewController *)presentingViewController {
-    @try {
-        if ([url.scheme isEqualToString:@"http"] || [url.scheme isEqualToString:@"https"]) {
-            if ([SFSafariViewController class]) {
-                SFSafariViewController *viewController = [[SFSafariViewController alloc] initWithURL: url];
-                viewController.modalPresentationStyle = UIModalPresentationFormSheet;
-                viewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
-                [presentingViewController presentViewController:viewController animated:YES completion:nil];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        @try {
+            if ([url.scheme isEqualToString:@"http"] || [url.scheme isEqualToString:@"https"]) {
+                if ([SFSafariViewController class]) {
+                    SFSafariViewController *viewController = [[SFSafariViewController alloc] initWithURL: url];
+                    viewController.modalPresentationStyle = UIModalPresentationFormSheet;
+                    viewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
+                    [presentingViewController presentViewController:viewController animated:YES completion:nil];
+                } else {
+                    if ([[UIApplication sharedApplication] canOpenURL: url]) {
+                        if (@available(iOS 10.0, *)) {
+                            [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
+                        }
+                    }
+                }
             } else {
+                if (![url.scheme isEqualToString:@"tel"] && ![url.scheme isEqualToString:@"mailto"]) {
+                    // Close Gleap when it's a deep link.
+                    [Gleap close];
+                }
+                
+                // Open deep link.
                 if ([[UIApplication sharedApplication] canOpenURL: url]) {
                     if (@available(iOS 10.0, *)) {
                         [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
                     }
                 }
             }
-        } else {
-            if ([[UIApplication sharedApplication] canOpenURL: url]) {
-                if (@available(iOS 10.0, *)) {
-                    [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
-                }
-            }
+        } @catch (id exp) {
+            
         }
-    } @catch (id exp) {
-        
-    }
+    });
 }
 
 @end
