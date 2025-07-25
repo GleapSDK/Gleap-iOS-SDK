@@ -166,8 +166,10 @@
         if ([name isEqualToString:@"modal-loaded"]) {
             NSDictionary *flowConfig = [GleapConfigHelper sharedInstance].config;
             NSString *primaryColor = flowConfig[@"color"] ?: @"#485BFF";
+            NSString *backgroundColor = flowConfig[@"backgroundColor"] ?: @"#FFFFFF";
             NSMutableDictionary *payload = [[self.modalData objectForKey:@"config"] mutableCopy];
             payload[@"primaryColor"] = primaryColor;
+            payload[@"backgroundColor"] = backgroundColor;
             [self sendMessageWithData:@{@"name":@"modal-data",@"data":payload}];
         }
         else if ([name isEqualToString:@"modal-height"]) {
