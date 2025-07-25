@@ -157,65 +157,78 @@
 }
 
 - (void)userContentController:(WKUserContentController *)uC didReceiveScriptMessage:(WKScriptMessage *)message {
-    if (![message.name isEqualToString:@"gleapModalCallback"]) return;
-    NSDictionary *body = message.body;
-    NSString *name = body[@"name"];
-    NSDictionary *data = body[@"data"];
-
-    if ([name isEqualToString:@"modal-loaded"]) {
-        NSDictionary *flowConfig = [GleapConfigHelper sharedInstance].config;
-        NSString *primaryColor = flowConfig[@"color"] ?: @"#485BFF";
-        NSMutableDictionary *payload = [[self.modalData objectForKey:@"config"] mutableCopy];
-        payload[@"primaryColor"] = primaryColor;
-        [self sendMessageWithData:@{@"name":@"modal-data",@"data":payload}];
-    }
-    else if ([name isEqualToString:@"modal-height"]) {
-        NSNumber *h = data[@"height"];
-        if (h) {
-            // Get the current bounds to calculate max height
-            CGFloat maxHeight = CGRectGetHeight(self.bounds) * 0.9;
-            CGFloat newHeight = MIN([h floatValue], maxHeight);
+    @try {
+        if (![message.name isEqualToString:@"gleapModalCallback"]) return;
+        NSDictionary *body = message.body;
+        NSString *name = body[@"name"];
+        NSDictionary *data = body[@"data"];
+        
+        if ([name isEqualToString:@"modal-loaded"]) {
+            NSDictionary *flowConfig = [GleapConfigHelper sharedInstance].config;
+            NSString *primaryColor = flowConfig[@"color"] ?: @"#485BFF";
+            NSMutableDictionary *payload = [[self.modalData objectForKey:@"config"] mutableCopy];
+            payload[@"primaryColor"] = primaryColor;
+            [self sendMessageWithData:@{@"name":@"modal-data",@"data":payload}];
+        }
+        else if ([name isEqualToString:@"modal-height"]) {
+            NSNumber *h = data[@"height"];
+            if (h) {
+                // Get the current bounds to calculate max height
+                CGFloat maxHeight = CGRectGetHeight(self.bounds) * 0.9;
+                CGFloat newHeight = MIN([h floatValue], maxHeight);
+                
+                // Update the height constraint on the main thread
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    self.heightConstraint.constant = newHeight;
+                    [UIView animateWithDuration:0.25 animations:^{
+                        [self layoutIfNeeded];
+                    }];
+                });
+            }
+        }
+        else if ([name isEqualToString:@"modal-close"]) {
+            [self hideModal];
+        }
+        else if ([name isEqualToString:@"start-conversation"]) {
+            [self hideModal];
+            [Gleap startBot:data[@"botId"] showBackButton:YES];
+        } else if ([name isEqualToString:@"start-custom-action"]) {
+            [self hideModal];
+            if ([Gleap.sharedInstance.delegate respondsToSelector:
+                 @selector(customActionCalled:withShareToken:)]) {
+                [Gleap.sharedInstance.delegate
+                 customActionCalled:data[@"action"] withShareToken:nil];
+            } else if ([Gleap.sharedInstance.delegate respondsToSelector:
+                        @selector(customActionCalled:)]) {
+                [Gleap.sharedInstance.delegate
+                 customActionCalled:data[@"action"]];
+            }
+        } else if ([name isEqualToString:@"open-url"]) {
+            [self hideModal];
+            [Gleap handleURL: (NSString *)data];
+        } else if ([name isEqualToString:@"show-form"]) {
+            [self hideModal];
+            [Gleap startFeedbackFlow:data[@"formId"] showBackButton:YES];
+        } else if ([name isEqualToString:@"show-survey"]) {
+            GleapSurveyFormat format = SURVEY;
+            if ([data[@"surveyFormat"] isEqualToString:@"survey_full"]) {
+                format = SURVEY_FULL;
+            }
             
-            // Update the height constraint on the main thread
-            dispatch_async(dispatch_get_main_queue(), ^{
-                self.heightConstraint.constant = newHeight;
-                [UIView animateWithDuration:0.25 animations:^{
-                    [self layoutIfNeeded];
-                }];
-            });
+            [self hideModal];
+            [Gleap showSurvey:data[@"formId"] andFormat:format];
+        } else if ([name isEqualToString:@"show-news-article"]) {
+            [self hideModal];
+            [Gleap openNewsArticle:data[@"articleId"] andShowBackButton:NO];
+        } else if ([name isEqualToString:@"show-help-article"]) {
+            [self hideModal];
+            [Gleap openHelpCenterArticle:data[@"articleId"] andShowBackButton:NO];
+        } else if ([name isEqualToString:@"show-checklist"]) {
+            [self hideModal];
+            [Gleap startChecklist:data[@"checklistId"] andShowBackButton:NO];
         }
-    }
-    else if ([name isEqualToString:@"modal-close"]) {
-        [self hideModal];
-    }
-    else if ([name isEqualToString:@"start-conversation"]) {
-        [Gleap startBot:data[@"botId"] showBackButton:YES];
-    } else if ([name isEqualToString:@"start-custom-action"]) {
-        if ([Gleap.sharedInstance.delegate respondsToSelector:
-             @selector(customActionCalled:withShareToken:)]) {
-            [Gleap.sharedInstance.delegate
-                customActionCalled:data[@"action"] withShareToken:nil];
-        } else if ([Gleap.sharedInstance.delegate respondsToSelector:
-                    @selector(customActionCalled:)]) {
-            [Gleap.sharedInstance.delegate
-                customActionCalled:data[@"action"]];
-        }
-    } else if ([name isEqualToString:@"open-url"]) {
-        [Gleap handleURL:data[@"url"]];
-    } else if ([name isEqualToString:@"show-form"]) {
-        [Gleap startFeedbackFlow:data[@"formId"] showBackButton:YES];
-    } else if ([name isEqualToString:@"show-survey"]) {
-        GleapSurveyFormat format = SURVEY;
-        if ([data[@"surveyFormat"] isEqualToString:@"survey_full"]) {
-            format = SURVEY_FULL;
-        }
-        [Gleap showSurvey:data[@"formId"] andFormat:format];
-    } else if ([name isEqualToString:@"show-news-article"]) {
-        [Gleap openNewsArticle:data[@"articleId"] andShowBackButton:NO];
-    } else if ([name isEqualToString:@"show-help-article"]) {
-        [Gleap openHelpCenterArticle:data[@"articleId"] andShowBackButton:NO];
-    } else if ([name isEqualToString:@"show-checklist"]) {
-        [Gleap startChecklist:data[@"checklistId"] andShowBackButton:NO];
+    } @catch (NSException * e) {
+        NSLog(@"Modal action error, %@", e);
     }
 }
 
