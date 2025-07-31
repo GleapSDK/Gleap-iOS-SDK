@@ -88,6 +88,7 @@
     [userController addScriptMessageHandler:self name:@"gleapModalCallback"];
     config.userContentController = userController;
     config.allowsInlineMediaPlayback = YES;
+    config.websiteDataStore = [WKWebsiteDataStore nonPersistentDataStore];
 
     self.webView = [[WKWebView alloc] initWithFrame:CGRectZero configuration:config];
     self.webView.translatesAutoresizingMaskIntoConstraints = NO;

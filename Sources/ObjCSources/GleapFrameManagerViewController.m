@@ -456,6 +456,7 @@ static id ObjectOrNull(id object)
     WKUserContentController* userController = [[WKUserContentController alloc] init];
     [userController addScriptMessageHandler: self name: @"gleapCallback"];
     webConfig.userContentController = userController;
+    webConfig.websiteDataStore = [WKWebsiteDataStore nonPersistentDataStore];
     
     self.webView = [[WKWebView alloc] initWithFrame:self.view.frame configuration: webConfig];
     self.webView.opaque = false;

@@ -58,6 +58,7 @@
     [userController addScriptMessageHandler: self name: @"gleapBannerCallback"];
     webConfig.userContentController = userController;
     webConfig.allowsInlineMediaPlayback = YES;
+    webConfig.websiteDataStore = [WKWebsiteDataStore nonPersistentDataStore];
     
     self.webView = [[WKWebView alloc] initWithFrame:self.frame configuration: webConfig];
     self.webView.opaque = false;
