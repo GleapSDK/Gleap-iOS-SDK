@@ -18,7 +18,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         //Gleap.setApiUrl("https://878aed31ea8c.ngrok.app")
         //Gleap.setFrameUrl("https://9307d14a7212.ngrok.app/appnew.html")
-        Gleap.initialize(withToken: "SWDRYt539LLdlWtMLGYVos7oIAbWQPbX")
+        Gleap.initialize(withToken: "ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV")
         Gleap.setDisableInAppNotifications(true)
         
         Gleap.sharedInstance().delegate = self

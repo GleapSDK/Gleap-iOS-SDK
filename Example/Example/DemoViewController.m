@@ -33,11 +33,11 @@
 }
 
 - (IBAction)demo:(id)sender {
+    [Gleap askAI: @"What is Gleap?"];
 }
 
 - (IBAction)sendData:(id)sender {
-    [Gleap showFeedbackButton: YES];
-    [Gleap trackEvent: @"test"];
+    [Gleap askAI: @"What is Gleap?"];
 }
 
 - (NSData *)certificateDataFromString:(NSString *)base64String {

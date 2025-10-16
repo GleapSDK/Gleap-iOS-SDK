@@ -432,7 +432,7 @@ static id ObjectOrNull(id object)
 }
 
 + (void)askAI:(NSString *)question {
-    [self openHelpCenterArticle: question andShowBackButton: YES];
+    [self askAI: question andShowBackButton: YES];
 }
 
 + (void)askAI:(NSString *)question andShowBackButton:(Boolean)showBackButton {
