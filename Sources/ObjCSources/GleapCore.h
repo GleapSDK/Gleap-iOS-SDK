@@ -198,6 +198,14 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)searchHelpCenter:(NSString *)searchTerm andShowBackButton:(Boolean)showBackButton;
 
 /**
+ * Ask AI a question.
+ * @author Gleap
+ *
+ */
++ (void)askAI:(NSString *)question;
++ (void)askAI:(NSString *)question andShowBackButton:(Boolean)showBackButton;
+
+/**
  * Close the Gleap widget.
  * @author Gleap
  *

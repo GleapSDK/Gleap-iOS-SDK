@@ -431,6 +431,22 @@ static id ObjectOrNull(id object)
     }
 }
 
++ (void)askAI:(NSString *)question {
+    [self openHelpCenterArticle: question andShowBackButton: YES];
+}
+
++ (void)askAI:(NSString *)question andShowBackButton:(Boolean)showBackButton {
+    if ([Gleap open]) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": @"ask-ai",
+            @"data": @{
+                @"question": ObjectOrNull(question),
+                @"hideBackButton": @(!showBackButton)
+            }
+        }];
+    }
+}
+
 + (void)openHelpCenterArticle:(NSString *)articleId {
     [self openHelpCenterArticle: articleId andShowBackButton: NO];
 }
