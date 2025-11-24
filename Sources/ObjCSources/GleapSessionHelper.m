@@ -22,6 +22,20 @@ static id ObjectOrNull(id object)
 }
 
 /*
+ Returns the current device type based on the device idiom.
+ */
++ (NSString *)getDeviceType
+{
+    UIUserInterfaceIdiom idiom = [[UIDevice currentDevice] userInterfaceIdiom];
+    if (idiom == UIUserInterfaceIdiomPad) {
+        return @"tablet";
+    } else if (idiom == UIUserInterfaceIdiomMac) {
+        return @"desktop";
+    }
+    return @"mobile";
+}
+
+/*
  Returns a shared instance (singleton).
  */
 + (instancetype)sharedInstance
@@ -70,7 +84,9 @@ static id ObjectOrNull(id object)
     if (lang != nil) {
         NSError *error;
         NSData *jsonBodyData = [NSJSONSerialization dataWithJSONObject: @{
-            @"lang": lang
+            @"lang": lang,
+            @"platform": @"iOS",
+            @"deviceType": [GleapSessionHelper getDeviceType],
         } options:kNilOptions error: &error];
         if (error == nil) {
             [request setHTTPBody: jsonBodyData];
@@ -165,7 +181,11 @@ static id ObjectOrNull(id object)
     GleapUserProperty *data = [self.openUpdateAction objectForKey: @"data"];
     self.openUpdateAction = nil;
     
-    NSDictionary *dataToSend = [data dataDictToSendWith: nil and: nil];
+    NSMutableDictionary *dataToSend = [[data dataDictToSendWith: nil and: nil] mutableCopy];
+    
+    // Add platform and deviceType to data
+    [dataToSend setValue: @"iOS" forKey: @"platform"];
+    [dataToSend setValue: [GleapSessionHelper getDeviceType] forKey: @"deviceType"];
     
     // If update is needed, also append all the custom data fields.
     @try {
@@ -257,6 +277,10 @@ static id ObjectOrNull(id object)
                 [sessionRequestData setValue: [data.customData objectForKey: key] forKey: key];
             }
         }
+        
+        // Add platform and deviceType
+        [sessionRequestData setValue: @"iOS" forKey: @"platform"];
+        [sessionRequestData setValue: [GleapSessionHelper getDeviceType] forKey: @"deviceType"];
     } @catch (id exp) {}
     
     NSError *error;

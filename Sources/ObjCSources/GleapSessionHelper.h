@@ -21,6 +21,7 @@ NS_ASSUME_NONNULL_BEGIN
  * @return A new shared instance of GleapSessionHelper.
  */
 + (instancetype)sharedInstance;
++ (NSString *)getDeviceType;
 + (void)injectSessionInRequest:(NSMutableURLRequest *)request;
 + (void)handlePushNotification:(NSDictionary *)notificationData;
 
