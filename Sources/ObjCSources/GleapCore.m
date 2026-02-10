@@ -77,7 +77,8 @@ static id ObjectOrNull(id object)
     self.networkLogPropsToIgnore = [[NSArray alloc] init];
     self.initialized = NO;
     self.closeWidgetOnExternalLinkOpen = NO;
-    self.notificationViewOffsetY = 20;
+    self.notificationViewOffsetY = 0;
+    self.notificationViewOffsetX = 0;
     self.applicationType = NATIVE;
     
     [[GleapMetaDataHelper sharedInstance] startSession];
@@ -91,7 +92,8 @@ static id ObjectOrNull(id object)
     [GleapActivationMethodHelper setAutoActivationMethodsDisabled];
 }
 
-+ (void)setNotificationViewOffsetY: (int)offsetY {
++ (void)setNotificationContainerOffsetX: (int)offsetX y: (int)offsetY {
+    [Gleap sharedInstance].notificationViewOffsetX = offsetX;
     [Gleap sharedInstance].notificationViewOffsetY = offsetY;
 }
 

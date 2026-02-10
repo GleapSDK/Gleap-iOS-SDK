@@ -14,12 +14,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         // Override point for customization after application launch.
         Gleap.enableDebugConsoleLog()
         
-        Gleap.setDisableInAppNotifications(false);
-        
         //Gleap.setApiUrl("https://878aed31ea8c.ngrok.app")
         //Gleap.setFrameUrl("https://9307d14a7212.ngrok.app/appnew.html")
-        Gleap.initialize(withToken: "ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV")
-        Gleap.setDisableInAppNotifications(true)
+        Gleap.initialize(withToken: "GnhEkS8fdwxNVjyn3BnYwKzpCkiHgKWL")
         
         Gleap.sharedInstance().delegate = self
         
@@ -28,12 +25,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         // Attach custom data sample.
         Gleap.attachCustomData(["value": "Unicorn", "type": "Demo", "ExtraInfo": ["Age": "28", "City": "San Francisco", 12: 2999]])
         
-        Gleap.showFeedbackButton(true)
-        
         // Testing file attachments.
         if let data = "Dies ist ein test.".data(using: String.Encoding.utf8) {
             Gleap.addAttachment(with: data, andName: "text.txt")
         }
+        
+        //Gleap.setNotificationContainerOffsetX(0, y: 50)
         
         let userProperty = GleapUserProperty()
         userProperty.name = "Franz"

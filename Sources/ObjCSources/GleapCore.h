@@ -90,12 +90,13 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)setCloseWidgetOnExternalLinkOpen:(Boolean)closeWidget;
 
 /**
- * Sets an y offset for the notification view when the feedback button is set to hidden (either through the config or code overwrite).
+ * Sets an x and y offset for the notification container view.
  * @author Gleap
  *
- * @param offsetY The Y offset of the notification view.
+ * @param offsetX The X offset of the notification container.
+ * @param offsetY The Y offset of the notification container.
  */
-+ (void)setNotificationViewOffsetY: (int)offsetY;
++ (void)setNotificationContainerOffsetX: (int)offsetX y: (int)offsetY;
 
 /**
  * Open the checklists overview.
@@ -584,6 +585,7 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 @property (nonatomic, assign) int initialized;
 @property (nonatomic, assign) bool closeWidgetOnExternalLinkOpen;
 @property (nonatomic, assign) int notificationViewOffsetY;
+@property (nonatomic, assign) int notificationViewOffsetX;
 @property (nonatomic, assign) GleapApplicationType applicationType;
 @property (nonatomic, weak) id <GleapDelegate> delegate;
 
