@@ -82,21 +82,52 @@ static id ObjectOrNull(id object)
 }
 
 - (void)setupLoadingView {
-    if (self.isCardSurvey) {
-        return;
-    }
-    
     UIView *loadingView = [UIView new];
-    UIActivityIndicatorView *loadingActivityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle: UIActivityIndicatorViewStyleWhiteLarge];
+    UIActivityIndicatorView *loadingActivityView;
+    if (self.isCardSurvey) {
+        if (@available(iOS 13.0, *)) {
+            loadingActivityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
+        } else {
+            loadingActivityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+        }
+    } else {
+        loadingActivityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
+    }
     [loadingActivityView startAnimating];
     
-    NSDictionary *config = GleapConfigHelper.sharedInstance.config;
-    if (config != nil) {
-        NSString *backgroundColor = [config objectForKey: @"backgroundColor"];
-        if (backgroundColor != nil && backgroundColor.length > 0) {
-            UIColor *color = [GleapUIHelper colorFromHexString: backgroundColor];
-            loadingView.backgroundColor = color;
-            loadingActivityView.color = [GleapUIHelper contrastColorFrom: color];
+    if (self.isCardSurvey) {
+        loadingView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.5];
+        loadingActivityView.color = UIColor.whiteColor;
+    } else {
+        NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+        if (config != nil) {
+            NSString *backgroundColor = [config objectForKey: @"backgroundColor"];
+            if (backgroundColor != nil && backgroundColor.length > 0) {
+                UIColor *color = [GleapUIHelper colorFromHexString: backgroundColor];
+                loadingView.backgroundColor = color;
+                loadingActivityView.color = [GleapUIHelper contrastColorFrom: color];
+            } else {
+                if (@available(iOS 13.0, *)) {
+                    loadingView.backgroundColor = UIColor.systemBackgroundColor;
+                    loadingActivityView.color = UIColor.labelColor;
+                } else {
+                    loadingView.backgroundColor = UIColor.whiteColor;
+                    loadingActivityView.color = UIColor.blackColor;
+                }
+            }
+            
+            NSString *headerColor = [config objectForKey: @"headerColor"];
+            if (headerColor != nil && headerColor.length > 0) {
+                UIColor *color = [GleapUIHelper colorFromHexString: headerColor];
+                
+                CGFloat width = [UIScreen mainScreen].bounds.size.width;
+                CAGradientLayer *gradient = [CAGradientLayer layer];
+                gradient.frame = CGRectMake(0, 0, width, 380);
+                gradient.colors = @[(id)[color CGColor], (id)[loadingView.backgroundColor CGColor]];
+                gradient.startPoint = CGPointMake(0, 0.6);
+                gradient.endPoint = CGPointMake(0, 1);
+                [loadingView.layer addSublayer: gradient];
+            }
         } else {
             if (@available(iOS 13.0, *)) {
                 loadingView.backgroundColor = UIColor.systemBackgroundColor;
@@ -105,19 +136,6 @@ static id ObjectOrNull(id object)
                 loadingView.backgroundColor = UIColor.whiteColor;
                 loadingActivityView.color = UIColor.blackColor;
             }
-        }
-        
-        NSString *headerColor = [config objectForKey: @"headerColor"];
-        if (headerColor != nil && headerColor.length > 0) {
-            UIColor *color = [GleapUIHelper colorFromHexString: headerColor];
-            
-            CGFloat width = [UIScreen mainScreen].bounds.size.width;
-            CAGradientLayer *gradient = [CAGradientLayer layer];
-            gradient.frame = CGRectMake(0, 0, width, 380);
-            gradient.colors = @[(id)[color CGColor], (id)[loadingView.backgroundColor CGColor]];
-            gradient.startPoint = CGPointMake(0, 0.6);
-            gradient.endPoint = CGPointMake(0, 1);
-            [loadingView.layer addSublayer: gradient];
         }
     }
 
@@ -130,9 +148,13 @@ static id ObjectOrNull(id object)
     loadingActivityView.translatesAutoresizingMaskIntoConstraints = NO;
     [loadingView addSubview: loadingActivityView];
     [[loadingActivityView.centerXAnchor constraintEqualToAnchor: loadingView.centerXAnchor] setActive:YES];
-    NSLayoutConstraint* constraint = [loadingActivityView.topAnchor constraintEqualToAnchor: loadingView.topAnchor];
-    [constraint setConstant: 410];
-    [constraint setActive:YES];
+    if (self.isCardSurvey) {
+        [[loadingActivityView.centerYAnchor constraintEqualToAnchor: loadingView.centerYAnchor] setActive:YES];
+    } else {
+        NSLayoutConstraint* constraint = [loadingActivityView.topAnchor constraintEqualToAnchor: loadingView.topAnchor];
+        [constraint setConstant: 410];
+        [constraint setActive:YES];
+    }
     
     self.loadingView = loadingView;
     self.loadingActivityView = loadingActivityView;

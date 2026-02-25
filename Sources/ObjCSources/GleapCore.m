@@ -537,13 +537,11 @@ static id ObjectOrNull(id object)
     Starts a survey with format.
  */
 + (void)showSurvey:(NSString * _Nullable)surveyId andFormat:(GleapSurveyFormat)format {
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        [Gleap.sharedInstance startFeedbackFlow: surveyId withOptions: @{
-            @"isSurvey": @YES,
-            @"format": format == SURVEY_FULL ? @"survey_full" : @"survey",
-            @"hideBackButton": @YES
-        }];
-    });
+    [Gleap.sharedInstance startFeedbackFlow: surveyId withOptions: @{
+        @"isSurvey": @YES,
+        @"format": format == SURVEY_FULL ? @"survey_full" : @"survey",
+        @"hideBackButton": @YES
+    }];
 }
 
 /**
