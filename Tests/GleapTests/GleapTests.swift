@@ -1,10 +1,10 @@
 import XCTest
 @testable import Gleap
-import Gleap_ObjC
 
 final class iOS_SDK_crossTests: XCTestCase {
-    func testExample() throws {
-        Gleap.initialize(withToken: "")
-        XCTAssertEqual(iOS_SDK_cross().text, "Hello, World!")
+    func testGleapInitializes() throws {
+        // Basic smoke test: Gleap singleton should be accessible
+        let instance = Gleap.sharedInstance()
+        XCTAssertNotNil(instance, "Gleap shared instance should not be nil")
     }
 }

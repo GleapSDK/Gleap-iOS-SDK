@@ -1,0 +1,796 @@
+{
+  "builtTestProducts" : [
+    {
+      "binaryPath" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.xctest/Contents/MacOS/GleapPackageTests",
+      "packagePath" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK",
+      "productName" : "GleapPackageTests"
+    }
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.GleapPackageTests-arm64-apple-macosx26.0-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/sources",
+      "importPath" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.derived/runner.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Modules/GleapTests.swiftmodule"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "GleapPackageTests",
+      "moduleOutputPath" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Modules/GleapPackageTests.swiftmodule",
+      "objects" : [
+        "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/runner.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx10.13",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-Xfrontend",
+        "-enable-cross-import-overlays",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-Xcc",
+        "-fmodule-map-file=/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/module.modulemap",
+        "-Xcc",
+        "-I",
+        "-Xcc",
+        "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/Sources/ObjCSources",
+        "-module-cache-path",
+        "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/include/GleapPackageTests-Swift.h",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g"
+      ],
+      "outputFileMapPath" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/runner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Modules/GleapPackageTests.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.derived/runner.swift"
+      ],
+      "tempsPath" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build",
+      "wholeModuleOptimization" : false
+    },
+    "C.GleapTests-arm64-apple-macosx26.0-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/sources",
+      "importPath" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/Tests/GleapTests/GleapTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/Tests/GleapTests/GleapTimeOnPageTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapAction.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapActivationMethodHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapAiTool.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapAiToolParameter.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapAttachmentHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapBanner.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapConfigHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapConsoleLogHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapCore.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapCustomDataHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapEventLogHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapExternalDataHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapFeedback.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapFeedbackButton.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapFrameManagerViewController.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapHttpTrafficRecorder.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapMetaDataHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapModal.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapPreFillHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapReplayHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapScreenCaptureHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapScreenshotListener.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapScreenshotManager.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapSession.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapSessionHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapTagHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapTouchHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapTranslationHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapUIHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapUIOverlayHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapUIOverlayViewController.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapUploadManager.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapUserProperty.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapWebSocketHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapWidgetManager.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapWindowChecker.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/UIViewController+GleapViewControllerHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/UIWindow+GleapShakeRecognizer.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/UIWindow+GleapTouchRecognizer.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "GleapTests",
+      "moduleOutputPath" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Modules/GleapTests.swiftmodule",
+      "objects" : [
+        "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTests.swift.o",
+        "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTimeOnPageTests.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-Xfrontend",
+        "-enable-cross-import-overlays",
+        "-j10",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-Xcc",
+        "-fmodule-map-file=/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/module.modulemap",
+        "-Xcc",
+        "-I",
+        "-Xcc",
+        "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/Sources/ObjCSources",
+        "-module-cache-path",
+        "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-swift-version",
+        "5",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g"
+      ],
+      "outputFileMapPath" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTimeOnPageTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Modules/GleapTests.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/Tests/GleapTests/GleapTests.swift",
+        "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/Tests/GleapTests/GleapTimeOnPageTests.swift"
+      ],
+      "tempsPath" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "GleapPackageTests" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "GleapPackageTests",
+      "-c",
+      "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.derived/runner.swift",
+      "-I",
+      "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx10.13",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-Xfrontend",
+      "-enable-cross-import-overlays",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-Xcc",
+      "-fmodule-map-file=/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/module.modulemap",
+      "-Xcc",
+      "-I",
+      "-Xcc",
+      "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/Sources/ObjCSources",
+      "-module-cache-path",
+      "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/include/GleapPackageTests-Swift.h",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ],
+    "GleapTests" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "GleapTests",
+      "-c",
+      "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/Tests/GleapTests/GleapTests.swift",
+      "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/Tests/GleapTests/GleapTimeOnPageTests.swift",
+      "-I",
+      "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-Xfrontend",
+      "-enable-cross-import-overlays",
+      "-j10",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-Xcc",
+      "-fmodule-map-file=/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/module.modulemap",
+      "-Xcc",
+      "-I",
+      "-Xcc",
+      "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/Sources/ObjCSources",
+      "-module-cache-path",
+      "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-swift-version",
+      "5",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "Gleap" : [
+
+    ],
+    "GleapPackageTests" : [
+      "GleapTests",
+      "Gleap"
+    ],
+    "GleapTests" : [
+      "Gleap"
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+    "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.derived/runner.swift" : {
+      "inputs" : [
+
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.derived/runner.swift"
+        }
+      ]
+    }
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.derived/runner.swift"
+        }
+      ],
+      "outputFilePath" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/sources"
+    },
+    "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapAction.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapActivationMethodHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapAiTool.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapAiToolParameter.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapAttachmentHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapBanner.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapConfigHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapConsoleLogHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapCore.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapCustomDataHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapEventLogHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapExternalDataHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapFeedback.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapFeedbackButton.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapFrameManagerViewController.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapHttpTrafficRecorder.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapMetaDataHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapModal.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapPreFillHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapReplayHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapScreenCaptureHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapScreenshotListener.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapScreenshotManager.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapSession.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapSessionHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapTagHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapTouchHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapTranslationHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapUIHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapUIOverlayHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapUIOverlayViewController.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapUploadManager.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapUserProperty.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapWebSocketHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapWidgetManager.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/GleapWindowChecker.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/UIViewController+GleapViewControllerHelper.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/UIWindow+GleapShakeRecognizer.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/Gleap.build/UIWindow+GleapTouchRecognizer.m.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/runner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTimeOnPageTests.swift.o"
+        }
+      ],
+      "outputFilePath" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.product/Objects.LinkFileList"
+    },
+    "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/Tests/GleapTests/GleapTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/Tests/GleapTests/GleapTimeOnPageTests.swift"
+        }
+      ],
+      "outputFilePath" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/sources"
+    },
+    "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}

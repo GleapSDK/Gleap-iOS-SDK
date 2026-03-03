@@ -1,0 +1,4 @@
+module Gleap {
+    umbrella header "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/Sources/ObjCSources/Gleap.h"
+    export *
+}

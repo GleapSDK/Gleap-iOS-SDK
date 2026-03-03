@@ -1,0 +1,19 @@
+{
+  "": {
+    "swift-dependencies": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/master.swiftdeps"
+  },
+  "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/Tests/GleapTests/GleapTests.swift": {
+    "dependencies": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTests.d",
+    "object": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTests.swift.o",
+    "swiftmodule": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTests~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTests.swiftdeps",
+    "diagnostics": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTests.dia"
+  },
+  "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/Tests/GleapTests/GleapTimeOnPageTests.swift": {
+    "dependencies": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTimeOnPageTests.d",
+    "object": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTimeOnPageTests.swift.o",
+    "swiftmodule": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTimeOnPageTests~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTimeOnPageTests.swiftdeps",
+    "diagnostics": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapTests.build/GleapTimeOnPageTests.dia"
+  }
+}

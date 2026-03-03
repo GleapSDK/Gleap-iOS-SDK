@@ -163,11 +163,6 @@
         eventsToSend = [self.streamedLog copy];
     }
     
-    // When websocket mode is enabled, don't send empty events.
-    if (self.webSocketEnabled && eventsToSend.count == 0) {
-        return;
-    }
-    
     if (@available(iOS 13.0, *)) {
         if (self.webSocketEnabled && ![GleapWebSocketHelper sharedInstance].connected) {
             return;

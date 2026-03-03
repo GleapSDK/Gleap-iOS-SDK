@@ -1,0 +1,12 @@
+{
+  "": {
+    "swift-dependencies": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/master.swiftdeps"
+  },
+  "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.derived/runner.swift": {
+    "dependencies": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/runner.d",
+    "object": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/runner.swift.o",
+    "swiftmodule": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/runner~partial.swiftmodule",
+    "swift-dependencies": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/runner.swiftdeps",
+    "diagnostics": "/private/var/folders/78/tw8ggjz5725dwt0zkz7dfvdw0000gn/T/gleap-coder-dviCoe/Gleap-iOS-SDK/.build/arm64-apple-macosx/debug/GleapPackageTests.build/runner.dia"
+  }
+}
