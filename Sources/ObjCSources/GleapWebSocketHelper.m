@@ -33,13 +33,6 @@
         [self.webSocketTask sendPingWithPongReceiveHandler:^(NSError * _Nullable error) {
             if (error != nil) {
                 self.connected = NO;
-            } else {
-                if (self.connected == NO) {
-                    self.connected = YES;
-                    
-                    // We got connected, send events.
-                    [[GleapEventLogHelper sharedInstance] sendEventStreamToServer];
-                }
             }
         }];
     }
@@ -48,12 +41,11 @@
 - (BOOL)connectToURL:(NSURL *)url {
     if (@available(iOS 13.0, *)) {
         [self disconnect];
-        
-        NSURLSession *urlSession = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.defaultSessionConfiguration];
-        self.webSocketTask = [urlSession webSocketTaskWithURL:url];
+
+        self.urlSession = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.defaultSessionConfiguration delegate:self delegateQueue:[NSOperationQueue mainQueue]];
+        self.webSocketTask = [self.urlSession webSocketTaskWithURL:url];
         self.reconnectURL = url;
         [self.webSocketTask resume];
-        [self sendPingPong];
         [self receiveMessage];
         return YES;
     } else {
@@ -66,13 +58,23 @@
         [self.webSocketTask cancel];
         self.webSocketTask = nil;
     }
-    
+
+    if (self.urlSession != nil) {
+        [self.urlSession invalidateAndCancel];
+        self.urlSession = nil;
+    }
+
     self.connected = NO;
 }
 
 - (void)receiveMessage API_AVAILABLE(ios(13.0)) {
+    NSURLSessionWebSocketTask *currentTask = self.webSocketTask;
     [self.webSocketTask receiveMessageWithCompletionHandler:^(NSURLSessionWebSocketMessage * _Nullable message, NSError * _Nullable error) {
         if (error) {
+            // Don't reconnect if the task was replaced by a new connection.
+            if (self.webSocketTask != currentTask) {
+                return;
+            }
             [self handleReconnect: error];
             return;
         }
@@ -103,9 +105,23 @@
 }
 
 - (void)handleReconnect:(NSError *)error API_AVAILABLE(ios(13.0)) {
+    self.connected = NO;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [self connectToURL: self.reconnectURL];
     });
+}
+
+#pragma mark - NSURLSessionWebSocketDelegate
+
+- (void)URLSession:(NSURLSession *)session webSocketTask:(NSURLSessionWebSocketTask *)webSocketTask didOpenWithProtocol:(NSString *)protocol {
+    self.connected = YES;
+
+    // Connection opened, send events.
+    [[GleapEventLogHelper sharedInstance] sendEventStreamToServer];
+}
+
+- (void)URLSession:(NSURLSession *)session webSocketTask:(NSURLSessionWebSocketTask *)webSocketTask didCloseWithCode:(NSURLSessionWebSocketCloseCode)closeCode reason:(NSData *)reason {
+    self.connected = NO;
 }
 
 @end

@@ -167,18 +167,17 @@
     if (self.webSocketEnabled && eventsToSend.count == 0) {
         return;
     }
-    
+
+    BOOL wsConnected = NO;
     if (@available(iOS 13.0, *)) {
-        if (self.webSocketEnabled && ![GleapWebSocketHelper sharedInstance].connected) {
-            return;
-        }
+        wsConnected = self.webSocketEnabled && [GleapWebSocketHelper sharedInstance].connected;
     }
     
     NSDictionary *data = @{
         @"time": [NSNumber numberWithDouble: [[GleapMetaDataHelper sharedInstance] sessionDuration]],
         @"events": eventsToSend,
         @"opened": @([Gleap isOpened]),
-        @"ws": @(self.webSocketEnabled),
+        @"ws": @(wsConnected),
         @"type": @"ios",
         @"sdkVersion": SDK_VERSION,
     };
@@ -208,8 +207,13 @@
             if (error != nil) {
                 return;
             }
-            
-            if (!self.webSocketEnabled) {
+
+            BOOL wsActive = NO;
+            if (@available(iOS 13.0, *)) {
+                wsActive = self.webSocketEnabled && [GleapWebSocketHelper sharedInstance].connected;
+            }
+
+            if (!wsActive) {
                 if (![response isKindOfClass:[NSHTTPURLResponse class]]) {
                     return;
                 }

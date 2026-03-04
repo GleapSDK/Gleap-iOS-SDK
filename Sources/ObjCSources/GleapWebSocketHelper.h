@@ -1,6 +1,6 @@
 //
 //  GleapWebSocketHelper.h
-//  
+//
 //
 //  Created by Lukas Boehler on 29.09.23.
 //
@@ -10,8 +10,9 @@
 NS_ASSUME_NONNULL_BEGIN
 
 API_AVAILABLE(ios(13.0))
-@interface GleapWebSocketHelper : NSObject
+@interface GleapWebSocketHelper : NSObject <NSURLSessionWebSocketDelegate>
 @property (strong, nonatomic, nullable) NSURLSessionWebSocketTask *webSocketTask;
+@property (strong, nonatomic, nullable) NSURLSession *urlSession;
 
 + (instancetype)sharedInstance API_AVAILABLE(ios(13.0));
 - (BOOL)connectToURL:(NSURL *)url API_AVAILABLE(ios(13.0));
