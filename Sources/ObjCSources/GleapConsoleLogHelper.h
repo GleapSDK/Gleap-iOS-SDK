@@ -23,6 +23,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (retain, nonatomic) NSMutableArray *consoleLog;
 @property (retain, nonatomic) NSPipe *inputPipe;
 @property (retain, nonatomic) NSPipe *outputPipe;
+@property (nonatomic, strong) NSDate *sessionStartDate;
 
 @end
 
