@@ -29,8 +29,11 @@ static id ObjectOrNull(id object)
     UIUserInterfaceIdiom idiom = [[UIDevice currentDevice] userInterfaceIdiom];
     if (idiom == UIUserInterfaceIdiomPad) {
         return @"tablet";
-    } else if (idiom == UIUserInterfaceIdiomMac) {
-        return @"desktop";
+    }
+    if (@available(iOS 14.0, *)) {
+        if (idiom == UIUserInterfaceIdiomMac) {
+            return @"desktop";
+        }
     }
     return @"mobile";
 }

@@ -265,7 +265,7 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
 - (UIInterfaceOrientation)reliableInterfaceOrientation {
     UIInterfaceOrientation deviceOrientation = [UIApplication sharedApplication].statusBarOrientation;
     
-    if (deviceOrientation == UIDeviceOrientationUnknown) {
+    if (deviceOrientation == UIInterfaceOrientationUnknown) {
         if (@available(iOS 13.0, *)) {
             deviceOrientation = [UIApplication sharedApplication].windows.firstObject.windowScene.interfaceOrientation;
         }
@@ -333,7 +333,7 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
         } else {
             UIInterfaceOrientation orientation = [self reliableInterfaceOrientation];
             if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"]) {
-                if (orientation == UIDeviceOrientationLandscapeLeft) {
+                if (orientation == UIInterfaceOrientationLandscapeLeft) {
                     shouldActivateEdgeConstraint = NO;
                     shouldActivateSafeAreaConstraint = YES;
                     if (@available(iOS 11.0, *)) {
@@ -344,7 +344,7 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
                     shouldActivateEdgeConstraint = YES;
                 }
             } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_BOTTOM"]) {
-                if (orientation == UIDeviceOrientationPortrait) {
+                if (orientation == UIInterfaceOrientationPortrait) {
                     shouldActivateEdgeConstraint = NO;
                     shouldActivateSafeAreaConstraint = YES;
                     if (@available(iOS 11.0, *)) {
@@ -355,7 +355,7 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
                     shouldActivateEdgeConstraint = YES;
                 }
             } else if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC"]) {
-                if (orientation == UIDeviceOrientationLandscapeRight) {
+                if (orientation == UIInterfaceOrientationLandscapeRight) {
                     shouldActivateEdgeConstraint = NO;
                     shouldActivateSafeAreaConstraint = YES;
                     if (@available(iOS 11.0, *)) {
@@ -366,7 +366,7 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
                     shouldActivateEdgeConstraint = YES;
                 }
             } else if ([feedbackButtonPosition isEqualToString: @"BOTTOM_LEFT"]) {
-                if (orientation == UIDeviceOrientationLandscapeLeft) {
+                if (orientation == UIInterfaceOrientationLandscapeLeft) {
                     shouldActivateEdgeConstraint = NO;
                     shouldActivateSafeAreaConstraint = YES;
                 } else {
@@ -374,7 +374,7 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
                     shouldActivateEdgeConstraint = YES;
                 }
             } else {
-                if (orientation == UIDeviceOrientationLandscapeRight) {
+                if (orientation == UIInterfaceOrientationLandscapeRight) {
                     shouldActivateEdgeConstraint = NO;
                     shouldActivateSafeAreaConstraint = YES;
                 } else {
