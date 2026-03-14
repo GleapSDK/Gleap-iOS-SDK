@@ -46,7 +46,7 @@
     if (@available(iOS 15.0, *)) {
         @try {
             NSError *error = nil;
-            OSLogStore *store = [OSLogStore localStoreAndReturnError:&error];
+            OSLogStore *store = [OSLogStore storeWithScope:OSLogStoreCurrentProcessIdentifier error:&error];
             if (!store || error) { return [_consoleLog copy]; }
 
             OSLogPosition *position = [store positionWithDate:self.sessionStartDate];
