@@ -25,6 +25,8 @@ NSString * const GleapHTTPTrafficRecordingProgressErrorKey      = @"ERROR_KEY";
 static char GleapLoggingRecordedKey;
 // A static key for accumulating response data in delegate-based sessions.
 static char GleapAccumulatedDataKey;
+// A static key for storing the request start time on delegate-based tasks.
+static char GleapTaskStartTimeKey;
 
 #pragma mark - Private Category on NSURLSession
 
@@ -216,7 +218,7 @@ static char GleapAccumulatedDataKey;
                  data:(NSData *)data
                 error:(NSError *)error
             startTime:(NSDate *)startTime {
-    if (!request) {
+    if (!request || ![GleapHttpTrafficRecorder sharedRecorder].isRecording) {
         return;
     }
     
@@ -571,15 +573,21 @@ NSURLSessionDownloadTask * gleap_downloadTaskWithRequest(id self,
         id swizzledCompleteBlock = ^(id self, NSURLSession *session, NSURLSessionTask *task, NSError *error) {
             @try {
                 ((void (*)(id, SEL, NSURLSession *, NSURLSessionTask *, NSError *))originalCompleteIMP)(self, completeSelector, session, task, error);
-                
+
+                // Avoid double-logging if the completion-handler path already recorded this task.
+                if (objc_getAssociatedObject(task, &GleapLoggingRecordedKey)) {
+                    return;
+                }
+                objc_setAssociatedObject(task, &GleapLoggingRecordedKey, @(YES), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+
                 NSData *accumulatedData = nil;
                 if ([task isKindOfClass:[NSURLSessionDataTask class]]) {
                     accumulatedData = objc_getAssociatedObject(task, &GleapAccumulatedDataKey);
                 }
-                
+
                 NSURLRequest *request = task.originalRequest;
                 NSURLResponse *response = task.response;
-                NSDate *startTime = [NSDate date];
+                NSDate *startTime = objc_getAssociatedObject(task, &GleapTaskStartTimeKey) ?: [NSDate date];
                 [GleapHttpTrafficRecorder recordRequest:request response:response data:accumulatedData error:error startTime:startTime];
             } @catch (NSException *exception) {
                 // Exception caught in didCompleteWithError; fail silently.
@@ -596,6 +604,11 @@ NSURLSessionDownloadTask * gleap_downloadTaskWithRequest(id self,
         IMP originalReceiveDataIMP = method_getImplementation(receiveDataMethod);
         id swizzledReceiveDataBlock = ^(id self, NSURLSession *session, NSURLSessionDataTask *dataTask, NSData *data) {
             @try {
+                // Capture the start time on the first data chunk.
+                if (!objc_getAssociatedObject(dataTask, &GleapTaskStartTimeKey)) {
+                    objc_setAssociatedObject(dataTask, &GleapTaskStartTimeKey, [NSDate date], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                }
+
                 NSMutableData *accumulatedData = objc_getAssociatedObject(dataTask, &GleapAccumulatedDataKey);
                 if (!accumulatedData) {
                     accumulatedData = [NSMutableData data];
