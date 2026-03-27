@@ -71,6 +71,9 @@
                     logEntry.level == OSLogEntryLogLevelFault) {
                     priority = @"ERROR";
                 }
+                if (message.length > 1000) {
+                    message = [[message substringToIndex:1000] stringByAppendingString:@" [truncated]"];
+                }
                 NSString *dateString = [GleapUIHelper getJSStringForNSDate:logEntry.date];
                 [result addObject:@{ @"date": dateString, @"log": message, @"priority": priority }];
             }
@@ -102,6 +105,9 @@
 }
 
 - (void)addLogWith:(NSString *)description andPriority:(NSString *)priority {
+    if (description.length > 1000) {
+        description = [[description substringToIndex:1000] stringByAppendingString:@" [truncated]"];
+    }
     NSString *dateString = [GleapUIHelper getJSStringForNSDate: [[NSDate alloc] init]];
     NSDictionary *log = @{ @"date": dateString, @"log": description, @"priority": priority };
     if (_consoleLog.count > 1000) {

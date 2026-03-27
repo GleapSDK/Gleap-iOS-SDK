@@ -7,6 +7,7 @@
 
 import UIKit
 import Gleap
+import os
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
@@ -16,7 +17,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         //Gleap.setApiUrl("https://878aed31ea8c.ngrok.app")
         //Gleap.setFrameUrl("https://9307d14a7212.ngrok.app/appnew.html")
-        Gleap.initialize(withToken: "GnhEkS8fdwxNVjyn3BnYwKzpCkiHgKWL")
+        Gleap.initialize(withToken: "ogWhNhuiZcGWrva5nlDS8l7a78OfaLlV")
         
         Gleap.sharedInstance().delegate = self
         
@@ -29,6 +30,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         if let data = "Dies ist ein test.".data(using: String.Encoding.utf8) {
             Gleap.addAttachment(with: data, andName: "text.txt")
         }
+        
+        NSLog("TESTING IT!")
+        print("User tapped the button")
+        
+        if #available(iOS 14.0, *) {
+            let logger = Logger()
+            logger.log("User tapped the button")
+        } else {
+            // Fallback on earlier versions
+        }
+        
+        Gleap.log("Testing a log NEW.")
         
         //Gleap.setNotificationContainerOffsetX(0, y: 50)
         
