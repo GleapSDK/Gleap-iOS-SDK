@@ -6,6 +6,7 @@
 //
 
 #import "GleapUIHelper.h"
+#import "GleapWindowChecker.h"
 
 @implementation GleapUIHelper
 
@@ -55,11 +56,11 @@
  Returns the top most view controller.
  */
 + (UIViewController *)getTopMostViewController {
-    UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
+    UIWindow *keyWindow = [GleapWindowChecker getKeyWindow];
     if (keyWindow == nil) {
         return nil;
     }
-    
+
     return [self topViewControllerWith: keyWindow.rootViewController];
 }
 

@@ -1,4 +1,5 @@
 #import "GleapScreenCaptureHelper.h"
+#import "GleapWindowChecker.h"
 #import "GleapCore.h"
 
 @implementation GleapScreenCaptureHelper
@@ -95,40 +96,12 @@
 }
 
 + (UIWindow *)getValidKeyWindow {
-    UIWindow *keyWindow = nil;
-    
-    if (@available(iOS 13.0, *)) {
-        // Try to find the most appropriate window scene
-        for (UIWindowScene *windowScene in [UIApplication sharedApplication].connectedScenes) {
-            if (windowScene.activationState == UISceneActivationStateForegroundActive) {
-                for (UIWindow *window in windowScene.windows) {
-                    if (window.isKeyWindow || (!keyWindow && window.rootViewController)) {
-                        keyWindow = window;
-                        break;
-                    }
-                }
-                if (keyWindow) break;
-            }
-        }
-        
-        // Fallback to first available window
-        if (!keyWindow) {
-            for (UIWindowScene *windowScene in [UIApplication sharedApplication].connectedScenes) {
-                if (windowScene.windows.count > 0) {
-                    keyWindow = windowScene.windows.firstObject;
-                    break;
-                }
-            }
-        }
-    } else {
-        keyWindow = [UIApplication sharedApplication].keyWindow;
-    }
-    
-    // Additional validation
+    UIWindow *keyWindow = [GleapWindowChecker getKeyWindow];
+
     if (keyWindow && keyWindow.rootViewController && !keyWindow.isHidden) {
         return keyWindow;
     }
-    
+
     return nil;
 }
 

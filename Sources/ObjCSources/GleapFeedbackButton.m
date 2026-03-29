@@ -9,6 +9,7 @@
 #import "GleapConfigHelper.h"
 #import "GleapUIOverlayHelper.h"
 #import "GleapUIHelper.h"
+#import "GleapWindowChecker.h"
 #import "Gleap.h"
 
 const double BUTTON_SIZE = 56.0;
@@ -202,7 +203,7 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
         NSLayoutConstraint *widthConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:nil attribute:NSLayoutAttributeNotAnAttribute multiplier:1 constant:buttonWidth];
         [self addConstraints:@[heightConstraint, widthConstraint]];
 
-        UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
+        UIWindow *window = [GleapWindowChecker getKeyWindow];
 
         // Set the auto layout constraints depending on the button position
         if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"]) {
@@ -263,15 +264,7 @@ const float NOTIFICATION_BADGE_SIZE = 22.0;
 }
 
 - (UIInterfaceOrientation)reliableInterfaceOrientation {
-    UIInterfaceOrientation deviceOrientation = [UIApplication sharedApplication].statusBarOrientation;
-    
-    if (deviceOrientation == UIInterfaceOrientationUnknown) {
-        if (@available(iOS 13.0, *)) {
-            deviceOrientation = [UIApplication sharedApplication].windows.firstObject.windowScene.interfaceOrientation;
-        }
-    }
-    
-    return deviceOrientation;
+    return [GleapWindowChecker reliableInterfaceOrientation];
 }
 
 - (void)updateConstraintsForOrientation {

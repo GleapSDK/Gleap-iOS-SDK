@@ -16,6 +16,9 @@ typedef void (^GleapWindowReadyCompletion)(void);
 
 - (void)waitForKeyWindowToBeReadyWithCompletion:(GleapWindowReadyCompletion)completion;
 
++ (UIWindow *)getKeyWindow;
++ (UIInterfaceOrientation)reliableInterfaceOrientation;
+
 @end
 
 NS_ASSUME_NONNULL_END

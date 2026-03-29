@@ -8,6 +8,7 @@
 #import "GleapUIOverlayViewController.h"
 #import "GleapSessionHelper.h"
 #import "GleapConfigHelper.h"
+#import "GleapWindowChecker.h"
 #import "Gleap.h"
 
 @interface GleapUIOverlayViewController ()
@@ -17,14 +18,7 @@
 @implementation GleapUIOverlayViewController
 
 - (UIWindow *)getKeyWindow {
-    UIWindow *keyWindow = nil;
-    for (UIWindow *window in UIApplication.sharedApplication.windows) {
-        if (window.isKeyWindow) {
-            keyWindow = window;
-            break;
-        }
-    }
-    return keyWindow;
+    return [GleapWindowChecker getKeyWindow];
 }
 
 - (void)performNotificationAction:(UITapGestureRecognizer *)sender {
