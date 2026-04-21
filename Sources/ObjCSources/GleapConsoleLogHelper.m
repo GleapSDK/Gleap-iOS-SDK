@@ -10,6 +10,9 @@
 #import "GleapWidgetManager.h"
 #import <OSLog/OSLog.h>
 
+static NSUInteger const kGleapOSLogMaxEntries = 300;
+static NSTimeInterval const kGleapOSLogMaxWallClock = 0.2;
+
 @implementation GleapConsoleLogHelper
 
 /*
@@ -52,13 +55,14 @@
             OSLogPosition *position = [store positionWithDate:self.sessionStartDate];
             NSPredicate *predicate = [NSPredicate predicateWithFormat:
                 @"(subsystem == NULL) OR NOT (subsystem BEGINSWITH 'com.apple.')"];
-            OSLogEnumerator *enumerator = [store entriesEnumeratorWithOptions:0
+            OSLogEnumerator *enumerator = [store reverseEnumeratorWithOptions:0
                                                                      position:position
                                                                     predicate:predicate
                                                                         error:&error];
             if (!enumerator || error) { return [_consoleLog copy]; }
 
-            NSMutableArray *result = [NSMutableArray arrayWithArray:[_consoleLog copy]];
+            NSDate *startTime = [NSDate date];
+            NSMutableArray *collected = [NSMutableArray arrayWithCapacity:kGleapOSLogMaxEntries];
             OSLogEntry *entry;
             while ((entry = [enumerator nextObject])) {
                 if (![entry isKindOfClass:[OSLogEntryLog class]]) { continue; }
@@ -75,14 +79,16 @@
                     message = [[message substringToIndex:1000] stringByAppendingString:@" [truncated]"];
                 }
                 NSString *dateString = [GleapUIHelper getJSStringForNSDate:logEntry.date];
-                [result addObject:@{ @"date": dateString, @"log": message, @"priority": priority }];
+                [collected addObject:@{ @"date": dateString, @"log": message, @"priority": priority }];
+
+                if (collected.count >= kGleapOSLogMaxEntries) { break; }
+                if (-[startTime timeIntervalSinceNow] > kGleapOSLogMaxWallClock) { break; }
             }
 
-            // Sort by date and cap to 1000.
-            NSSortDescriptor *dateSort = [NSSortDescriptor sortDescriptorWithKey:@"date" ascending:YES];
-            [result sortUsingDescriptors:@[dateSort]];
-            if (result.count > 1000) {
-                return [[result subarrayWithRange:NSMakeRange(result.count - 1000, 1000)] copy];
+            // Entries were collected newest → oldest; reverse to chronological order.
+            NSMutableArray *result = [NSMutableArray arrayWithArray:[_consoleLog copy]];
+            for (NSInteger i = (NSInteger)collected.count - 1; i >= 0; i--) {
+                [result addObject:collected[i]];
             }
             return [result copy];
         }
