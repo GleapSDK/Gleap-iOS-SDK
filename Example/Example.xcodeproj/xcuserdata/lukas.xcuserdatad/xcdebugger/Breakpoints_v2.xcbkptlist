@@ -144,7 +144,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "174"
             endingLineNumber = "174"
-            landmarkName = "-sendSessionUpdate"
+            landmarkName = "-viewWillDisappear:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -334,9 +334,9 @@
             filePath = "../Sources/ObjCSources/GleapFrameManagerViewController.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "576"
-            endingLineNumber = "576"
-            landmarkName = "-webView:decidePolicyForNavigationAction:decisionHandler:"
+            startingLineNumber = "577"
+            endingLineNumber = "577"
+            landmarkName = "-loadingFailed:"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -352,8 +352,38 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "437"
             endingLineNumber = "437"
-            landmarkName = "-webView:runJavaScriptAlertPanelWithMessage:initiatedByFrame:completionHandler:"
+            landmarkName = "-userContentController:didReceiveScriptMessage:"
             landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "5C1BCA78-81CC-4336-944B-74B57DEA7CCF - 4a559a1f51526bd7"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "__81-[GleapFrameManagerViewController userContentController:didReceiveScriptMessage:]_block_invoke_2.129"
+                  moduleName = "Example.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/lukas/Documents/Gleap/Gleap-iOS-SDK/Sources/ObjCSources/GleapFrameManagerViewController.m"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "437"
+                  endingLineNumber = "437">
+               </Location>
+               <Location
+                  uuid = "5C1BCA78-81CC-4336-944B-74B57DEA7CCF - 4a559a1f51526bd7"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "__81-[GleapFrameManagerViewController userContentController:didReceiveScriptMessage:]_block_invoke_2.129"
+                  moduleName = "Example.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/lukas/Documents/Gleap/Gleap-iOS-SDK/Sources/ObjCSources/GleapFrameManagerViewController.m"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "437"
+                  endingLineNumber = "437">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -366,9 +396,9 @@
             filePath = "../Sources/ObjCSources/GleapFrameManagerViewController.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "529"
-            endingLineNumber = "529"
-            landmarkName = "-webView:didFailNavigation:withError:"
+            startingLineNumber = "530"
+            endingLineNumber = "530"
+            landmarkName = "-sendScreenshotUpdate"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -432,7 +462,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "237"
             endingLineNumber = "237"
-            landmarkName = "-sendReportToServer:"
+            landmarkName = "-excludeExcludedData"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -446,9 +476,9 @@
             filePath = "../Sources/ObjCSources/GleapFrameManagerViewController.m"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "530"
-            endingLineNumber = "530"
-            landmarkName = "-webView:didFailNavigation:withError:"
+            startingLineNumber = "531"
+            endingLineNumber = "531"
+            landmarkName = "-sendScreenshotUpdate"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -472,7 +502,7 @@
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
             uuid = "0F48CEF4-5F1B-4CE8-8B43-D972CF5D9B14"
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "../Sources/ObjCSources/GleapFeedback.m"
@@ -480,7 +510,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "154"
             endingLineNumber = "154"
-            landmarkName = "-prepareData"
+            landmarkName = "-prepareBackgroundData"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -488,7 +518,7 @@
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
             uuid = "B52EA6AE-A005-4B97-82C1-AAFB0A3E1D90"
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "../Sources/ObjCSources/GleapFeedback.m"
@@ -496,7 +526,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "161"
             endingLineNumber = "161"
-            landmarkName = "-prepareData"
+            landmarkName = "-prepareBackgroundData"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

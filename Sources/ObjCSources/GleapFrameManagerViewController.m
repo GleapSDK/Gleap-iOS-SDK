@@ -300,21 +300,24 @@ static id ObjectOrNull(id object)
         }
         
         if ([name isEqualToString: @"collect-ticket-data"]) {
-            // Create feedback object.
+            // Collect data on a background queue so the host app's main thread
+            // doesn't hitch while OSLogStore builds its enumerator (can take
+            // hundreds of ms). Metadata collection (UIKit) runs on main first.
             GleapFeedback *feedback = [[GleapFeedback alloc] init];
-            [feedback prepareData];
-            
-            [self sendMessageWithData: @{
-                @"name": @"collect-ticket-data",
-                @"data": @{
-                    @"customData": ObjectOrNull([feedback.data objectForKey: @"customData"]),
-                    @"formData": ObjectOrNull([feedback.data objectForKey: @"formData"]),
-                    @"metaData": ObjectOrNull([feedback.data objectForKey: @"metaData"]),
-                    @"consoleLog": ObjectOrNull([feedback.data objectForKey: @"consoleLog"]),
-                    @"networkLogs": ObjectOrNull([feedback.data objectForKey: @"networkLogs"]),
-                    @"customEventLog": ObjectOrNull([feedback.data objectForKey: @"customEventLog"]),
-                    @"tags": ObjectOrNull([feedback.data objectForKey: @"tags"])
-                }
+            __weak typeof(self) weakSelf = self;
+            [feedback prepareDataAsyncWithCompletion:^{
+                [weakSelf sendMessageWithData: @{
+                    @"name": @"collect-ticket-data",
+                    @"data": @{
+                        @"customData": ObjectOrNull([feedback.data objectForKey: @"customData"]),
+                        @"formData": ObjectOrNull([feedback.data objectForKey: @"formData"]),
+                        @"metaData": ObjectOrNull([feedback.data objectForKey: @"metaData"]),
+                        @"consoleLog": ObjectOrNull([feedback.data objectForKey: @"consoleLog"]),
+                        @"networkLogs": ObjectOrNull([feedback.data objectForKey: @"networkLogs"]),
+                        @"customEventLog": ObjectOrNull([feedback.data objectForKey: @"customEventLog"]),
+                        @"tags": ObjectOrNull([feedback.data objectForKey: @"tags"])
+                    }
+                }];
             }];
         }
         
@@ -486,6 +489,7 @@ static id ObjectOrNull(id object)
     self.webView.scrollView.backgroundColor = UIColor.clearColor;
     self.webView.navigationDelegate = self;
     self.webView.UIDelegate = self;
+    self.webView.inspectable = YES;
     self.webView.scrollView.bounces = NO;
     self.webView.scrollView.alwaysBounceVertical = NO;
     self.webView.scrollView.alwaysBounceHorizontal = NO;

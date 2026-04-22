@@ -146,11 +146,14 @@
     }
 }
 
-- (void)prepareData {
-    // Fetch additional metadata.
+- (void)prepareMainThreadData {
+    // GleapMetaDataHelper reads UIScreen/UIDevice which require the main thread.
     [self attachData: @{ @"metaData": [[GleapMetaDataHelper sharedInstance] getMetaData] }];
-    
-    // Attach and merge console log.
+}
+
+- (void)prepareBackgroundData {
+    // Attach and merge console log. getConsoleLogs can block for hundreds of ms
+    // on iOS 15+ while OSLogStore builds its enumerator — hence this half runs off main.
     NSMutableArray *consoleLogs = [[NSMutableArray alloc] initWithArray: [[GleapConsoleLogHelper sharedInstance] getConsoleLogs]];
     if ([[GleapExternalDataHelper sharedInstance].data objectForKey: @"consoleLog"] != nil) {
         NSArray *existingConsoleLogs = [[GleapExternalDataHelper sharedInstance].data objectForKey: @"consoleLog"];
@@ -159,10 +162,10 @@
         }
     }
     [self attachData: @{ @"consoleLog": consoleLogs }];
-    
+
     // Attach custom data.
     [self attachData: @{ @"customData": [GleapCustomDataHelper getCustomData] }];
-    
+
     // Attach ticket attributes.
     NSDictionary * existingFormData = [self.data objectForKey: @"formData"];
     if (existingFormData != nil) {
@@ -172,10 +175,10 @@
     } else {
         [self attachData: @{ @"formData": [GleapCustomDataHelper getTicketAttributes] }];
     }
-    
+
     // Attach custom event log.
     [self attachData: @{ @"customEventLog": [[GleapEventLogHelper sharedInstance] getLogs] }];
-    
+
     // Attach and merge network logs.
     NSMutableArray *networkLogs = [[NSMutableArray alloc] initWithArray: [[GleapHttpTrafficRecorder sharedRecorder] networkLogs]];
     if ([[GleapExternalDataHelper sharedInstance].data objectForKey: @"networkLogs"] != nil) {
@@ -187,25 +190,40 @@
     if ([networkLogs count] > 0 && [GleapHttpTrafficRecorder sharedRecorder].isRecording) {
         [self attachData: @{ @"networkLogs": [[GleapHttpTrafficRecorder sharedRecorder] filterNetworkLogs: networkLogs] }];
     }
-    
+
     // Add outbound ID if set.
     if (self.outboundId != nil) {
         [self attachData: @{ @"outbound": self.outboundId }];
     }
-    
+
     // Add tags.
     NSArray *tags = [GleapTagHelper getTags];
     if (tags != nil && tags.count > 0) {
         [self attachData: @{ @"tags": tags }];
     }
-    
+
     // Set the feedback type.
     if (self.feedbackType != nil) {
         [self attachData: @{ @"type": self.feedbackType }];
     }
-    
+
     // Exclude data that should not be sent.
     [self excludeExcludedData];
+}
+
+- (void)prepareData {
+    [self prepareMainThreadData];
+    [self prepareBackgroundData];
+}
+
+- (void)prepareDataAsyncWithCompletion:(void (^)(void))completion {
+    [self prepareMainThreadData];
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        [self prepareBackgroundData];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (completion) { completion(); }
+        });
+    });
 }
 
 - (void)prepareDataAndSend: (void (^)(bool success, NSDictionary *data))completion {
