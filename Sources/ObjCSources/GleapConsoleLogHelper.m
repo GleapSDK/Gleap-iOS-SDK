@@ -55,7 +55,7 @@ static NSTimeInterval const kGleapOSLogMaxWallClock = 0.2;
             OSLogPosition *position = [store positionWithDate:self.sessionStartDate];
             NSPredicate *predicate = [NSPredicate predicateWithFormat:
                 @"(subsystem == NULL) OR NOT (subsystem BEGINSWITH 'com.apple.')"];
-            OSLogEnumerator *enumerator = [store reverseEnumeratorWithOptions:0
+            OSLogEnumerator *enumerator = [store entriesEnumeratorWithOptions:OSLogEnumeratorReverse
                                                                      position:position
                                                                     predicate:predicate
                                                                         error:&error];
@@ -70,11 +70,8 @@ static NSTimeInterval const kGleapOSLogMaxWallClock = 0.2;
                 NSString *message = logEntry.composedMessage;
                 if (!message || message.length == 0) { continue; }
 
-                NSString *priority = @"INFO";
-                if (logEntry.level == OSLogEntryLogLevelError ||
-                    logEntry.level == OSLogEntryLogLevelFault) {
-                    priority = @"ERROR";
-                }
+                NSString *priority = (logEntry.level == OSLogEntryLogLevelError ||
+                                      logEntry.level == OSLogEntryLogLevelFault) ? @"ERROR" : @"INFO";
                 if (message.length > 1000) {
                     message = [[message substringToIndex:1000] stringByAppendingString:@" [truncated]"];
                 }
