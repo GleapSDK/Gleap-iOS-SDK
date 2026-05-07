@@ -489,7 +489,6 @@ static id ObjectOrNull(id object)
     self.webView.scrollView.backgroundColor = UIColor.clearColor;
     self.webView.navigationDelegate = self;
     self.webView.UIDelegate = self;
-    self.webView.inspectable = YES;
     self.webView.scrollView.bounces = NO;
     self.webView.scrollView.alwaysBounceVertical = NO;
     self.webView.scrollView.alwaysBounceHorizontal = NO;
