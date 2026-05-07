@@ -44,41 +44,56 @@
     self.streamedLog = [[NSMutableArray alloc] init];
 }
 
+- (NSMutableArray *)mutableArrayFromArray:(NSArray *)array {
+    if ([array isKindOfClass:[NSMutableArray class]]) {
+        return (NSMutableArray *)array;
+    }
+    
+    return array != nil ? [array mutableCopy] : [[NSMutableArray alloc] init];
+}
+
 - (NSArray *)getLogs {
     return self.log;
 }
 
 - (void)checkLogSize {
+    self.log = [self mutableArrayFromArray:self.log];
     if (self.log.count >= 1000) {
         [self.log removeObjectAtIndex: 0];
     }
 }
 
 - (void)logEvent: (NSString *)name {
-    [self checkLogSize];
-    [self.log addObject: @{
-        @"name": name,
-        @"date": [self getCurrentJSDate]
-    }];
-    [self.streamedLog addObject: @{
-        @"name": name,
-        @"date": [self getCurrentJSDate]
-    }];
-}
-
-- (void)logEvent: (NSString *)name withData: (NSDictionary *)data {
-    @try {
+    @synchronized (self) {
+        self.streamedLog = [self mutableArrayFromArray:self.streamedLog];
         [self checkLogSize];
         [self.log addObject: @{
             @"name": name,
-            @"data": data,
             @"date": [self getCurrentJSDate]
         }];
         [self.streamedLog addObject: @{
             @"name": name,
-            @"data": data,
             @"date": [self getCurrentJSDate]
         }];
+    }
+}
+
+- (void)logEvent: (NSString *)name withData: (NSDictionary *)data {
+    @try {
+        @synchronized (self) {
+            self.streamedLog = [self mutableArrayFromArray:self.streamedLog];
+            [self checkLogSize];
+            [self.log addObject: @{
+                @"name": name,
+                @"data": data,
+                @"date": [self getCurrentJSDate]
+            }];
+            [self.streamedLog addObject: @{
+                @"name": name,
+                @"data": data,
+                @"date": [self getCurrentJSDate]
+            }];
+        }
     } @catch (id exp) {
         NSLog(@"[GLEAP]: Invalid data passed to Gleap.trackEvent() for event %@", name);
     }
@@ -159,7 +174,8 @@
     }
     
     NSArray *eventsToSend;
-    @synchronized (self.streamedLog) {
+    @synchronized (self) {
+        self.streamedLog = [self mutableArrayFromArray:self.streamedLog];
         eventsToSend = [self.streamedLog copy];
     }
     
@@ -221,10 +237,16 @@
     } @catch(id exception) {
         
     }
-    
-    // Clear items.
-    @synchronized (self.streamedLog) {
-        [self.streamedLog removeAllObjects];
+
+    @synchronized (self) {
+        self.streamedLog = [self mutableArrayFromArray:self.streamedLog];
+        NSUInteger removableEventsCount = 0;
+        while (removableEventsCount < eventsToSend.count && removableEventsCount < self.streamedLog.count && [eventsToSend objectAtIndex: removableEventsCount] == [self.streamedLog objectAtIndex: removableEventsCount]) {
+            removableEventsCount++;
+        }
+        if (removableEventsCount > 0) {
+            [self.streamedLog removeObjectsInRange: NSMakeRange(0, removableEventsCount)];
+        }
     }
 }
 
@@ -280,7 +302,10 @@
 
 
 - (void)clear {
-    self.log = [[NSMutableArray alloc] init];
+    @synchronized (self) {
+        self.log = [[NSMutableArray alloc] init];
+        self.streamedLog = [[NSMutableArray alloc] init];
+    }
 }
 
 @end
