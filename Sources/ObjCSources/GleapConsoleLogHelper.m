@@ -12,6 +12,7 @@
 
 static NSUInteger const kGleapOSLogMaxEntries = 300;
 static NSTimeInterval const kGleapOSLogMaxWallClock = 0.2;
+static NSUInteger const kGleapLogMaxMessageLength = 10000;
 
 @implementation GleapConsoleLogHelper
 
@@ -72,8 +73,8 @@ static NSTimeInterval const kGleapOSLogMaxWallClock = 0.2;
 
                 NSString *priority = (logEntry.level == OSLogEntryLogLevelError ||
                                       logEntry.level == OSLogEntryLogLevelFault) ? @"ERROR" : @"INFO";
-                if (message.length > 1000) {
-                    message = [[message substringToIndex:1000] stringByAppendingString:@" [truncated]"];
+                if (message.length > kGleapLogMaxMessageLength) {
+                    message = [[message substringToIndex:kGleapLogMaxMessageLength] stringByAppendingString:@" [truncated]"];
                 }
                 NSString *dateString = [GleapUIHelper getJSStringForNSDate:logEntry.date];
                 [collected addObject:@{ @"date": dateString, @"log": message, @"priority": priority }];
@@ -108,8 +109,8 @@ static NSTimeInterval const kGleapOSLogMaxWallClock = 0.2;
 }
 
 - (void)addLogWith:(NSString *)description andPriority:(NSString *)priority {
-    if (description.length > 1000) {
-        description = [[description substringToIndex:1000] stringByAppendingString:@" [truncated]"];
+    if (description.length > kGleapLogMaxMessageLength) {
+        description = [[description substringToIndex:kGleapLogMaxMessageLength] stringByAppendingString:@" [truncated]"];
     }
     NSString *dateString = [GleapUIHelper getJSStringForNSDate: [[NSDate alloc] init]];
     NSDictionary *log = @{ @"date": dateString, @"log": description, @"priority": priority };
