@@ -67,30 +67,31 @@
     CGFloat screenWidth = screenRect.size.width;
     CGFloat screenHeight = screenRect.size.height;
     
-    return @{
-        @"deviceName": deviceName,
-        @"deviceModel": deviceModel,
-        @"deviceIdentifier": deviceIdentifier,
-        @"bundleID": bundleId,
-        @"systemName": systemName,
-        @"systemVersion": systemVersion,
-        @"buildVersionNumber": buildVersionNumber,
-        @"releaseVersionNumber": releaseVersionNumber,
-        @"sessionDuration": sessionDuration,
-        @"lastScreenName": _lastScreenName,
-        @"preferredUserLocale": preferredUserLocale,
-        @"sdkType": [self getApplicationTypeAsString],
-        @"sdkVersion": SDK_VERSION,
-        @"buildMode": buildMode,
-        @"batteryLevel": batteryLevel,
-        @"phoneChargingStatus": phoneChargingState,
-        @"batterySaveMode": lowPowerModeEnabled,
-        @"totalDiskSpace": [diskInfo objectForKey: @"totalSpace"],
-        @"totalFreeDiskSpace": [diskInfo objectForKey: @"totalFreeSpace"],
-        @"devicePixelRatio": @(scaleFactor),
-        @"screenWidth": @(screenWidth),
-        @"screenHeight": @(screenHeight)
-    };
+
+    NSMutableDictionary *metaData = [[NSMutableDictionary alloc] init];
+    [metaData setValue:deviceName forKey:@"deviceName"];
+    [metaData setValue:deviceModel forKey:@"deviceModel"];
+    [metaData setValue:deviceIdentifier forKey:@"deviceIdentifier"];
+    [metaData setValue:bundleId forKey:@"bundleID"];
+    [metaData setValue:systemName forKey:@"systemName"];
+    [metaData setValue:systemVersion forKey:@"systemVersion"];
+    [metaData setValue:buildVersionNumber forKey:@"buildVersionNumber"];
+    [metaData setValue:releaseVersionNumber forKey:@"releaseVersionNumber"];
+    [metaData setValue:sessionDuration forKey:@"sessionDuration"];
+    [metaData setValue:_lastScreenName forKey:@"lastScreenName"];
+    [metaData setValue:preferredUserLocale forKey:@"preferredUserLocale"];
+    [metaData setValue:[self getApplicationTypeAsString] forKey:@"sdkType"];
+    [metaData setValue:SDK_VERSION forKey:@"sdkVersion"];
+    [metaData setValue:buildMode forKey:@"buildMode"];
+    [metaData setValue:batteryLevel forKey:@"batteryLevel"];
+    [metaData setValue:phoneChargingState forKey:@"phoneChargingStatus"];
+    [metaData setValue:lowPowerModeEnabled forKey:@"batterySaveMode"];
+    [metaData setValue:[diskInfo objectForKey:@"totalSpace"] forKey:@"totalDiskSpace"];
+    [metaData setValue:[diskInfo objectForKey:@"totalFreeSpace"] forKey:@"totalFreeDiskSpace"];
+    [metaData setValue:@(scaleFactor) forKey:@"devicePixelRatio"];
+    [metaData setValue:@(screenWidth) forKey:@"screenWidth"];
+    [metaData setValue:@(screenHeight) forKey:@"screenHeight"];
+    return metaData;
 }
 
 - (void)updateLastScreenName {
