@@ -13,9 +13,15 @@
 
 @interface GleapUIOverlayViewController ()
 
+@property (nonatomic, assign) int lastNotificationCount;
+
 @end
 
 @implementation GleapUIOverlayViewController
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver: self];
+}
 
 - (UIWindow *)getKeyWindow {
     return [GleapWindowChecker getKeyWindow];
@@ -58,25 +64,92 @@
 
 - (void)initializeUI {
     dispatch_async(dispatch_get_main_queue(), ^{
-        UIWindow *keyWindow = [self getKeyWindow];
-        if (keyWindow != nil) {
-            self.internalNotifications = [[NSMutableArray alloc] init];
-            self.notificationViews = [[NSMutableArray alloc] init];
-            
-            // Render feedback button.
-            self.feedbackButton = [[GleapFeedbackButton alloc] initWithFrame: CGRectMake(0, 0, 54.0, 54.0)];
-            [keyWindow addSubview: self.feedbackButton];
-            self.feedbackButton.layer.zPosition = INT_MAX;
-            [self.feedbackButton applyConfig];
-            [self.feedbackButton setUserInteractionEnabled: YES];
-            [self.feedbackButton setNotificationCount: 0];
-            
-            UITapGestureRecognizer *feedbackButtonGesture =
-            [[UITapGestureRecognizer alloc] initWithTarget: self
-                                                    action: @selector(feedbackButtonPressed:)];
-            [self.feedbackButton addGestureRecognizer: feedbackButtonGesture];
+        self.internalNotifications = [[NSMutableArray alloc] init];
+        self.notificationViews = [[NSMutableArray alloc] init];
+        self.lastNotificationCount = 0;
+
+        // Render the feedback button on the current key window.
+        [self attachFeedbackButtonToKeyWindow];
+
+        // The feedback button (and the notification overlay) lives as a subview of
+        // the app's key window. Some hosts swap their key window at runtime – this is
+        // common with Flutter and other embedded / multi-window setups – which would
+        // leave the button stranded on the old, now-hidden window and make it
+        // "disappear" a while after launch. Observe the relevant lifecycle events so
+        // we can move the overlay back onto the active key window whenever that happens.
+        [[NSNotificationCenter defaultCenter] addObserver: self
+                                                 selector: @selector(keyWindowMayHaveChanged:)
+                                                     name: UIWindowDidBecomeKeyNotification
+                                                   object: nil];
+        [[NSNotificationCenter defaultCenter] addObserver: self
+                                                 selector: @selector(keyWindowMayHaveChanged:)
+                                                     name: UIApplicationDidBecomeActiveNotification
+                                                   object: nil];
+        if (@available(iOS 13.0, *)) {
+            [[NSNotificationCenter defaultCenter] addObserver: self
+                                                     selector: @selector(keyWindowMayHaveChanged:)
+                                                         name: UISceneDidActivateNotification
+                                                       object: nil];
         }
     });
+}
+
+// Creates the feedback button and attaches it to the current key window.
+- (void)attachFeedbackButtonToKeyWindow {
+    UIWindow *keyWindow = [self getKeyWindow];
+    if (keyWindow == nil) {
+        return;
+    }
+
+    BOOL opened = [Gleap isOpened];
+
+    self.feedbackButton = [[GleapFeedbackButton alloc] initWithFrame: CGRectMake(0, 0, 54.0, 54.0)];
+    [keyWindow addSubview: self.feedbackButton];
+    self.feedbackButton.layer.zPosition = INT_MAX;
+    [self.feedbackButton applyConfig];
+    [self.feedbackButton setUserInteractionEnabled: !opened];
+    [self.feedbackButton setNotificationCount: self.lastNotificationCount];
+    self.feedbackButton.alpha = opened ? 0.0 : 1.0;
+
+    UITapGestureRecognizer *feedbackButtonGesture =
+    [[UITapGestureRecognizer alloc] initWithTarget: self
+                                            action: @selector(feedbackButtonPressed:)];
+    [self.feedbackButton addGestureRecognizer: feedbackButtonGesture];
+}
+
+- (void)keyWindowMayHaveChanged:(NSNotification *)notification {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self ensureOverlayAttachedToKeyWindow];
+        [self renderNotifications];
+    });
+}
+
+// Ensures the feedback button is attached to the app's current key window. If the
+// key window has changed (e.g. the host app swapped windows), the button is
+// recreated on the new window – recreating it guarantees the layout constraints,
+// which are pinned to the previous window, are torn down (removeFromSuperview
+// removes constraints referencing the view) and rebuilt cleanly. Banners and
+// modals are transient and always created on the active key window at show-time,
+// so they don't need to be tracked here.
+- (void)ensureOverlayAttachedToKeyWindow {
+    UIWindow *keyWindow = [self getKeyWindow];
+    if (keyWindow == nil) {
+        return;
+    }
+
+    if (self.feedbackButton != nil && self.feedbackButton.window == keyWindow) {
+        // Already on the correct window – just keep it on top.
+        [self bringViewToFront: self.feedbackButton];
+        return;
+    }
+
+    if (self.feedbackButton != nil) {
+        [self.feedbackButton removeFromSuperview];
+        self.feedbackButton = nil;
+    }
+
+    [self attachFeedbackButtonToKeyWindow];
+    [self.feedbackButton updateVisibility];
 }
 
 - (void)bringViewToFront:(UIView *)view {
@@ -237,10 +310,15 @@
 }
 
 - (void)updateNotificationCount:(int)notificationCount {
+    self.lastNotificationCount = notificationCount;
     [self.feedbackButton setNotificationCount: notificationCount];
 }
 
 - (void)updateUI {
+    // Safety net: make sure the button is on the current key window before we
+    // refresh its state. updateUI is invoked on most lifecycle / config events.
+    [self ensureOverlayAttachedToKeyWindow];
+
     if ([Gleap isOpened]) {
         self.internalNotifications = [[NSMutableArray alloc] init];
         
