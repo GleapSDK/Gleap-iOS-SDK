@@ -23,7 +23,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)updateUIPositions;
 
 @property (nonatomic, retain) NSMutableArray *internalNotifications;
-@property (nonatomic, retain) GleapFeedbackButton *feedbackButton;
+@property (nonatomic, retain, nullable) GleapFeedbackButton *feedbackButton;
 @property (nonatomic, retain) UIView *notificationsContainerView;
 @property (nonatomic, retain, nullable) GleapBanner *banner;
 @property (nonatomic, retain, nullable) GleapModal *modal;
