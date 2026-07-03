@@ -725,10 +725,10 @@ static id ObjectOrNull(id object)
 }
 
 /**
- * Pass AI tools.
+ * Registers the handler for a dashboard-defined Frontend tool.
  */
-+ (void)setAiTools:(NSArray<GleapAiTool *> *)aiTools {
-    [[GleapConfigHelper sharedInstance] setAiTools: aiTools];
++ (void)registerAgentTool:(NSString *)name handler:(GleapAgentToolHandler)handler {
+    [[GleapAgentToolHelper sharedInstance] registerAgentTool: name handler: handler];
 }
 
 /**

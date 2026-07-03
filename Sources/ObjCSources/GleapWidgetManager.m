@@ -67,6 +67,7 @@
 
 - (void)closeWidgetWithAnimation:(Boolean)animated andCompletion:(void (^)(void))completion {
     [self.messageQueue removeAllObjects];
+    [[GleapAgentToolHelper sharedInstance] clearExecutionState];
     
     dispatch_async(dispatch_get_main_queue(), ^{
         if (self.gleapWidget == nil) {

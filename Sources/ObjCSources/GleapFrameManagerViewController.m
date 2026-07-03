@@ -19,6 +19,7 @@
 #import "GleapScreenshotManager.h"
 #import "GleapUIHelper.h"
 #import "GleapPreFillHelper.h"
+#import "GleapAgentToolHelper.h"
 
 @interface GleapFrameManagerViewController ()
 
@@ -212,7 +213,6 @@ static id ObjectOrNull(id object)
             @"config": GleapConfigHelper.sharedInstance.config,
             @"actions": GleapConfigHelper.sharedInstance.projectActions,
             @"overrideLanguage": GleapTranslationHelper.sharedInstance.language,
-            @"aiTools": GleapConfigHelper.sharedInstance.internalAiTools,
             @"isApp": @(YES),
         }
     }];
@@ -297,6 +297,16 @@ static id ObjectOrNull(id object)
             if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(onToolExecution:)]) {
                 [Gleap.sharedInstance.delegate onToolExecution: messageData];
             }
+        }
+
+        if ([name isEqualToString: @"frontend-tool-execute"] && messageData != nil) {
+            __weak typeof(self) weakSelf = self;
+            [[GleapAgentToolHelper sharedInstance] executeToolWithData: messageData completion:^(NSDictionary *resultData) {
+                [weakSelf sendMessageWithData: @{
+                    @"name": @"frontend-tool-result",
+                    @"data": resultData
+                }];
+            }];
         }
         
         if ([name isEqualToString: @"collect-ticket-data"]) {
