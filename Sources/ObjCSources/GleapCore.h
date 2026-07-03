@@ -10,7 +10,7 @@
 #import <UIKit/UIKit.h>
 #import "GleapUserProperty.h"
 #import "GleapAction.h"
-#import "GleapAiTool.h"
+#import "GleapAgentToolHelper.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -169,10 +169,16 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)openHelpCenter:(Boolean)showBackButton;
 
 /**
- * Set AI tools.
+ * Registers the handler for a Frontend tool defined on your AI agent in the
+ * Gleap dashboard. The agent calls the handler with the configured parameters
+ * and waits for the result passed to the completion block (NSString or a JSON
+ * object, which gets stringified).
  * @author Gleap
+ *
+ * @param name The tool's runtime name as defined on the AI agent.
+ * @param handler The handler to execute the tool. Call the completion block exactly once with the result.
  */
-+ (void)setAiTools:(NSArray<GleapAiTool *> *)aiTools;
++ (void)registerAgentTool:(NSString *)name handler:(GleapAgentToolHandler)handler;
 
 /**
  * Show the help center collection.

@@ -61,21 +61,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         
         Gleap.setNetworkLogsBlacklist(["https://api.gleap.io", "..."])
         
-        let aiTool = GleapAiTool(
-            name: "send-money",
-            toolDescription: "Send money to contacts.",
-            response: "Money transfere is initiaed and requires pin entry of user.",
-            executionType: "button",
-            parameters: [
-                GleapAiToolParameter(
-                    name: "amount",
-                    parameterDescription: "The amount to transfere.",
-                    type: "string",
-                    required: true
-                )
-            ])
-        
-        Gleap.setAiTools([aiTool])
+        // Executes the "send-money" Frontend tool defined on the AI agent in the Gleap dashboard.
+        Gleap.registerAgentTool("send-money", handler: { params, completion in
+            print("send-money called with params: \(params)")
+            completion("Money transfer is initiated and requires pin entry of user.")
+        })
         
         Gleap.setCustomData("asdfasdf", forKey: "asdfaksdfasdfasdfa sdfasdfasdf")
         Gleap.setTags(["Casco"])
