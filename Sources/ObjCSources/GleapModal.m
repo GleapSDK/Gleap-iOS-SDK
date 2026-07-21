@@ -13,6 +13,12 @@
 // Redeclare as readwrite to match the public readonly in the header
 @property (nonatomic, strong, readwrite) NSLayoutConstraint *heightConstraint;
 @property (nonatomic, strong, readwrite) NSLayoutConstraint *maxWidthConstraint;
+// The web content sizes itself to the web view's frame and never overflows, so
+// a too-tall card can't scroll on its own. Instead size the web view to its full
+// content height and scroll it in this scroll view inside the capped container.
+@property (nonatomic, strong) UIScrollView *scrollView;
+@property (nonatomic, strong) NSLayoutConstraint *containerHeightConstraint;
+@property (nonatomic, assign) CGFloat reportedContentHeight;
 @end
 
 @implementation GleapModal
@@ -98,6 +104,7 @@
     self.webView.layer.cornerRadius = 20.0;
     self.webView.layer.masksToBounds = YES;
     self.webView.scrollView.bounces = NO;
+    // Inner scroll off; the outer scroll view scrolls the full-height web view.
     self.webView.scrollView.scrollEnabled = NO;
     self.webView.scrollView.alwaysBounceHorizontal = NO;
     self.webView.scrollView.alwaysBounceVertical = NO;
@@ -105,23 +112,44 @@
         self.webView.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
     }
 
-    [container addSubview:self.webView];
+    // 4) Scroll view + web view
+    self.scrollView = [[UIScrollView alloc] init];
+    self.scrollView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.scrollView.showsVerticalScrollIndicator = YES;
+    self.scrollView.showsHorizontalScrollIndicator = NO;
+    self.scrollView.bounces = NO;
+    if (@available(iOS 11.0, *)) {
+        self.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
+    }
+    [container addSubview:self.scrollView];
+    [self.scrollView addSubview:self.webView];
+
     [NSLayoutConstraint activateConstraints:@[
-        [self.webView.leadingAnchor constraintEqualToAnchor:container.leadingAnchor],
-        [self.webView.trailingAnchor constraintEqualToAnchor:container.trailingAnchor],
-        [self.webView.topAnchor constraintEqualToAnchor:container.topAnchor],
-        [self.webView.bottomAnchor constraintEqualToAnchor:container.bottomAnchor]
+        [self.scrollView.leadingAnchor constraintEqualToAnchor:container.leadingAnchor],
+        [self.scrollView.trailingAnchor constraintEqualToAnchor:container.trailingAnchor],
+        [self.scrollView.topAnchor constraintEqualToAnchor:container.topAnchor],
+        [self.scrollView.bottomAnchor constraintEqualToAnchor:container.bottomAnchor],
+        [self.webView.leadingAnchor constraintEqualToAnchor:self.scrollView.contentLayoutGuide.leadingAnchor],
+        [self.webView.trailingAnchor constraintEqualToAnchor:self.scrollView.contentLayoutGuide.trailingAnchor],
+        [self.webView.topAnchor constraintEqualToAnchor:self.scrollView.contentLayoutGuide.topAnchor],
+        [self.webView.bottomAnchor constraintEqualToAnchor:self.scrollView.contentLayoutGuide.bottomAnchor],
+        // Width locked to the visible width → vertical scroll only.
+        [self.webView.widthAnchor constraintEqualToAnchor:self.scrollView.frameLayoutGuide.widthAnchor]
     ]];
 
-    // 4) Height constraint for webView with lower priority - will be adjusted by JS messages
+    // Web view height = full content height (set by `modal-height`) → scroll content.
     self.heightConstraint = [self.webView.heightAnchor constraintEqualToConstant:0];
-    self.heightConstraint.priority = UILayoutPriorityDefaultHigh; // Lower priority to avoid conflicts
+    self.heightConstraint.priority = UILayoutPriorityDefaultHigh;
     self.heightConstraint.active = YES;
-    
-    // Add a minimum height constraint to ensure the webView has reasonable size
+
     NSLayoutConstraint *minHeightConstraint = [self.webView.heightAnchor constraintGreaterThanOrEqualToConstant:100];
     minHeightConstraint.priority = UILayoutPriorityDefaultLow;
     minHeightConstraint.active = YES;
+
+    // Visible window height (capped in layoutSubviews).
+    self.containerHeightConstraint = [container.heightAnchor constraintEqualToConstant:0];
+    self.containerHeightConstraint.priority = UILayoutPriorityDefaultHigh;
+    self.containerHeightConstraint.active = YES;
 
     // 5) Load
     NSURLRequest *request = [NSURLRequest requestWithURL:
@@ -176,16 +204,15 @@
         else if ([name isEqualToString:@"modal-height"]) {
             NSNumber *h = data[@"height"];
             if (h) {
-                // Get the current bounds to calculate max height
-                CGFloat maxHeight = CGRectGetHeight(self.bounds) * 0.9;
-                CGFloat newHeight = MIN([h floatValue], maxHeight);
-                
-                // Update the height constraint on the main thread
                 dispatch_async(dispatch_get_main_queue(), ^{
-                    self.heightConstraint.constant = newHeight;
+                    self.reportedContentHeight = [h floatValue];
+                    self.heightConstraint.constant = self.reportedContentHeight;
+                    self.containerHeightConstraint.constant = [self cappedContainerHeight];
                     [UIView animateWithDuration:0.25 animations:^{
                         [self layoutIfNeeded];
                     }];
+                    // New height = new content (e.g. next step) → show from the top.
+                    [self.scrollView setContentOffset:CGPointZero animated:NO];
                 });
             }
         }
@@ -316,13 +343,18 @@ decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler
         }
     }
 
-    // update height cap if there's a current height constraint
-    if (self.heightConstraint.constant > 0) {
-        // Use a smaller height percentage in landscape orientation
-        CGFloat heightMultiplier = isLandscape ? 0.8 : 0.9;
-        CGFloat capH = screenH * heightMultiplier;
-        self.heightConstraint.constant = MIN(self.heightConstraint.constant, capH);
+    // Re-cap the visible window on rotation (web view keeps its full height).
+    if (self.reportedContentHeight > 0) {
+        self.containerHeightConstraint.constant = [self cappedContainerHeight];
     }
+}
+
+// Full content height capped to a screen fraction (smaller in landscape).
+- (CGFloat)cappedContainerHeight {
+    CGFloat screenH = CGRectGetHeight(self.bounds);
+    BOOL isLandscape = CGRectGetWidth(self.bounds) > screenH;
+    CGFloat heightMultiplier = isLandscape ? 0.8 : 0.9;
+    return MIN(self.reportedContentHeight, screenH * heightMultiplier);
 }
 
 @end
