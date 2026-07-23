@@ -548,13 +548,14 @@ static id ObjectOrNull(id object)
  Starts the bug reporting flow, when a SDK key has been assigned.
  */
 - (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options {
-    if (GleapSessionHelper.sharedInstance.currentSession == nil) {
-        NSLog(@"[GLEAP_SDK] Gleap session not ready.");
-        return NO;
-    }
-    
     if (Gleap.sharedInstance.token == nil || Gleap.sharedInstance.token.length == 0) {
         NSLog(@"[GLEAP_SDK] Please provide a valid Gleap project TOKEN!");
+        return NO;
+    }
+
+    if (GleapSessionHelper.sharedInstance.currentSession == nil) {
+        NSLog(@"[GLEAP_SDK] Gleap session not ready.");
+        [self recoverSessionAndRestartFlow: feedbackFlow withOptions: options];
         return NO;
     }
     
@@ -595,6 +596,46 @@ static id ObjectOrNull(id object)
     }
     
     return YES;
+}
+
+/**
+ Attempts to restart the Gleap session when the widget is opened without one (e.g. the app was launched offline).
+ On success the widget opens as requested; on failure the user gets the same offline alert the widget shows when it fails to load.
+ */
+- (void)recoverSessionAndRestartFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options {
+    // Surveys are triggered programmatically — keep failing silently for them.
+    bool isSurvey = options != nil && [options objectForKey: @"isSurvey"] != nil && [[options objectForKey: @"isSurvey"] boolValue];
+    if (isSurvey) {
+        return;
+    }
+
+    static BOOL sessionRecoveryInProgress = NO;
+    if (sessionRecoveryInProgress) {
+        return;
+    }
+    sessionRecoveryInProgress = YES;
+
+    [[GleapSessionHelper sharedInstance] startSessionWith:^(bool success) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            sessionRecoveryInProgress = NO;
+            if (success) {
+                [[GleapConfigHelper sharedInstance] run];
+                [self startFeedbackFlow: feedbackFlow withOptions: options];
+            } else {
+                NSError *offlineError = [NSError errorWithDomain: NSURLErrorDomain code: NSURLErrorNotConnectedToInternet userInfo: nil];
+                UIAlertController *alertController = [UIAlertController alertControllerWithTitle: offlineError.localizedDescription
+                                                                                         message: nil
+                                                                                  preferredStyle: UIAlertControllerStyleAlert];
+                [alertController addAction: [UIAlertAction actionWithTitle: @"OK"
+                                                                     style: UIAlertActionStyleCancel
+                                                                   handler: nil]];
+                UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
+                if (topMostViewController != nil) {
+                    [topMostViewController presentViewController: alertController animated: YES completion:^{}];
+                }
+            }
+        });
+    }];
 }
 
 /*
