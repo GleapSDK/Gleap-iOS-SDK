@@ -52,6 +52,11 @@
         NSLog(@"[GLEAP_SDK] Attachment limit of 6 files reached.");
         return false;
     }
+
+    if (data.length > 10 * 1024 * 1024) {
+        NSLog(@"[GLEAP_SDK] Attachment is too big. The maximum attachment size is 10 MB.");
+        return false;
+    }
     
     NSString * mimeType = @"text/plain";
     NSString *pathExtension = [name pathExtension];
