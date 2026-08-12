@@ -22,6 +22,12 @@
 #import "GleapPreFillHelper.h"
 #import "GleapAgentToolHelper.h"
 
+// How long we may take to answer the widget's `collect-ticket-data` request.
+// The widget drops the whole payload once its own timeout elapses, so this stays
+// comfortably below it (see CommunicationManager.sendMessageWithResolver in the
+// messenger).
+static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
+
 @interface GleapFrameManagerViewController ()
 
 @property (retain, nonatomic) WKWebView *webView;
@@ -678,12 +684,16 @@ static id ObjectOrNull(id object)
         }
         
         if ([name isEqualToString: @"collect-ticket-data"]) {
-            // Collect data on a background queue so the host app's main thread
-            // doesn't hitch while OSLogStore builds its enumerator (can take
-            // hundreds of ms). Metadata collection (UIKit) runs on main first.
+            // The widget waits a fixed, short time for this reply and silently
+            // creates the ticket with NO data at all when it is late — not just
+            // without console logs, but without environment data, custom data and
+            // tags too. So nothing here may block on slow collection: everything
+            // except the console log is read from memory and is instant, and the
+            // logs (OSLogStore, regularly slower than the widget will wait) are
+            // collected under a deadline and dropped when they miss it.
             GleapFeedback *feedback = [[GleapFeedback alloc] init];
             __weak typeof(self) weakSelf = self;
-            [feedback prepareDataAsyncWithCompletion:^{
+            [feedback prepareDataWithDeadline: kGleapCollectTicketDataDeadline completion:^{
                 [weakSelf sendMessageWithData: @{
                     @"name": @"collect-ticket-data",
                     @"data": @{

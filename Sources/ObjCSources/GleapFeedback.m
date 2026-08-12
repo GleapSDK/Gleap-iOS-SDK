@@ -151,18 +151,32 @@
     [self attachData: @{ @"metaData": [[GleapMetaDataHelper sharedInstance] getMetaData] }];
 }
 
+/*
+ Builds the merged console log without touching self.data, so it can be collected
+ off the main thread while the rest of the report is already assembled.
+ */
+- (NSArray *)collectConsoleLog {
+    NSMutableArray *consoleLogs = [[NSMutableArray alloc] initWithArray: [[GleapConsoleLogHelper sharedInstance] getConsoleLogs]];
+    NSArray *existingConsoleLogs = [[GleapExternalDataHelper sharedInstance].data objectForKey: @"consoleLog"];
+    if (existingConsoleLogs != nil && existingConsoleLogs.count > 0) {
+        [consoleLogs addObjectsFromArray: existingConsoleLogs];
+    }
+    return consoleLogs;
+}
+
 - (void)prepareBackgroundData {
     // Attach and merge console log. getConsoleLogs can block for hundreds of ms
     // on iOS 15+ while OSLogStore builds its enumerator — hence this half runs off main.
-    NSMutableArray *consoleLogs = [[NSMutableArray alloc] initWithArray: [[GleapConsoleLogHelper sharedInstance] getConsoleLogs]];
-    if ([[GleapExternalDataHelper sharedInstance].data objectForKey: @"consoleLog"] != nil) {
-        NSArray *existingConsoleLogs = [[GleapExternalDataHelper sharedInstance].data objectForKey: @"consoleLog"];
-        if (existingConsoleLogs != nil && existingConsoleLogs.count > 0) {
-            [consoleLogs addObjectsFromArray: existingConsoleLogs];
-        }
-    }
-    [self attachData: @{ @"consoleLog": consoleLogs }];
+    [self attachData: @{ @"consoleLog": [self collectConsoleLog] }];
 
+    [self prepareInMemoryData];
+}
+
+/*
+ Everything except the console log. All of it is read from in-memory state and
+ returns immediately.
+ */
+- (void)prepareInMemoryData {
     // Attach custom data.
     [self attachData: @{ @"customData": [GleapCustomDataHelper getCustomData] }];
 
@@ -216,13 +230,37 @@
     [self prepareBackgroundData];
 }
 
-- (void)prepareDataAsyncWithCompletion:(void (^)(void))completion {
+- (void)prepareDataWithDeadline:(NSTimeInterval)deadline completion:(void (^)(void))completion {
+    // Must be called from the main thread — prepareMainThreadData reads UIKit.
+    // Everything but the console log is in-memory and returns right away, so the
+    // report is already complete except for the logs by the time we get here.
     [self prepareMainThreadData];
+    [self prepareInMemoryData];
+
+    __block BOOL finished = NO;
+    // Only ever invoked on the main queue, so `finished` and self.data stay
+    // serialised against the collection running on the background queue.
+    void (^finish)(NSArray * _Nullable) = ^(NSArray * _Nullable consoleLog) {
+        if (finished) { return; }
+        finished = YES;
+
+        if (consoleLog != nil) {
+            [self attachData: @{ @"consoleLog": consoleLog }];
+            [self excludeExcludedData];
+        }
+
+        if (completion) { completion(); }
+    };
+
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-        [self prepareBackgroundData];
+        NSArray *consoleLog = [self collectConsoleLog];
         dispatch_async(dispatch_get_main_queue(), ^{
-            if (completion) { completion(); }
+            finish(consoleLog);
         });
+    });
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(deadline * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        finish(nil);
     });
 }
 
