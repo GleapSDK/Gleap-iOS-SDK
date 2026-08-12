@@ -13,12 +13,15 @@
 // Redeclare as readwrite to match the public readonly in the header
 @property (nonatomic, strong, readwrite) NSLayoutConstraint *heightConstraint;
 @property (nonatomic, strong, readwrite) NSLayoutConstraint *maxWidthConstraint;
-// The web content sizes itself to the web view's frame and never overflows, so
-// a too-tall card can't scroll on its own. Instead size the web view to its full
-// content height and scroll it in this scroll view inside the capped container.
+// The web content scrolls its own body once it knows how much room it has (we
+// send that as `maxHeight`), so it normally reports a height that already fits
+// and this scroll view sits idle. It's the fallback for content that reports
+// more than the cap anyway — an older web bundle, or a card that can't shrink.
 @property (nonatomic, strong) UIScrollView *scrollView;
 @property (nonatomic, strong) NSLayoutConstraint *containerHeightConstraint;
 @property (nonatomic, assign) CGFloat reportedContentHeight;
+@property (nonatomic, assign) CGFloat lastSentMaxHeight;
+@property (nonatomic, assign) BOOL webContentLoaded;
 @end
 
 @implementation GleapModal
@@ -104,7 +107,8 @@
     self.webView.layer.cornerRadius = 20.0;
     self.webView.layer.masksToBounds = YES;
     self.webView.scrollView.bounces = NO;
-    // Inner scroll off; the outer scroll view scrolls the full-height web view.
+    // Disables the main frame's scroll view only — the card's own scroll region
+    // still scrolls, and that's the one that should.
     self.webView.scrollView.scrollEnabled = NO;
     self.webView.scrollView.alwaysBounceHorizontal = NO;
     self.webView.scrollView.alwaysBounceVertical = NO;
@@ -193,12 +197,22 @@
         NSDictionary *data = body[@"data"];
         
         if ([name isEqualToString:@"modal-loaded"]) {
+            self.webContentLoaded = YES;
             NSDictionary *flowConfig = [GleapConfigHelper sharedInstance].config;
             NSString *primaryColor = flowConfig[@"color"] ?: @"#485BFF";
             NSString *backgroundColor = flowConfig[@"backgroundColor"] ?: @"#FFFFFF";
             NSMutableDictionary *payload = [[self.modalData objectForKey:@"config"] mutableCopy];
             payload[@"primaryColor"] = primaryColor;
             payload[@"backgroundColor"] = backgroundColor;
+
+            // Tell the card how much room it has, so it scrolls its own content
+            // instead of reporting a height we'd have to clip or scroll again.
+            CGFloat maxHeight = [self maxContentHeight];
+            if (maxHeight > 0) {
+                payload[@"maxHeight"] = @(floor(maxHeight));
+                self.lastSentMaxHeight = maxHeight;
+            }
+
             [self sendMessageWithData:@{@"name":@"modal-data",@"data":payload}];
         }
         else if ([name isEqualToString:@"modal-height"]) {
@@ -347,14 +361,40 @@ decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler
     if (self.reportedContentHeight > 0) {
         self.containerHeightConstraint.constant = [self cappedContainerHeight];
     }
+
+    // Rotating changes how much room the card has, so it needs to re-lay out
+    // and report a height that fits the new orientation.
+    [self sendMaxHeightIfChanged];
 }
 
-// Full content height capped to a screen fraction (smaller in landscape).
-- (CGFloat)cappedContainerHeight {
+// How tall the card may be: a fraction of the screen, smaller in landscape.
+- (CGFloat)maxContentHeight {
     CGFloat screenH = CGRectGetHeight(self.bounds);
     BOOL isLandscape = CGRectGetWidth(self.bounds) > screenH;
     CGFloat heightMultiplier = isLandscape ? 0.8 : 0.9;
-    return MIN(self.reportedContentHeight, screenH * heightMultiplier);
+    return screenH * heightMultiplier;
+}
+
+// Reported content height, capped to the room the card has.
+- (CGFloat)cappedContainerHeight {
+    return MIN(self.reportedContentHeight, [self maxContentHeight]);
+}
+
+- (void)sendMaxHeightIfChanged {
+    if (!self.webContentLoaded) {
+        return;
+    }
+
+    CGFloat maxHeight = [self maxContentHeight];
+    if (maxHeight <= 0 || fabs(maxHeight - self.lastSentMaxHeight) < 1.0) {
+        return;
+    }
+    self.lastSentMaxHeight = maxHeight;
+
+    [self sendMessageWithData:@{
+        @"name": @"modal-max-height",
+        @"data": @{@"maxHeight": @(floor(maxHeight))}
+    }];
 }
 
 @end
