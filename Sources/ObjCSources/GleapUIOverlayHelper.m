@@ -120,7 +120,9 @@
         if (updateAtIndex >= 0) {
             [sharedInstance.notifications replaceObjectAtIndex: updateAtIndex withObject: notification];
         } else {
-            if ([sharedInstance.notifications count] >= 2) {
+            // More than one notification renders as a collapsed stack (newest
+            // in front), so a higher cap no longer costs vertical space.
+            while ([sharedInstance.notifications count] >= 4) {
                 [sharedInstance.notifications removeObjectAtIndex: 0];
             }
             [sharedInstance.notifications addObject: notification];
