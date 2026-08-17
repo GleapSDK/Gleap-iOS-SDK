@@ -68,6 +68,8 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
 
 @property (nonatomic, assign) int lastNotificationCount;
 @property (nonatomic, assign) BOOL stackExpanded;
+@property (nonatomic, assign) NSUInteger lastRenderedNotificationCount;
+@property (nonatomic, retain, nullable) NSString *lastRenderedFrontOutboundId;
 @property (nonatomic, retain) NSLayoutConstraint *notificationsContainerHeightConstraint;
 @property (nonatomic, retain) UIView *notificationsCloseButton;
 
@@ -597,6 +599,8 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
         }
 
         if (self.internalNotifications.count <= 0) {
+            self.lastRenderedNotificationCount = 0;
+            self.lastRenderedFrontOutboundId = nil;
             return;
         }
 
@@ -694,22 +698,100 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
 
         [self applyStackLayoutForWidth: width];
 
-        // Only the front card plays the entrance animation — a slide-up with a
-        // fade, matching the web widget.
-        UIView *frontCard = [self.notificationViews lastObject];
-        CGAffineTransform finalTransform = frontCard.transform;
-        frontCard.alpha = 0.0;
-        frontCard.transform = CGAffineTransformConcat(finalTransform, CGAffineTransformMakeTranslation(0, 12.0));
-        [UIView animateWithDuration: 0.45
-                              delay: 0.0
-                            options: UIViewAnimationOptionCurveEaseOut
-                         animations: ^{
-            frontCard.alpha = 1.0;
-            frontCard.transform = finalTransform;
-        } completion: nil];
+        // A render happens for lifecycle events too (key window changes,
+        // config refreshes) — only a genuinely new notification animates in.
+        // The cap can hold the count steady while the front card changes, so
+        // the front outbound id breaks that tie.
+        NSString *frontOutboundId = nil;
+        @try {
+            id outboundValue = [[self.internalNotifications lastObject] objectForKey: @"outbound"];
+            if (outboundValue != nil && [outboundValue isKindOfClass: [NSString class]]) {
+                frontOutboundId = outboundValue;
+            }
+        } @catch (id exp) {}
+
+        NSUInteger cardCount = self.notificationViews.count;
+        BOOL isNewArrival = cardCount > self.lastRenderedNotificationCount
+            || (self.lastRenderedNotificationCount > 0 && frontOutboundId != nil && ![frontOutboundId isEqualToString: self.lastRenderedFrontOutboundId]);
+        self.lastRenderedNotificationCount = cardCount;
+        self.lastRenderedFrontOutboundId = frontOutboundId;
+
+        if (isNewArrival && !UIAccessibilityIsReduceMotionEnabled()) {
+            if (cardCount == 1) {
+                // The very first notification has no stack to emerge from —
+                // it slides up with a fade, matching the web widget.
+                UIView *frontCard = [self.notificationViews lastObject];
+                CGAffineTransform finalTransform = frontCard.transform;
+                frontCard.alpha = 0.0;
+                frontCard.transform = CGAffineTransformConcat(finalTransform, CGAffineTransformMakeTranslation(0, 12.0));
+                [UIView animateWithDuration: 0.45
+                                      delay: 0.0
+                                    options: UIViewAnimationOptionCurveEaseOut
+                                 animations: ^{
+                    frontCard.alpha = 1.0;
+                    frontCard.transform = finalTransform;
+                } completion: nil];
+            } else {
+                [self animateArrivalForWidth: width];
+            }
+        }
     } @catch(id anException) {
 
     }
+}
+
+/**
+ * A new arrival on an existing stack is choreographed as one deck motion:
+ * every card starts where the previous stack state had it (each one depth
+ * shallower, the old front still in the front slot) and the new card starts
+ * tucked behind the front slot — then the whole deck animates into its new
+ * order, so the card visibly emerges from the stack rather than floating up
+ * from the space below it.
+ */
+- (void)animateArrivalForWidth:(CGFloat)width {
+    NSUInteger count = self.notificationViews.count;
+    if (count < 2) {
+        return;
+    }
+
+    CGFloat containerHeight = [self stackHeightForWidth: width];
+    CGFloat frontHeight = ((UIView *)[self.notificationViews lastObject]).bounds.size.height;
+    CGFloat oldFrontHeight = ((UIView *)[self.notificationViews objectAtIndex: count - 2]).bounds.size.height;
+
+    for (NSInteger i = count - 1; i >= 0; i--) {
+        UIView *cardView = [self.notificationViews objectAtIndex: i];
+        CGFloat cardHeight = cardView.bounds.size.height;
+        NSInteger depth = (count - 1) - i;
+        cardView.layer.mask = nil;
+
+        if (depth == 0) {
+            // The new front card comes forward out of the deck.
+            cardView.alpha = 0.0;
+            cardView.transform = CGAffineTransformMakeScale(kGleapNotificationStackScale1, kGleapNotificationStackScale1);
+            cardView.center = CGPointMake(width / 2.0, (containerHeight - frontHeight - kGleapNotificationStackPeek1) + ((cardHeight * kGleapNotificationStackScale1) / 2.0));
+        } else if (depth == 1) {
+            // The previous front, still in the front slot.
+            cardView.transform = CGAffineTransformIdentity;
+            cardView.alpha = 1.0;
+            cardView.center = CGPointMake(width / 2.0, (containerHeight - oldFrontHeight) + (cardHeight / 2.0));
+        } else {
+            NSInteger previousDepth = depth - 1;
+            CGFloat peek = previousDepth == 1 ? kGleapNotificationStackPeek1 : kGleapNotificationStackPeek2;
+            CGFloat scale = previousDepth == 1 ? kGleapNotificationStackScale1 : kGleapNotificationStackScale2;
+            cardView.transform = CGAffineTransformMakeScale(scale, scale);
+            cardView.alpha = previousDepth > 2 ? 0.0 : 1.0;
+            cardView.center = CGPointMake(width / 2.0, (containerHeight - oldFrontHeight - peek) + ((cardHeight * scale) / 2.0));
+        }
+    }
+
+    [UIView animateWithDuration: 0.3
+                          delay: 0.0
+                        options: UIViewAnimationOptionCurveEaseOut | UIViewAnimationOptionAllowUserInteraction
+                     animations: ^{
+        [self applyStackLayoutForWidth: width applyMasks: NO];
+    } completion: ^(BOOL finished) {
+        [self applyStackLayoutForWidth: width applyMasks: YES];
+    }];
 }
 
 // The container height the current stack state needs: the whole list when
@@ -743,6 +825,10 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
  * back like a deck. Anything deeper stays hidden until the stack expands.
  */
 - (void)applyStackLayoutForWidth:(CGFloat)width {
+    [self applyStackLayoutForWidth: width applyMasks: YES];
+}
+
+- (void)applyStackLayoutForWidth:(CGFloat)width applyMasks:(BOOL)applyMasks {
     NSUInteger count = self.notificationViews.count;
     if (count == 0) {
         return;
@@ -778,12 +864,12 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
             // through them. The negative insets keep the shadow outside the
             // clipped edge alive.
             CGFloat visibleCardHeight = frontHeight;
-            if (cardHeight > visibleCardHeight) {
+            if (applyMasks && cardHeight > visibleCardHeight) {
                 CALayer *maskLayer = [CALayer layer];
                 maskLayer.backgroundColor = [UIColor blackColor].CGColor;
                 maskLayer.frame = CGRectMake(-40.0, -40.0, cardView.bounds.size.width + 80.0, visibleCardHeight + 40.0);
                 cardView.layer.mask = maskLayer;
-            } else {
+            } else if (applyMasks) {
                 cardView.layer.mask = nil;
             }
         } else {
@@ -835,9 +921,11 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
                           delay: 0.0
                         options: UIViewAnimationOptionCurveEaseOut | UIViewAnimationOptionAllowUserInteraction
                      animations: ^{
-        [self applyStackLayoutForWidth: width];
+        [self applyStackLayoutForWidth: width applyMasks: NO];
         [self.notificationsContainerView.superview layoutIfNeeded];
-    } completion: nil];
+    } completion: ^(BOOL finished) {
+        [self applyStackLayoutForWidth: width applyMasks: YES];
+    }];
 }
 
 - (UIView *)generateCloseButton {
