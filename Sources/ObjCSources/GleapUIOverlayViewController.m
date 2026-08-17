@@ -623,6 +623,17 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
         _notificationsContainerView = containerView;
         [window addSubview: _notificationsContainerView];
 
+        // Containment guarantee: nothing — no card, no shadow, no
+        // mid-animation overhang — may ever draw below the stack's bottom
+        // edge (the feedback button sits right under it). Generous side/top
+        // overscan keeps shadows and the close-button overhang alive; the
+        // bottom gets only a small allowance for the front card's shadow.
+        CGFloat containmentHeight = MAX(window.bounds.size.height, 900.0);
+        CALayer *containmentMask = [CALayer layer];
+        containmentMask.backgroundColor = [UIColor blackColor].CGColor;
+        containmentMask.frame = CGRectMake(-60.0, -60.0, width + 120.0, containmentHeight + 60.0 + 6.0);
+        containerView.layer.mask = containmentMask;
+
         // Build the cards oldest → newest, so the newest ends up last — the
         // front card of the stack, and the bottom card of the expanded list.
         for (NSDictionary *notification in self.internalNotifications) {
@@ -725,13 +736,13 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
 
         if (isNewArrival && !UIAccessibilityIsReduceMotionEnabled()) {
             if (cardCount == 1) {
-                // The very first notification has no stack to emerge from —
-                // it slides up with a fade, matching the web widget.
+                // The very first notification materializes in place — fade
+                // plus a slight scale-up, no travel.
                 UIView *frontCard = [self.notificationViews lastObject];
                 CGAffineTransform finalTransform = frontCard.transform;
                 frontCard.alpha = 0.0;
-                frontCard.transform = CGAffineTransformConcat(finalTransform, CGAffineTransformMakeTranslation(0, 12.0));
-                [UIView animateWithDuration: 0.45
+                frontCard.transform = CGAffineTransformConcat(finalTransform, CGAffineTransformMakeScale(0.97, 0.97));
+                [UIView animateWithDuration: 0.35
                                       delay: 0.0
                                     options: UIViewAnimationOptionCurveEaseOut
                                  animations: ^{
@@ -772,10 +783,12 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
         cardView.layer.mask = nil;
 
         if (depth == 0) {
-            // The new front card comes forward out of the deck.
+            // The new front card materializes in its slot — a fade with a
+            // slight scale-up and NO travel, so it can never read as arriving
+            // from somewhere else on the screen.
             cardView.alpha = 0.0;
-            cardView.transform = CGAffineTransformMakeScale(kGleapNotificationStackScale1, kGleapNotificationStackScale1);
-            cardView.center = CGPointMake(width / 2.0, (containerHeight - frontHeight - kGleapNotificationStackPeek1) + ((cardHeight * kGleapNotificationStackScale1) / 2.0));
+            cardView.transform = CGAffineTransformMakeScale(0.97, 0.97);
+            cardView.center = CGPointMake(width / 2.0, (containerHeight - frontHeight) + ((cardHeight * 0.97) / 2.0));
         } else if (depth == 1) {
             // The previous front, still in the front slot.
             cardView.transform = CGAffineTransformIdentity;
