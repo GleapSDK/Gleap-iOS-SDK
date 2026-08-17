@@ -770,10 +770,14 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
             cardView.center = CGPointMake(width / 2.0, (frontTop - peek) + ((cardHeight * scale) / 2.0));
             cardView.alpha = depth > 2 ? 0.0 : 1.0;
 
-            // Clips a taller card behind down to the front card's bottom edge,
-            // so e.g. a news cover can't hang out below the stack. The negative
-            // insets keep the shadow outside the clipped edge alive.
-            CGFloat visibleCardHeight = (frontHeight + peek) / scale;
+            // Clips a taller card behind to the front card's own height (in
+            // card space, like the web widget), so e.g. a news cover can't
+            // hang out below the stack. After the peek offset and scale-back,
+            // the clipped bottom lands above the front card's bottom — the
+            // area behind its rounded corners stays clear, nothing shines
+            // through them. The negative insets keep the shadow outside the
+            // clipped edge alive.
+            CGFloat visibleCardHeight = frontHeight;
             if (cardHeight > visibleCardHeight) {
                 CALayer *maskLayer = [CALayer layer];
                 maskLayer.backgroundColor = [UIColor blackColor].CGColor;
