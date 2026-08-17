@@ -654,7 +654,14 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
         containerView.overhangingCloseButton = closeButton;
 
         [_notificationsContainerView.widthAnchor constraintEqualToConstant: width].active = YES;
-        self.notificationsContainerHeightConstraint = [_notificationsContainerView.heightAnchor constraintEqualToConstant: [self stackHeightForWidth: width]];
+        // The container keeps one FIXED height, tall enough for any stack.
+        // Resizing it per state re-anchored the bottom-pinned cards while
+        // animations were in flight — the whole deck rendered offset by the
+        // height delta and visibly slid into place. With a constant height
+        // nothing ever re-bases; only the card animations move cards. Empty
+        // space passes touches through (see GleapNotificationsContainerView).
+        CGFloat stackFrameHeight = MAX(window.bounds.size.height, 900.0);
+        self.notificationsContainerHeightConstraint = [_notificationsContainerView.heightAnchor constraintEqualToConstant: stackFrameHeight];
         self.notificationsContainerHeightConstraint.active = YES;
 
         int notificationViewOffsetY = [Gleap sharedInstance].notificationViewOffsetY + 20;
@@ -754,7 +761,7 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
         return;
     }
 
-    CGFloat containerHeight = [self stackHeightForWidth: width];
+    CGFloat containerHeight = [self stackFrameHeight];
     CGFloat frontHeight = ((UIView *)[self.notificationViews lastObject]).bounds.size.height;
     CGFloat oldFrontHeight = ((UIView *)[self.notificationViews objectAtIndex: count - 2]).bounds.size.height;
 
@@ -794,28 +801,14 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
     }];
 }
 
-// The container height the current stack state needs: the whole list when
-// expanded, the front card plus the peek headroom when collapsed.
-- (CGFloat)stackHeightForWidth:(CGFloat)width {
-    NSUInteger count = self.notificationViews.count;
-    if (count == 0) {
-        return 0;
+// The container's fixed height (set once per render); card placement is
+// bottom-anchored inside it.
+- (CGFloat)stackFrameHeight {
+    CGFloat height = self.notificationsContainerHeightConstraint.constant;
+    if (height <= 0) {
+        height = 900.0;
     }
-
-    CGFloat frontHeight = ((UIView *)[self.notificationViews lastObject]).frame.size.height;
-    if (count == 1) {
-        return frontHeight;
-    }
-
-    if ([self isStackCollapsed]) {
-        return frontHeight + kGleapNotificationStackHeadroom;
-    }
-
-    CGFloat totalHeight = 0;
-    for (UIView *cardView in self.notificationViews) {
-        totalHeight += cardView.frame.size.height;
-    }
-    return totalHeight + (kGleapNotificationCardGap * (count - 1));
+    return height;
 }
 
 /**
@@ -834,8 +827,7 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
         return;
     }
 
-    CGFloat containerHeight = [self stackHeightForWidth: width];
-    self.notificationsContainerHeightConstraint.constant = containerHeight;
+    CGFloat containerHeight = [self stackFrameHeight];
 
     BOOL collapsed = [self isStackCollapsed];
     CGFloat frontHeight = ((UIView *)[self.notificationViews lastObject]).frame.size.height;
@@ -882,15 +874,27 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
         expandedBottom -= cardHeight + kGleapNotificationCardGap;
     }
 
-    // The close button floats over the container's top corner. It trails the
-    // stack in LTR and mirrors to the leading edge in RTL layouts.
+    // The close button floats over the stack's visual top corner and rides
+    // along as the stack expands or collapses. It trails the stack in LTR and
+    // mirrors to the leading edge in RTL layouts.
+    CGFloat contentHeight = (kGleapNotificationCardGap * (count - 1));
+    for (UIView *cardView in self.notificationViews) {
+        contentHeight += cardView.bounds.size.height;
+    }
+    CGFloat visualTop;
+    if (collapsed) {
+        visualTop = containerHeight - frontHeight - kGleapNotificationStackHeadroom;
+    } else {
+        visualTop = containerHeight - contentHeight;
+    }
+
     BOOL isRTL = NO;
     if (self.notificationsContainerView != nil) {
         isRTL = [UIView userInterfaceLayoutDirectionForSemanticContentAttribute: self.notificationsContainerView.semanticContentAttribute] == UIUserInterfaceLayoutDirectionRightToLeft;
     }
     CGFloat closeSize = self.notificationsCloseButton.frame.size.width;
     CGFloat closeX = isRTL ? -9.0 : width - closeSize + 9.0;
-    self.notificationsCloseButton.frame = CGRectMake(closeX, -9.0, closeSize, closeSize);
+    self.notificationsCloseButton.frame = CGRectMake(closeX, visualTop - 9.0, closeSize, closeSize);
 }
 
 - (void)setStackExpanded:(BOOL)expanded animated:(BOOL)animated {
