@@ -623,16 +623,6 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
         _notificationsContainerView = containerView;
         [window addSubview: _notificationsContainerView];
 
-        // Containment guarantee: nothing — no card, no shadow, no
-        // mid-animation overhang — may ever draw below the stack's bottom
-        // edge (the feedback button sits right under it). Generous side/top
-        // overscan keeps shadows and the close-button overhang alive; the
-        // bottom gets only a small allowance for the front card's shadow.
-        CGFloat containmentHeight = MAX(window.bounds.size.height, 900.0);
-        CALayer *containmentMask = [CALayer layer];
-        containmentMask.backgroundColor = [UIColor blackColor].CGColor;
-        containmentMask.frame = CGRectMake(-60.0, -60.0, width + 120.0, containmentHeight + 60.0 + 6.0);
-        containerView.layer.mask = containmentMask;
 
         // Build the cards oldest → newest, so the newest ends up last — the
         // front card of the stack, and the bottom card of the expanded list.
@@ -780,7 +770,6 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
         UIView *cardView = [self.notificationViews objectAtIndex: i];
         CGFloat cardHeight = cardView.bounds.size.height;
         NSInteger depth = (count - 1) - i;
-        cardView.layer.mask = nil;
 
         if (depth == 0) {
             // The new front card materializes in its slot — a fade with a
@@ -808,10 +797,8 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
                           delay: 0.0
                         options: UIViewAnimationOptionCurveEaseOut | UIViewAnimationOptionAllowUserInteraction
                      animations: ^{
-        [self applyStackLayoutForWidth: width applyMasks: NO];
-    } completion: ^(BOOL finished) {
-        [self applyStackLayoutForWidth: width applyMasks: YES];
-    }];
+        [self applyStackLayoutForWidth: width animatedMasks: YES];
+    } completion: nil];
 }
 
 // The container's fixed height (set once per render); card placement is
@@ -831,10 +818,55 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
  * back like a deck. Anything deeper stays hidden until the stack expands.
  */
 - (void)applyStackLayoutForWidth:(CGFloat)width {
-    [self applyStackLayoutForWidth: width applyMasks: YES];
+    [self applyStackLayoutForWidth: width animatedMasks: NO];
 }
 
-- (void)applyStackLayoutForWidth:(CGFloat)width applyMasks:(BOOL)applyMasks {
+/**
+ * Every card carries a mask at ALL times: generous insets (-40) keep the
+ * shadow alive, the bottom edge either opens past the body (resting) or cuts
+ * at the front card's height in card space (collapsed behind). Transitions
+ * ANIMATE the mask in lockstep with the card's motion — the sweeping edge
+ * never lets a tall card's body poke out below the stack mid-flight, matching
+ * the web widget's animated clip-path. The edge starts clamped to the card's
+ * body, which is a visual no-op for the body and only trims the last bit of
+ * shadow throw for the duration of the flight.
+ */
+- (void)applyMaskToCard:(UIView *)cardView visibleHeight:(CGFloat)visibleHeight animated:(BOOL)animated {
+    CALayer *maskLayer = cardView.layer.mask;
+    CGRect targetFrame = CGRectMake(-40.0, -40.0, cardView.bounds.size.width + 80.0, visibleHeight + 40.0);
+
+    if (maskLayer == nil) {
+        maskLayer = [CALayer layer];
+        maskLayer.backgroundColor = [UIColor blackColor].CGColor;
+        [CATransaction begin];
+        [CATransaction setDisableActions: YES];
+        maskLayer.frame = targetFrame;
+        cardView.layer.mask = maskLayer;
+        [CATransaction commit];
+        return;
+    }
+
+    [CATransaction begin];
+    if (animated) {
+        // Clamp the starting edge to the card's body so the sweep can never
+        // trail below the front card's bottom.
+        CGFloat cardHeight = cardView.bounds.size.height;
+        if (maskLayer.frame.size.height - 40.0 > cardHeight) {
+            [CATransaction setDisableActions: YES];
+            maskLayer.frame = CGRectMake(-40.0, -40.0, cardView.bounds.size.width + 80.0, cardHeight + 40.0);
+            [CATransaction commit];
+            [CATransaction begin];
+        }
+        [CATransaction setAnimationDuration: 0.3];
+        [CATransaction setAnimationTimingFunction: [CAMediaTimingFunction functionWithName: kCAMediaTimingFunctionEaseOut]];
+    } else {
+        [CATransaction setDisableActions: YES];
+    }
+    maskLayer.frame = targetFrame;
+    [CATransaction commit];
+}
+
+- (void)applyStackLayoutForWidth:(CGFloat)width animatedMasks:(BOOL)animatedMasks {
     NSUInteger count = self.notificationViews.count;
     if (count == 0) {
         return;
@@ -868,20 +900,13 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
             // area behind its rounded corners stays clear, nothing shines
             // through them. The negative insets keep the shadow outside the
             // clipped edge alive.
-            CGFloat visibleCardHeight = frontHeight;
-            if (applyMasks && cardHeight > visibleCardHeight) {
-                CALayer *maskLayer = [CALayer layer];
-                maskLayer.backgroundColor = [UIColor blackColor].CGColor;
-                maskLayer.frame = CGRectMake(-40.0, -40.0, cardView.bounds.size.width + 80.0, visibleCardHeight + 40.0);
-                cardView.layer.mask = maskLayer;
-            } else if (applyMasks) {
-                cardView.layer.mask = nil;
-            }
+            CGFloat visibleCardHeight = cardHeight > frontHeight ? frontHeight : cardHeight + 40.0;
+            [self applyMaskToCard: cardView visibleHeight: visibleCardHeight animated: animatedMasks];
         } else {
             cardView.transform = CGAffineTransformIdentity;
             cardView.center = CGPointMake(width / 2.0, expandedBottom - (cardHeight / 2.0));
             cardView.alpha = 1.0;
-            cardView.layer.mask = nil;
+            [self applyMaskToCard: cardView visibleHeight: cardHeight + 40.0 animated: animatedMasks];
         }
 
         expandedBottom -= cardHeight + kGleapNotificationCardGap;
@@ -921,13 +946,6 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
         width = 320;
     }
 
-    // Release the clip before the spread so nothing pops mid-animation.
-    if (expanded) {
-        for (UIView *cardView in self.notificationViews) {
-            cardView.layer.mask = nil;
-        }
-    }
-
     if (!animated || UIAccessibilityIsReduceMotionEnabled()) {
         [self applyStackLayoutForWidth: width];
         [self.notificationsContainerView.superview layoutIfNeeded];
@@ -938,11 +956,9 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
                           delay: 0.0
                         options: UIViewAnimationOptionCurveEaseOut | UIViewAnimationOptionAllowUserInteraction
                      animations: ^{
-        [self applyStackLayoutForWidth: width applyMasks: NO];
+        [self applyStackLayoutForWidth: width animatedMasks: YES];
         [self.notificationsContainerView.superview layoutIfNeeded];
-    } completion: ^(BOOL finished) {
-        [self applyStackLayoutForWidth: width applyMasks: YES];
-    }];
+    } completion: nil];
 }
 
 - (UIView *)generateCloseButton {
