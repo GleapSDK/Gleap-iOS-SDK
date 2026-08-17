@@ -1,6 +1,6 @@
 //
 //  GleapUIOverlayViewController.m
-//  
+//
 //
 //  Created by Lukas Boehler on 11.09.22.
 //
@@ -8,12 +8,70 @@
 #import "GleapUIOverlayViewController.h"
 #import "GleapSessionHelper.h"
 #import "GleapConfigHelper.h"
+#import "GleapTranslationHelper.h"
 #import "GleapWindowChecker.h"
 #import "Gleap.h"
+
+// The gap between two expanded notification cards.
+static const CGFloat kGleapNotificationCardGap = 12.0;
+
+// Collapsed stack: how far the top edge of a card behind peeks out above the
+// front card, per depth (depth 1 and depth 2 — anything deeper stays hidden
+// until the stack expands).
+static const CGFloat kGleapNotificationStackPeek1 = 9.0;
+static const CGFloat kGleapNotificationStackPeek2 = 17.0;
+
+// How far back a card scales at each peek depth when collapsed.
+static const CGFloat kGleapNotificationStackScale1 = 0.955;
+static const CGFloat kGleapNotificationStackScale2 = 0.91;
+
+// Headroom above the front card that keeps the peeking edges inside the
+// container, and with them the floating close button.
+static const CGFloat kGleapNotificationStackHeadroom = 17.0;
+
+/**
+ * The notifications container spans the whole stack (plus the headroom the
+ * peeking cards need), so empty regions must hand touches back to the app,
+ * and the close button — floating slightly outside the top corner — must
+ * still be tappable.
+ */
+@interface GleapNotificationsContainerView : UIView
+
+@property (nonatomic, weak) UIView *overhangingCloseButton;
+
+@end
+
+@implementation GleapNotificationsContainerView
+
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
+    // The close button floats 9pt outside the container's top corner, so the
+    // default hit testing would miss its overhanging half.
+    if (self.overhangingCloseButton != nil && self.overhangingCloseButton.hidden == NO && self.overhangingCloseButton.alpha > 0.01) {
+        CGPoint pointInButton = [self convertPoint: point toView: self.overhangingCloseButton];
+        if ([self.overhangingCloseButton pointInside: pointInButton withEvent: event]) {
+            return [self.overhangingCloseButton hitTest: pointInButton withEvent: event];
+        }
+    }
+
+    UIView *hit = [super hitTest: point withEvent: event];
+
+    // Touches that land on no card fall through to the host app.
+    if (hit == self) {
+        return nil;
+    }
+    return hit;
+}
+
+@end
 
 @interface GleapUIOverlayViewController ()
 
 @property (nonatomic, assign) int lastNotificationCount;
+@property (nonatomic, assign) BOOL stackExpanded;
+@property (nonatomic, assign) NSUInteger lastRenderedNotificationCount;
+@property (nonatomic, retain, nullable) NSString *lastRenderedFrontOutboundId;
+@property (nonatomic, retain) NSLayoutConstraint *notificationsContainerHeightConstraint;
+@property (nonatomic, retain) UIView *notificationsCloseButton;
 
 @end
 
@@ -32,11 +90,18 @@
         return;
     }
 
+    // A collapsed stack expands on the first tap instead of activating the
+    // front card — same as the web widget on touch devices.
+    if ([self isStackCollapsed]) {
+        [self setStackExpanded: YES animated: YES];
+        return;
+    }
+
     long tag = sender.view.tag;
     if (tag < 0 || tag >= self.internalNotifications.count) {
         return;
     }
-    
+
     NSDictionary *notification = [self.internalNotifications objectAtIndex: tag];
     if (notification != nil) {
         NSString *shareToken = [notification valueForKeyPath: @"data.conversation.shareToken"];
@@ -173,17 +238,17 @@
         if (keyWindow == nil) {
             return;
         }
-        
+
         if (self.banner != nil) {
             [self.banner removeFromSuperview];
             self.banner = nil;
         }
-        
+
         self.banner = [[GleapBanner alloc] initWithFrame: CGRectMake(0, 0, keyWindow.frame.size.width, 70.0)];
         self.banner.translatesAutoresizingMaskIntoConstraints = NO;
         self.banner.layer.zPosition = INT_MAX;
         [keyWindow addSubview: self.banner];
-        
+
         @try {
             NSLayoutConstraint *trailing = [NSLayoutConstraint
                                             constraintWithItem: self.banner
@@ -203,7 +268,7 @@
                                            constant: 0.f];
             [keyWindow addConstraint: leading];
             [keyWindow addConstraint: trailing];
-            
+
             NSLayoutConstraint *top =[NSLayoutConstraint
                                       constraintWithItem: self.banner
                                       attribute: NSLayoutAttributeTop
@@ -215,7 +280,7 @@
             [keyWindow addConstraint: top];
         }
         @catch (NSException *exception) {}
-        
+
         [self.banner setupWithData: bannerData];
     });
 }
@@ -287,7 +352,7 @@
 - (void)setNotifications:(NSMutableArray *)notifications {
     self.internalNotifications = notifications;
     [self renderNotifications];
-    
+
     // Hide the button if notifications are available and it's a classic button left or right.
     NSDictionary *config = GleapConfigHelper.sharedInstance.config;
     if (config != nil) {
@@ -321,7 +386,7 @@
 
     if ([Gleap isOpened]) {
         self.internalNotifications = [[NSMutableArray alloc] init];
-        
+
         [UIView animateWithDuration:0.1f animations:^{
             self.feedbackButton.alpha = 0.0;
             if (self.banner != nil) {
@@ -358,9 +423,158 @@
             }
         }];
     }
-    
+
     [self.feedbackButton updateVisibility];
     [self renderNotifications];
+}
+
+#pragma mark - Notification theming
+
+// The widget theme drives the notification look — the same colors the web
+// widget derives in injectStyledCSS, so a dark-themed project gets dark cards
+// on every platform, independent of the OS appearance.
+
++ (UIColor *)notificationBackgroundColor {
+    NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+    NSString *backgroundColor = [config objectForKey: @"backgroundColor"];
+    if (backgroundColor == nil || backgroundColor.length == 0) {
+        backgroundColor = @"#ffffff";
+    }
+    return [GleapUIHelper colorFromHexString: backgroundColor];
+}
+
+// YIQ >= 160 reads as a light background — the same threshold the web
+// widget's calculateContrast uses.
++ (BOOL)notificationUsesDarkTheme {
+    UIColor *backgroundColor = [GleapUIOverlayViewController notificationBackgroundColor];
+    CGFloat red = 0, green = 0, blue = 0, alpha = 0;
+    [backgroundColor getRed: &red green: &green blue: &blue alpha: &alpha];
+    CGFloat yiq = ((red * 255.0 * 299.0) + (green * 255.0 * 587.0) + (blue * 255.0 * 114.0)) / 1000.0;
+    return yiq < 160.0;
+}
+
++ (UIColor *)notificationContrastColor {
+    return [GleapUIOverlayViewController notificationUsesDarkTheme] ? [UIColor whiteColor] : [UIColor blackColor];
+}
+
+// Shifts every channel by `amount` (0-255 scale), clamped — mirrors the web
+// widget's calculateShadeColor, which derives the muted text color from the
+// background.
++ (UIColor *)shadeOfNotificationBackground:(CGFloat)amount {
+    UIColor *backgroundColor = [GleapUIOverlayViewController notificationBackgroundColor];
+    CGFloat red = 0, green = 0, blue = 0, alpha = 0;
+    [backgroundColor getRed: &red green: &green blue: &blue alpha: &alpha];
+    CGFloat shift = amount / 255.0;
+    return [UIColor colorWithRed: MAX(0.0, MIN(1.0, red + shift))
+                           green: MAX(0.0, MIN(1.0, green + shift))
+                            blue: MAX(0.0, MIN(1.0, blue + shift))
+                           alpha: 1.0];
+}
+
++ (UIColor *)notificationSubTextColor {
+    if ([GleapUIOverlayViewController notificationUsesDarkTheme]) {
+        return [GleapUIOverlayViewController shadeOfNotificationBackground: 100.0];
+    }
+    return [GleapUIOverlayViewController shadeOfNotificationBackground: -120.0];
+}
+
+// A drop shadow alone cannot separate a dark card from a dark page, so the
+// card also carries a hairline in the direction the theme needs.
++ (UIColor *)notificationHairlineColor {
+    if ([GleapUIOverlayViewController notificationUsesDarkTheme]) {
+        return [UIColor colorWithWhite: 1.0 alpha: 0.1];
+    }
+    return [UIColor colorWithWhite: 0.0 alpha: 0.04];
+}
+
++ (CGFloat)notificationConfiguredBorderRadius {
+    NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+    if (config != nil && [config objectForKey: @"borderRadius"] != nil) {
+        return [[config objectForKey: @"borderRadius"] floatValue];
+    }
+    return 20.0;
+}
+
+// The card corner radius, derived from the project's border radius setting
+// exactly like the web widget's containerRadius.
++ (CGFloat)notificationContainerRadius {
+    return round([GleapUIOverlayViewController notificationConfiguredBorderRadius] * 0.8);
+}
+
+// The bot's avatar is a rounded rectangle rather than a circle — the same
+// shape the dashboard and the messenger give it. Derived from the project's
+// radius so a squared-off widget theme keeps squared-off marks; 7pt at the
+// default 20 on the 32pt notification avatar.
++ (CGFloat)notificationBotAvatarRadiusForSize:(CGFloat)size {
+    CGFloat formItemRadius = round([GleapUIOverlayViewController notificationConfiguredBorderRadius] * 0.4);
+    return MAX(2.0, round((formItemRadius * size) / 36.0));
+}
+
+#pragma mark - Relative time
+
+/**
+ * "now" / "5 minutes ago" label for a notification's age, localized by the
+ * system through NSRelativeDateTimeFormatter. Returns nil whenever a truthful
+ * label can't be produced (no timestamp, an unparsable one, or an OS without
+ * the formatter), so callers drop the label instead of printing a placeholder.
+ *
+ * The age is taken from sendAt rather than createdAt: a scheduled outbound is
+ * written to the database long before it is delivered, and its creation time
+ * would surface as an hours-old message the user just received.
+ */
++ (NSString *)relativeTimeLabelForNotification:(NSDictionary *)notification {
+    @try {
+        if (@available(iOS 13.0, *)) {
+            id timestamp = [notification objectForKey: @"sendAt"];
+            if (timestamp == nil || ![timestamp isKindOfClass: [NSString class]] || [timestamp length] == 0) {
+                timestamp = [notification objectForKey: @"createdAt"];
+            }
+            if (timestamp == nil || ![timestamp isKindOfClass: [NSString class]] || [timestamp length] == 0) {
+                return nil;
+            }
+
+            NSISO8601DateFormatter *isoFormatter = [[NSISO8601DateFormatter alloc] init];
+            isoFormatter.formatOptions = NSISO8601DateFormatWithInternetDateTime | NSISO8601DateFormatWithFractionalSeconds;
+            NSDate *date = [isoFormatter dateFromString: timestamp];
+            if (date == nil) {
+                isoFormatter.formatOptions = NSISO8601DateFormatWithInternetDateTime;
+                date = [isoFormatter dateFromString: timestamp];
+            }
+            if (date == nil) {
+                return nil;
+            }
+
+            NSRelativeDateTimeFormatter *formatter = [[NSRelativeDateTimeFormatter alloc] init];
+            formatter.dateTimeStyle = NSRelativeDateTimeFormatterStyleNamed;
+
+            // The widget's language override, falling back to the device locale.
+            NSString *language = GleapTranslationHelper.sharedInstance.language;
+            if (language != nil && language.length > 0) {
+                NSLocale *locale = [NSLocale localeWithLocaleIdentifier: language];
+                if (locale != nil) {
+                    formatter.locale = locale;
+                }
+            }
+
+            // Clamped at 0: a notification scheduled a few seconds ahead (or a
+            // client clock running behind the server's) must never read as
+            // "in 1 minute". Under a minute collapses to "now" rather than
+            // ticking "9 seconds ago".
+            NSTimeInterval seconds = MIN(0.0, [date timeIntervalSinceNow]);
+            if (seconds > -60.0) {
+                seconds = 0.0;
+            }
+            return [formatter localizedStringFromTimeInterval: seconds];
+        }
+    } @catch (id exp) {}
+
+    return nil;
+}
+
+#pragma mark - Rendering
+
+- (BOOL)isStackCollapsed {
+    return self.internalNotifications.count > 1 && !self.stackExpanded;
 }
 
 - (void)renderNotifications {
@@ -368,104 +582,92 @@
     if (state == UIApplicationStateBackground || state == UIApplicationStateInactive) {
         return;
     }
-    
+
     @try {
         NSDictionary *config = GleapConfigHelper.sharedInstance.config;
         if (config == nil) {
             return;
         }
-        
+
         // Cleanup existing notifications.
-        for (UIView *notificationView in self.notificationViews) {
-            if (notificationView != nil && notificationView.superview != nil) {
-                NSMutableArray *constraintsToRemove = [NSMutableArray array];
-                for (NSLayoutConstraint *constraint in notificationView.superview.constraints) {
-                    if (constraint.firstItem == self || constraint.secondItem == self) {
-                        [constraintsToRemove addObject:constraint];
-                    }
-                }
-                
-                [notificationView.superview removeConstraints:constraintsToRemove];
-                [notificationView removeConstraints: constraintsToRemove];
-            }
-        }
-        
         [self.notificationViews removeAllObjects];
+        self.notificationsCloseButton = nil;
+        self.notificationsContainerHeightConstraint = nil;
         if (_notificationsContainerView != nil) {
             [_notificationsContainerView removeFromSuperview];
+            _notificationsContainerView = nil;
         }
-        
+
         if (self.internalNotifications.count <= 0) {
+            self.lastRenderedNotificationCount = 0;
+            self.lastRenderedFrontOutboundId = nil;
             return;
         }
-        
+
+        // Any re-render — a new arrival, a config refresh — collapses the
+        // stack again.
+        self.stackExpanded = NO;
+
         // Render notification views.
         UIView *window = [self getKeyWindow];
         CGFloat width = (window.frame.size.width * 0.9);
         if (width > 320) {
             width = 320;
         }
-        
-        _notificationsContainerView = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 0, 0)];
-        _notificationsContainerView.backgroundColor = [UIColor clearColor];
-        _notificationsContainerView.layer.zPosition = INT_MAX;
-        _notificationsContainerView.translatesAutoresizingMaskIntoConstraints = NO;
+
+        GleapNotificationsContainerView *containerView = [[GleapNotificationsContainerView alloc] initWithFrame: CGRectMake(0, 0, 0, 0)];
+        containerView.backgroundColor = [UIColor clearColor];
+        containerView.layer.zPosition = INT_MAX;
+        containerView.translatesAutoresizingMaskIntoConstraints = NO;
+        containerView.clipsToBounds = NO;
+        _notificationsContainerView = containerView;
         [window addSubview: _notificationsContainerView];
-        
-        UIView *previousView = nil;
-        
-        // Create new notifications.
+
+
+        // Build the cards oldest → newest, so the newest ends up last — the
+        // front card of the stack, and the bottom card of the expanded list.
         for (NSDictionary *notification in self.internalNotifications) {
             UIView *localNotificationView = [self createNotificationViewFor: notification andWith: width];
             if (localNotificationView != nil) {
-                localNotificationView.translatesAutoresizingMaskIntoConstraints = NO;
-                localNotificationView.tag = [self.internalNotifications indexOfObject:notification];
-                
+                localNotificationView.tag = [self.internalNotifications indexOfObject: notification];
+
                 UITapGestureRecognizer *performNotificationActionGesture =
                 [[UITapGestureRecognizer alloc] initWithTarget:self
                                                         action:@selector(performNotificationAction:)];
                 [localNotificationView addGestureRecognizer: performNotificationActionGesture];
-                
+
                 [_notificationsContainerView addSubview: localNotificationView];
                 [self.notificationViews addObject: localNotificationView];
-                
-                // Set height.
-                [localNotificationView.heightAnchor constraintEqualToConstant: localNotificationView.frame.size.height].active = YES;
-                
-                // Pin to left and right.
-                [localNotificationView.leadingAnchor constraintEqualToAnchor: _notificationsContainerView.leadingAnchor constant: 0].active = YES;
-                [localNotificationView.trailingAnchor constraintEqualToAnchor: _notificationsContainerView.trailingAnchor constant: 0].active = YES;
-                
-                if (previousView) {
-                    [localNotificationView.bottomAnchor constraintEqualToAnchor: previousView.topAnchor constant: -10.0].active = YES;
-                } else {
-                    [localNotificationView.bottomAnchor constraintEqualToAnchor: _notificationsContainerView.bottomAnchor constant: 0].active = YES;
-                }
-                
-                previousView = localNotificationView;
             }
         }
-        
-        // Create close button.
+
+        if (self.notificationViews.count == 0) {
+            [_notificationsContainerView removeFromSuperview];
+            _notificationsContainerView = nil;
+            return;
+        }
+
+        // The close button floats over the stack's top-right corner instead of
+        // taking a row of its own above it.
         UIView *closeButton = [self generateCloseButton];
         [_notificationsContainerView addSubview: closeButton];
-        
-        closeButton.translatesAutoresizingMaskIntoConstraints = NO;
-        
-        // Set height.
-        [closeButton.widthAnchor constraintEqualToConstant: closeButton.frame.size.width].active = YES;
-        [closeButton.heightAnchor constraintEqualToConstant: closeButton.frame.size.height].active = YES;
-        
-        [closeButton.trailingAnchor constraintEqualToAnchor: _notificationsContainerView.trailingAnchor constant: 0].active = YES;
-        [closeButton.bottomAnchor constraintEqualToAnchor: previousView.topAnchor constant: -10.0].active = YES;
-        
-        int containerHeight = (previousView.frame.size.height * self.internalNotifications.count) + (10 * (self.internalNotifications.count - 1)) + closeButton.frame.size.height + 10;
+        self.notificationsCloseButton = closeButton;
+        containerView.overhangingCloseButton = closeButton;
+
         [_notificationsContainerView.widthAnchor constraintEqualToConstant: width].active = YES;
-        [_notificationsContainerView.heightAnchor constraintEqualToConstant: containerHeight].active = YES;
-        
+        // The container keeps one FIXED height, tall enough for any stack.
+        // Resizing it per state re-anchored the bottom-pinned cards while
+        // animations were in flight — the whole deck rendered offset by the
+        // height delta and visibly slid into place. With a constant height
+        // nothing ever re-bases; only the card animations move cards. Empty
+        // space passes touches through (see GleapNotificationsContainerView).
+        CGFloat stackFrameHeight = MAX(window.bounds.size.height, 900.0);
+        self.notificationsContainerHeightConstraint = [_notificationsContainerView.heightAnchor constraintEqualToConstant: stackFrameHeight];
+        self.notificationsContainerHeightConstraint.active = YES;
+
         int notificationViewOffsetY = [Gleap sharedInstance].notificationViewOffsetY + 20;
         int notificationViewOffsetX = [Gleap sharedInstance].notificationViewOffsetX + 20;
-        
+
         NSString *feedbackButtonPosition = [config objectForKey: @"feedbackButtonPosition"];
         if ([feedbackButtonPosition isEqualToString: @"BUTTON_CLASSIC_LEFT"]) {
             [_notificationsContainerView.bottomAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.bottomAnchor constant: -notificationViewOffsetY].active = YES;
@@ -501,48 +703,373 @@
                 [_notificationsContainerView.trailingAnchor constraintEqualToAnchor: window.safeAreaLayoutGuide.trailingAnchor constant: -notificationViewOffsetX].active = YES;
             }
         }
-        
-        _notificationsContainerView.alpha = 0.0;
-        [UIView animateWithDuration:0.3f animations:^{
-            self.notificationsContainerView.alpha = 1.0;
-        }];
+
+        [self applyStackLayoutForWidth: width];
+
+        // A render happens for lifecycle events too (key window changes,
+        // config refreshes) — only a genuinely new notification animates in.
+        // The cap can hold the count steady while the front card changes, so
+        // the front outbound id breaks that tie.
+        NSString *frontOutboundId = nil;
+        @try {
+            id outboundValue = [[self.internalNotifications lastObject] objectForKey: @"outbound"];
+            if (outboundValue != nil && [outboundValue isKindOfClass: [NSString class]]) {
+                frontOutboundId = outboundValue;
+            }
+        } @catch (id exp) {}
+
+        NSUInteger cardCount = self.notificationViews.count;
+        BOOL isNewArrival = cardCount > self.lastRenderedNotificationCount
+            || (self.lastRenderedNotificationCount > 0 && frontOutboundId != nil && ![frontOutboundId isEqualToString: self.lastRenderedFrontOutboundId]);
+        self.lastRenderedNotificationCount = cardCount;
+        self.lastRenderedFrontOutboundId = frontOutboundId;
+
+        if (isNewArrival && !UIAccessibilityIsReduceMotionEnabled()) {
+            if (cardCount == 1) {
+                // The very first notification materializes in place — fade
+                // plus a slight scale-up, no travel.
+                UIView *frontCard = [self.notificationViews lastObject];
+                CGAffineTransform finalTransform = frontCard.transform;
+                frontCard.alpha = 0.0;
+                frontCard.transform = CGAffineTransformConcat(finalTransform, CGAffineTransformMakeScale(0.97, 0.97));
+                [UIView animateWithDuration: 0.35
+                                      delay: 0.0
+                                    options: UIViewAnimationOptionCurveEaseOut
+                                 animations: ^{
+                    frontCard.alpha = 1.0;
+                    frontCard.transform = finalTransform;
+                } completion: nil];
+            } else {
+                [self animateArrivalForWidth: width];
+            }
+        }
     } @catch(id anException) {
-        
+
     }
 }
 
+/**
+ * A new arrival on an existing stack is choreographed as one deck motion:
+ * every card starts where the previous stack state had it (each one depth
+ * shallower, the old front still in the front slot) and the new card starts
+ * tucked behind the front slot — then the whole deck animates into its new
+ * order, so the card visibly emerges from the stack rather than floating up
+ * from the space below it.
+ */
+- (void)animateArrivalForWidth:(CGFloat)width {
+    NSUInteger count = self.notificationViews.count;
+    if (count < 2) {
+        return;
+    }
+
+    CGFloat containerHeight = [self stackFrameHeight];
+    CGFloat frontHeight = ((UIView *)[self.notificationViews lastObject]).bounds.size.height;
+    CGFloat oldFrontHeight = ((UIView *)[self.notificationViews objectAtIndex: count - 2]).bounds.size.height;
+
+    for (NSInteger i = count - 1; i >= 0; i--) {
+        UIView *cardView = [self.notificationViews objectAtIndex: i];
+        CGFloat cardHeight = cardView.bounds.size.height;
+        NSInteger depth = (count - 1) - i;
+
+        if (depth == 0) {
+            // The new front card materializes in its slot — a fade with a
+            // slight scale-up and NO travel, so it can never read as arriving
+            // from somewhere else on the screen.
+            cardView.alpha = 0.0;
+            cardView.transform = CGAffineTransformMakeScale(0.97, 0.97);
+            cardView.center = CGPointMake(width / 2.0, (containerHeight - frontHeight) + ((cardHeight * 0.97) / 2.0));
+        } else if (depth == 1) {
+            // The previous front, still in the front slot.
+            cardView.transform = CGAffineTransformIdentity;
+            cardView.alpha = 1.0;
+            cardView.center = CGPointMake(width / 2.0, (containerHeight - oldFrontHeight) + (cardHeight / 2.0));
+        } else {
+            NSInteger previousDepth = depth - 1;
+            CGFloat peek = previousDepth == 1 ? kGleapNotificationStackPeek1 : kGleapNotificationStackPeek2;
+            CGFloat scale = previousDepth == 1 ? kGleapNotificationStackScale1 : kGleapNotificationStackScale2;
+            cardView.transform = CGAffineTransformMakeScale(scale, scale);
+            cardView.alpha = previousDepth > 2 ? 0.0 : 1.0;
+            cardView.center = CGPointMake(width / 2.0, (containerHeight - oldFrontHeight - peek) + ((cardHeight * scale) / 2.0));
+        }
+    }
+
+    [UIView animateWithDuration: 0.3
+                          delay: 0.0
+                        options: UIViewAnimationOptionCurveEaseOut | UIViewAnimationOptionAllowUserInteraction
+                     animations: ^{
+        [self applyStackLayoutForWidth: width animatedMasks: YES];
+    } completion: nil];
+}
+
+// The container's fixed height (set once per render); card placement is
+// bottom-anchored inside it.
+- (CGFloat)stackFrameHeight {
+    CGFloat height = self.notificationsContainerHeightConstraint.constant;
+    if (height <= 0) {
+        height = 900.0;
+    }
+    return height;
+}
+
+/**
+ * Places every card for the current stack state. Cards are bottom-anchored:
+ * expanded they form a column with a fixed gap, collapsed the newest card sits
+ * in front with up to two older cards peeking out behind its top edge, scaled
+ * back like a deck. Anything deeper stays hidden until the stack expands.
+ */
+- (void)applyStackLayoutForWidth:(CGFloat)width {
+    [self applyStackLayoutForWidth: width animatedMasks: NO];
+}
+
+/**
+ * Every card carries a mask at ALL times: generous insets (-40) keep the
+ * shadow alive, the bottom edge either opens past the body (resting) or cuts
+ * at the front card's height in card space (collapsed behind). Transitions
+ * ANIMATE the mask in lockstep with the card's motion — the sweeping edge
+ * never lets a tall card's body poke out below the stack mid-flight, matching
+ * the web widget's animated clip-path. The edge starts clamped to the card's
+ * body, which is a visual no-op for the body and only trims the last bit of
+ * shadow throw for the duration of the flight.
+ */
+- (void)applyMaskToCard:(UIView *)cardView visibleHeight:(CGFloat)visibleHeight animated:(BOOL)animated {
+    CALayer *maskLayer = cardView.layer.mask;
+    CGRect targetFrame = CGRectMake(-40.0, -40.0, cardView.bounds.size.width + 80.0, visibleHeight + 40.0);
+
+    if (maskLayer == nil) {
+        maskLayer = [CALayer layer];
+        maskLayer.backgroundColor = [UIColor blackColor].CGColor;
+        [CATransaction begin];
+        [CATransaction setDisableActions: YES];
+        maskLayer.frame = targetFrame;
+        cardView.layer.mask = maskLayer;
+        [CATransaction commit];
+        return;
+    }
+
+    [CATransaction begin];
+    if (animated) {
+        // Clamp the starting edge to the card's body so the sweep can never
+        // trail below the front card's bottom.
+        CGFloat cardHeight = cardView.bounds.size.height;
+        if (maskLayer.frame.size.height - 40.0 > cardHeight) {
+            [CATransaction setDisableActions: YES];
+            maskLayer.frame = CGRectMake(-40.0, -40.0, cardView.bounds.size.width + 80.0, cardHeight + 40.0);
+            [CATransaction commit];
+            [CATransaction begin];
+        }
+        [CATransaction setAnimationDuration: 0.3];
+        [CATransaction setAnimationTimingFunction: [CAMediaTimingFunction functionWithName: kCAMediaTimingFunctionEaseOut]];
+    } else {
+        [CATransaction setDisableActions: YES];
+    }
+    maskLayer.frame = targetFrame;
+    [CATransaction commit];
+}
+
+- (void)applyStackLayoutForWidth:(CGFloat)width animatedMasks:(BOOL)animatedMasks {
+    NSUInteger count = self.notificationViews.count;
+    if (count == 0) {
+        return;
+    }
+
+    CGFloat containerHeight = [self stackFrameHeight];
+
+    BOOL collapsed = [self isStackCollapsed];
+    CGFloat frontHeight = ((UIView *)[self.notificationViews lastObject]).frame.size.height;
+    CGFloat frontTop = containerHeight - frontHeight;
+
+    // Walk newest → oldest so each card knows its depth behind the front.
+    CGFloat expandedBottom = containerHeight;
+    for (NSInteger i = count - 1; i >= 0; i--) {
+        UIView *cardView = [self.notificationViews objectAtIndex: i];
+        CGFloat cardHeight = cardView.frame.size.height;
+        NSInteger depth = (count - 1) - i;
+
+        if (collapsed && depth > 0) {
+            CGFloat peek = depth == 1 ? kGleapNotificationStackPeek1 : kGleapNotificationStackPeek2;
+            CGFloat scale = depth == 1 ? kGleapNotificationStackScale1 : kGleapNotificationStackScale2;
+
+            cardView.transform = CGAffineTransformMakeScale(scale, scale);
+            cardView.center = CGPointMake(width / 2.0, (frontTop - peek) + ((cardHeight * scale) / 2.0));
+            cardView.alpha = depth > 2 ? 0.0 : 1.0;
+
+            // Clips a taller card behind to the front card's own height (in
+            // card space, like the web widget), so e.g. a news cover can't
+            // hang out below the stack. After the peek offset and scale-back,
+            // the clipped bottom lands above the front card's bottom — the
+            // area behind its rounded corners stays clear, nothing shines
+            // through them. The negative insets keep the shadow outside the
+            // clipped edge alive.
+            CGFloat visibleCardHeight = cardHeight > frontHeight ? frontHeight : cardHeight + 40.0;
+            [self applyMaskToCard: cardView visibleHeight: visibleCardHeight animated: animatedMasks];
+        } else {
+            cardView.transform = CGAffineTransformIdentity;
+            cardView.center = CGPointMake(width / 2.0, expandedBottom - (cardHeight / 2.0));
+            cardView.alpha = 1.0;
+            [self applyMaskToCard: cardView visibleHeight: cardHeight + 40.0 animated: animatedMasks];
+        }
+
+        expandedBottom -= cardHeight + kGleapNotificationCardGap;
+    }
+
+    // The close button floats over the stack's visual top corner and rides
+    // along as the stack expands or collapses. It trails the stack in LTR and
+    // mirrors to the leading edge in RTL layouts.
+    CGFloat contentHeight = (kGleapNotificationCardGap * (count - 1));
+    for (UIView *cardView in self.notificationViews) {
+        contentHeight += cardView.bounds.size.height;
+    }
+    CGFloat visualTop;
+    if (collapsed) {
+        visualTop = containerHeight - frontHeight - kGleapNotificationStackHeadroom;
+    } else {
+        visualTop = containerHeight - contentHeight;
+    }
+
+    BOOL isRTL = NO;
+    if (self.notificationsContainerView != nil) {
+        isRTL = [UIView userInterfaceLayoutDirectionForSemanticContentAttribute: self.notificationsContainerView.semanticContentAttribute] == UIUserInterfaceLayoutDirectionRightToLeft;
+    }
+    CGFloat closeSize = self.notificationsCloseButton.frame.size.width;
+    CGFloat closeX = isRTL ? -9.0 : width - closeSize + 9.0;
+    self.notificationsCloseButton.frame = CGRectMake(closeX, visualTop - 9.0, closeSize, closeSize);
+}
+
+- (void)setStackExpanded:(BOOL)expanded animated:(BOOL)animated {
+    if (self.stackExpanded == expanded || self.notificationViews.count <= 1) {
+        return;
+    }
+    self.stackExpanded = expanded;
+
+    CGFloat width = self.notificationsContainerView.frame.size.width;
+    if (width <= 0) {
+        width = 320;
+    }
+
+    if (!animated || UIAccessibilityIsReduceMotionEnabled()) {
+        [self applyStackLayoutForWidth: width];
+        [self.notificationsContainerView.superview layoutIfNeeded];
+        return;
+    }
+
+    [UIView animateWithDuration: 0.3
+                          delay: 0.0
+                        options: UIViewAnimationOptionCurveEaseOut | UIViewAnimationOptionAllowUserInteraction
+                     animations: ^{
+        [self applyStackLayoutForWidth: width animatedMasks: YES];
+        [self.notificationsContainerView.superview layoutIfNeeded];
+    } completion: nil];
+}
+
 - (UIView *)generateCloseButton {
-    UIView *closeButton = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 32, 32)];
-    closeButton.layer.cornerRadius = 16;
-    closeButton.alpha = 0.8;
-    closeButton.layer.cornerRadius = 16.0;
-    closeButton.layer.shadowRadius  = 8.0;
+    UIColor *backgroundColor = [GleapUIOverlayViewController notificationBackgroundColor];
+    UIColor *crossColor = [GleapUIOverlayViewController notificationContrastColor];
+
+    UIView *closeButton = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 26, 26)];
+    closeButton.layer.cornerRadius = 13.0;
+    closeButton.layer.shadowRadius  = 4.0;
     closeButton.layer.shadowColor   = [UIColor blackColor].CGColor;
-    closeButton.layer.shadowOffset  = CGSizeMake(2.0f, 2.0f);
-    closeButton.layer.shadowOpacity = 0.08;
+    closeButton.layer.shadowOffset  = CGSizeMake(0.0f, 2.0f);
+    closeButton.layer.shadowOpacity = 0.18;
     closeButton.autoresizesSubviews = NO;
-    closeButton.backgroundColor = [UIColor colorWithRed: 0.9 green: 0.9 blue: 0.9 alpha: 1.0];
-    
+    closeButton.backgroundColor = backgroundColor;
+
     UITapGestureRecognizer *clearNotificationsGesture =
       [[UITapGestureRecognizer alloc] initWithTarget:self
                                               action:@selector(clearNotifications:)];
     [closeButton addGestureRecognizer: clearNotificationsGesture];
-    
-    UIView * crossLeft = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 16.0, 2.0)];
-    crossLeft.backgroundColor = [UIColor blackColor];
-    crossLeft.center = CGPointMake(16.0, 16.0);
+
+    UIView * crossLeft = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 11.0, 1.5)];
+    crossLeft.backgroundColor = crossColor;
+    crossLeft.center = CGPointMake(13.0, 13.0);
     crossLeft.autoresizingMask = UIViewAutoresizingNone;
+    crossLeft.layer.cornerRadius = 0.75;
     crossLeft.transform = CGAffineTransformMakeRotation(45 * -1 * M_PI/180);
     [closeButton addSubview: crossLeft];
-    
-    UIView * crossRight = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 16.0, 2.0)];
-    crossRight.backgroundColor = [UIColor blackColor];
-    crossRight.center = CGPointMake(16.0, 16.0);
+
+    UIView * crossRight = [[UIView alloc] initWithFrame: CGRectMake(0, 0, 11.0, 1.5)];
+    crossRight.backgroundColor = crossColor;
+    crossRight.center = CGPointMake(13.0, 13.0);
     crossRight.autoresizingMask = UIViewAutoresizingNone;
+    crossRight.layer.cornerRadius = 0.75;
     crossRight.transform = CGAffineTransformMakeRotation(45 * M_PI/180);
     [closeButton addSubview: crossRight];
-    
+
     return closeButton;
+}
+
+// Every notification card shares one chrome: full container width, the
+// project's container radius, a hairline border and a soft two-layer shadow.
+// The wrapper carries the large ambient throw (it needs an explicit shadow
+// path, being transparent), the card itself the contact shadow.
+- (UIView *)styledCardWrapperWithCard:(UIView *)cardView {
+    CGFloat containerRadius = [GleapUIOverlayViewController notificationContainerRadius];
+
+    cardView.backgroundColor = [GleapUIOverlayViewController notificationBackgroundColor];
+    cardView.layer.cornerRadius = containerRadius;
+    cardView.layer.borderWidth = 1.0;
+    cardView.layer.borderColor = [GleapUIOverlayViewController notificationHairlineColor].CGColor;
+    cardView.layer.shadowRadius = 3.0;
+    cardView.layer.shadowColor = [UIColor blackColor].CGColor;
+    cardView.layer.shadowOffset = CGSizeMake(0.0, 2.0);
+    cardView.layer.shadowOpacity = 0.04;
+    cardView.layer.masksToBounds = NO;
+    cardView.clipsToBounds = NO;
+
+    UIView *wrapperView = [[UIView alloc] initWithFrame: cardView.frame];
+    wrapperView.backgroundColor = [UIColor clearColor];
+    wrapperView.layer.shadowRadius = 15.0;
+    wrapperView.layer.shadowColor = [UIColor blackColor].CGColor;
+    wrapperView.layer.shadowOffset = CGSizeMake(0.0, 10.0);
+    wrapperView.layer.shadowOpacity = 0.10;
+    wrapperView.layer.shadowPath = [UIBezierPath bezierPathWithRoundedRect: cardView.bounds cornerRadius: containerRadius].CGPath;
+    wrapperView.layer.masksToBounds = NO;
+    wrapperView.clipsToBounds = NO;
+
+    CGRect cardFrame = cardView.frame;
+    cardFrame.origin = CGPointZero;
+    cardView.frame = cardFrame;
+    [wrapperView addSubview: cardView];
+
+    return wrapperView;
+}
+
+// Sender avatar, or nil when there is no image to show. Teammates stay
+// circular and the bot gets a rounded square — the same split the messenger
+// makes. `isBot` is absent on payloads from servers that don't send it yet,
+// which falls through to the teammate shape.
+- (UIImageView *)avatarViewForSender:(NSDictionary *)sender withFrame:(CGRect)frame {
+    NSString *profileImageUrl = [sender objectForKey: @"profileImageUrl"];
+    if (sender == nil || profileImageUrl == nil || ![profileImageUrl isKindOfClass: [NSString class]] || profileImageUrl.length == 0) {
+        return nil;
+    }
+
+    BOOL isBot = [sender objectForKey: @"isBot"] != nil && [[sender objectForKey: @"isBot"] boolValue];
+
+    UIImageView *avatarView = [[UIImageView alloc] initWithFrame: frame];
+    avatarView.backgroundColor = [[GleapUIOverlayViewController notificationSubTextColor] colorWithAlphaComponent: 0.2];
+    if (isBot) {
+        avatarView.layer.cornerRadius = [GleapUIOverlayViewController notificationBotAvatarRadiusForSize: frame.size.width];
+    } else {
+        avatarView.layer.cornerRadius = frame.size.width / 2.0;
+    }
+    avatarView.contentMode = UIViewContentModeScaleAspectFill;
+    avatarView.clipsToBounds = YES;
+
+    dispatch_async(dispatch_get_global_queue(0,0), ^{
+        NSData * data = [[NSData alloc] initWithContentsOfURL: [NSURL URLWithString: profileImageUrl]];
+        if (data == nil) {
+            return;
+        }
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (avatarView != nil) {
+                avatarView.image = [UIImage imageWithData: data];
+            }
+        });
+    });
+
+    return avatarView;
 }
 
 - (UIView *)createNotificationViewFor:(NSDictionary *)notification andWith:(int)width {
@@ -550,174 +1077,124 @@
     if (config == nil) {
         return nil;
     }
-    
+
     NSDictionary *notificationData = [notification objectForKey: @"data"];
     NSDictionary * sender = [notificationData objectForKey: @"sender"];
-    
-    CGFloat chatBubbleViewWidth = width - 48.0;
-    
+
+    UIColor *contrastColor = [GleapUIOverlayViewController notificationContrastColor];
+    UIColor *subTextColor = [GleapUIOverlayViewController notificationSubTextColor];
+    CGFloat containerRadius = [GleapUIOverlayViewController notificationContainerRadius];
+
     NSString *userName = [[GleapSessionHelper sharedInstance] getSessionName];
     NSString *textContent = [notificationData objectForKey: @"text"];
     textContent = [textContent stringByReplacingOccurrencesOfString:@"{{name}}" withString: userName];
-    
+
     if ([[notificationData objectForKey: @"type"] isEqualToString: @"news"]) {
-        // Build the chat message.
-        UIView * chatBubbleView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0.0, width, 235.0)];
-        chatBubbleView.layer.cornerRadius = 8.0;
-        chatBubbleView.layer.shadowRadius  = 8.0;
-        chatBubbleView.layer.shadowColor   = [UIColor blackColor].CGColor;
-        chatBubbleView.layer.shadowOffset  = CGSizeMake(3.0f, 3.0f);
-        chatBubbleView.layer.shadowOpacity = 0.1;
-        chatBubbleView.layer.masksToBounds = NO;
-        chatBubbleView.clipsToBounds = NO;
-        if (@available(iOS 13.0, *)) {
-            chatBubbleView.backgroundColor = [UIColor systemBackgroundColor];
-        } else {
-            chatBubbleView.backgroundColor = [UIColor whiteColor];
+        CGFloat contentPadding = 16.0;
+        CGFloat titleHeight = 21.0;
+        CGFloat senderRowHeight = 20.0;
+        BOOL hasSender = sender != nil && [sender objectForKey: @"name"] != nil;
+
+        CGFloat cardHeight = 155.0 + contentPadding + titleHeight + contentPadding;
+        if (hasSender) {
+            cardHeight += 6.0 + senderRowHeight;
         }
-        
-        // Build the news message.
-        UIImageView * newsImageView = [[UIImageView alloc] initWithFrame: CGRectMake(0.0, 0.0, chatBubbleView.frame.size.width, 155.0)];
-        newsImageView.backgroundColor = [UIColor grayColor];
-        newsImageView.layer.cornerRadius = 8.0;
+
+        UIView * cardView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0.0, width, cardHeight)];
+
+        // The cover image squares off against the card's rounded top corners.
+        UIImageView * newsImageView = [[UIImageView alloc] initWithFrame: CGRectMake(0.0, 0.0, width, 155.0)];
+        newsImageView.backgroundColor = [[GleapUIOverlayViewController notificationSubTextColor] colorWithAlphaComponent: 0.2];
+        newsImageView.layer.cornerRadius = containerRadius;
         if (@available(iOS 11.0, *)) {
             newsImageView.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner;
         }
         newsImageView.contentMode = UIViewContentModeScaleAspectFill;
         newsImageView.clipsToBounds = YES;
-        [chatBubbleView addSubview: newsImageView];
-        
+        [cardView addSubview: newsImageView];
+
         dispatch_async(dispatch_get_global_queue(0,0), ^{
             NSData * data = [[NSData alloc] initWithContentsOfURL: [NSURL URLWithString: [notificationData objectForKey: @"coverImageUrl"]]];
             if (data == nil) {
                 return;
             }
-            
+
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (newsImageView != nil) {
                     newsImageView.image = [UIImage imageWithData: data];
                 }
             });
         });
-        
-        UIFont *contentFont = [UIFont systemFontOfSize: 16 weight: UIFontWeightSemibold];
-        UILabel *contentLabel = [[UILabel alloc] initWithFrame: CGRectMake(16.0, 171.0, chatBubbleView.frame.size.width - 32.0, 18.0)];
+
+        UIFont *contentFont = [UIFont systemFontOfSize: 15 weight: UIFontWeightSemibold];
+        UILabel *contentLabel = [[UILabel alloc] initWithFrame: CGRectMake(contentPadding, 155.0 + contentPadding, width - (contentPadding * 2.0), titleHeight)];
         contentLabel.text = textContent;
         contentLabel.font = contentFont;
         contentLabel.adjustsFontSizeToFitWidth = NO;
         contentLabel.lineBreakMode = NSLineBreakByTruncatingTail;
         contentLabel.numberOfLines = 1;
-        if (@available(iOS 13.0, *)) {
-            contentLabel.textColor = [UIColor labelColor];
-        } else {
-            contentLabel.textColor = [UIColor blackColor];
-        }
-        
-        [chatBubbleView addSubview: contentLabel];
-        
-        UIImageView * senderImageView = [[UIImageView alloc] initWithFrame: CGRectMake(16.0, 195.0, 22.0, 22.0)];
-        senderImageView.backgroundColor = [UIColor grayColor];
-        senderImageView.layer.cornerRadius = 11.0;
-        senderImageView.contentMode = UIViewContentModeScaleAspectFill;
-        senderImageView.clipsToBounds = YES;
-        [chatBubbleView addSubview: senderImageView];
-        
-        dispatch_async(dispatch_get_global_queue(0,0), ^{
-            NSData * data = [[NSData alloc] initWithContentsOfURL: [NSURL URLWithString: [sender objectForKey: @"profileImageUrl"]]];
-            if (data == nil) {
-                return;
+        contentLabel.textColor = contrastColor;
+        [cardView addSubview: contentLabel];
+
+        if (hasSender) {
+            CGFloat senderRowY = 155.0 + contentPadding + titleHeight + 6.0;
+            UIImageView *senderImageView = [self avatarViewForSender: sender withFrame: CGRectMake(contentPadding, senderRowY, 20.0, 20.0)];
+            CGFloat senderLabelX = contentPadding;
+            if (senderImageView != nil) {
+                [cardView addSubview: senderImageView];
+                senderLabelX += 20.0 + 8.0;
             }
-            
-            dispatch_async(dispatch_get_main_queue(), ^{
-                if (senderImageView != nil) {
-                    senderImageView.image = [UIImage imageWithData: data];
-                }
-            });
-        });
-        
-        UILabel *senderLabel = [[UILabel alloc] initWithFrame: CGRectMake(43.0, 195.0, chatBubbleView.frame.size.width - 43.0 - 16.0, 22.0)];
-        senderLabel.text = [sender objectForKey: @"name"];
-        senderLabel.font = [UIFont systemFontOfSize: 14];
-        senderLabel.alpha = 0.5;
-        if (@available(iOS 13.0, *)) {
-            senderLabel.textColor = [UIColor labelColor];
-        } else {
-            senderLabel.textColor = [UIColor blackColor];
+
+            UILabel *senderLabel = [[UILabel alloc] initWithFrame: CGRectMake(senderLabelX, senderRowY, width - senderLabelX - contentPadding, senderRowHeight)];
+            senderLabel.text = [sender objectForKey: @"name"];
+            senderLabel.font = [UIFont systemFontOfSize: 14];
+            senderLabel.textColor = subTextColor;
+            senderLabel.lineBreakMode = NSLineBreakByTruncatingTail;
+            [cardView addSubview: senderLabel];
         }
-        [chatBubbleView addSubview: senderLabel];
-        
-        UIView * _notificationsContainerView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0, width, chatBubbleView.frame.size.height)];
-        
-        [_notificationsContainerView addSubview: chatBubbleView];
-        
-        return _notificationsContainerView;
+
+        return [self styledCardWrapperWithCard: cardView];
     } else if ([[notificationData objectForKey: @"type"] isEqualToString: @"checklist"]) {
-        // Build the chat message.
-        UIView * chatBubbleView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0.0, width, 100.0)];
-        chatBubbleView.layer.cornerRadius = 8.0;
-        chatBubbleView.layer.shadowRadius  = 8.0;
-        chatBubbleView.layer.shadowColor   = [UIColor blackColor].CGColor;
-        chatBubbleView.layer.shadowOffset  = CGSizeMake(3.0f, 3.0f);
-        chatBubbleView.layer.shadowOpacity = 0.1;
-        chatBubbleView.layer.masksToBounds = NO;
-        chatBubbleView.clipsToBounds = NO;
-        if (@available(iOS 13.0, *)) {
-            chatBubbleView.backgroundColor = [UIColor systemBackgroundColor];
-        } else {
-            chatBubbleView.backgroundColor = [UIColor whiteColor];
-        }
-        
+        CGFloat contentPadding = 16.0;
+
+        UIView * cardView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0.0, width, 100.0)];
+
         UIFont *contentFont = [UIFont systemFontOfSize: 16 weight: UIFontWeightSemibold];
-        UILabel *contentLabel = [[UILabel alloc] initWithFrame: CGRectMake(16.0, 16.0, chatBubbleView.frame.size.width - 32.0, 18.0)];
+        UILabel *contentLabel = [[UILabel alloc] initWithFrame: CGRectMake(contentPadding, contentPadding, width - (contentPadding * 2.0), 18.0)];
         contentLabel.text = textContent;
         contentLabel.font = contentFont;
         contentLabel.adjustsFontSizeToFitWidth = NO;
         contentLabel.lineBreakMode = NSLineBreakByTruncatingTail;
         contentLabel.numberOfLines = 1;
-        if (@available(iOS 13.0, *)) {
-            contentLabel.textColor = [UIColor labelColor];
-        } else {
-            contentLabel.textColor = [UIColor blackColor];
-        }
-        
-        [chatBubbleView addSubview: contentLabel];
-        
-        UILabel *nextStepLabel = [[UILabel alloc] initWithFrame: CGRectMake(16.0, 66.0, chatBubbleView.frame.size.width - 32.0, 18.0)];
+        contentLabel.textColor = contrastColor;
+        [cardView addSubview: contentLabel];
+
+        UILabel *nextStepLabel = [[UILabel alloc] initWithFrame: CGRectMake(contentPadding, 66.0, width - (contentPadding * 2.0), 18.0)];
         nextStepLabel.text = [notificationData objectForKey: @"nextStepTitle"];
         nextStepLabel.adjustsFontSizeToFitWidth = NO;
         nextStepLabel.lineBreakMode = NSLineBreakByTruncatingTail;
         nextStepLabel.numberOfLines = 1;
         nextStepLabel.font = [UIFont systemFontOfSize: 14];
-        nextStepLabel.alpha = 0.5;
-        if (@available(iOS 13.0, *)) {
-            nextStepLabel.textColor = [UIColor labelColor];
-        } else {
-            nextStepLabel.textColor = [UIColor blackColor];
-        }
-        
-        [chatBubbleView addSubview: nextStepLabel];
-        
-        UIView *progressBarViewBG = [[UIView alloc] initWithFrame: CGRectMake(16.0, 46.0, chatBubbleView.frame.size.width - 32.0, 8.0)];
+        nextStepLabel.textColor = subTextColor;
+        [cardView addSubview: nextStepLabel];
+
+        UIView *progressBarViewBG = [[UIView alloc] initWithFrame: CGRectMake(contentPadding, 46.0, width - (contentPadding * 2.0), 8.0)];
         progressBarViewBG.layer.cornerRadius = 4.0;
         progressBarViewBG.layer.masksToBounds = YES;
         progressBarViewBG.clipsToBounds = YES;
         progressBarViewBG.alpha = 0.15;
-        if (@available(iOS 13.0, *)) {
-            progressBarViewBG.backgroundColor = [UIColor labelColor];
-        } else {
-            progressBarViewBG.backgroundColor = [UIColor blackColor];
-        }
-        [chatBubbleView addSubview: progressBarViewBG];
-        
-        int maxWidth = chatBubbleView.frame.size.width - 32.0;
+        progressBarViewBG.backgroundColor = contrastColor;
+        [cardView addSubview: progressBarViewBG];
+
+        int maxWidth = width - (contentPadding * 2.0);
         @try {
             NSNumber *currentStepNumber = [notificationData objectForKey:@"currentStep"];
             NSNumber *totalStepsNumber = [notificationData objectForKey:@"totalSteps"];
-            
+
             if (currentStepNumber && totalStepsNumber) {
                 double currentStep = [currentStepNumber doubleValue];
                 double totalSteps = [totalStepsNumber doubleValue];
-                
+
                 double progress = currentStep / totalSteps;
                 if (progress < 1.0) {
                     progress += 0.04;
@@ -726,12 +1203,12 @@
             } else {
                 maxWidth = maxWidth * 0.04;
             }
-            
+
         } @catch (id exp) {
             maxWidth = maxWidth * 0.04;
         }
 
-        UIView *progressBarView = [[UIView alloc] initWithFrame: CGRectMake(16.0, 46.0, maxWidth, 8.0)];
+        UIView *progressBarView = [[UIView alloc] initWithFrame: CGRectMake(contentPadding, 46.0, maxWidth, 8.0)];
         progressBarView.layer.cornerRadius = 4.0;
         progressBarView.layer.masksToBounds = YES;
         progressBarView.clipsToBounds = YES;
@@ -740,113 +1217,103 @@
         if (mainColor != nil && mainColor.length > 0) {
             progressBarView.backgroundColor = [GleapUIHelper colorFromHexString: mainColor];
         } else {
-            progressBarView.backgroundColor = [UIColor blackColor];
+            progressBarView.backgroundColor = contrastColor;
         }
-        [chatBubbleView addSubview: progressBarView];
-        
-        UIView * _notificationsContainerView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0, width, chatBubbleView.frame.size.height)];
-        
-        [_notificationsContainerView addSubview: chatBubbleView];
-        
-        return _notificationsContainerView;
+        [cardView addSubview: progressBarView];
+
+        return [self styledCardWrapperWithCard: cardView];
     } else {
-        // Build the chat message.
-        UIFont *contentFont = [UIFont systemFontOfSize: 16];
-        CGSize contentLabelSize = [textContent boundingRectWithSize:CGSizeMake(chatBubbleViewWidth - 32, 39.0)
-                                                          options:NSStringDrawingUsesLineFragmentOrigin
-                                                       attributes:@{
-                                                                    NSFontAttributeName : contentFont
-                                                                    }
-                                                          context:nil].size;
-        
-        UIView * chatBubbleView = [[UIView alloc] initWithFrame: CGRectMake(48.0, 0.0, chatBubbleViewWidth, 52.0 + contentLabelSize.height)];
-        chatBubbleView.layer.cornerRadius = 8.0;
-        chatBubbleView.layer.shadowRadius  = 8.0;
-        chatBubbleView.layer.shadowColor   = [UIColor blackColor].CGColor;
-        chatBubbleView.layer.shadowOffset  = CGSizeMake(3.0f, 3.0f);
-        chatBubbleView.layer.shadowOpacity = 0.12;
-        chatBubbleView.layer.masksToBounds = NO;
-        chatBubbleView.clipsToBounds = NO;
-        chatBubbleView.alpha = 0.0;
-        if (@available(iOS 13.0, *)) {
-            chatBubbleView.backgroundColor = [UIColor systemBackgroundColor];
-        } else {
-            chatBubbleView.backgroundColor = [UIColor whiteColor];
-        }
-        
-        UIView * senderOuterImageView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 8.0, 36.0, 36.0)];
-        senderOuterImageView.layer.cornerRadius = 18.0;
-        senderOuterImageView.layer.shadowRadius  = 8.0;
-        senderOuterImageView.layer.shadowColor   = [UIColor blackColor].CGColor;
-        senderOuterImageView.layer.shadowOffset  = CGSizeMake(0.0f, 0.0f);
-        senderOuterImageView.layer.shadowOpacity = 0.15;
-        senderOuterImageView.layer.masksToBounds = NO;
-        senderOuterImageView.clipsToBounds = NO;
-        
-        UIImageView * senderImageView = [[UIImageView alloc] initWithFrame: CGRectMake(0.0, 0.0, 36.0, 36.0)];
-        senderImageView.backgroundColor = [UIColor grayColor];
-        senderImageView.layer.cornerRadius = 18.0;
-        senderImageView.contentMode = UIViewContentModeScaleAspectFill;
-        senderImageView.clipsToBounds = YES;
-        [senderOuterImageView addSubview: senderImageView];
-        
-        dispatch_async(dispatch_get_global_queue(0,0), ^{
-            NSData * data = [[NSData alloc] initWithContentsOfURL: [NSURL URLWithString: [sender objectForKey: @"profileImageUrl"]]];
-            if (data == nil) {
-                return;
-            }
-            
-            dispatch_async(dispatch_get_main_queue(), ^{
-                if (senderImageView != nil) {
-                    senderImageView.image = [UIImage imageWithData: data];
-                }
-                [UIView animateWithDuration:0.3f animations:^{
-                    chatBubbleView.alpha = 1.0;
-                }];
-            });
-        });
-        
-        UILabel *senderLabel = [[UILabel alloc] initWithFrame: CGRectMake(16, 16, chatBubbleView.frame.size.width - 32, 14)];
-        senderLabel.text = [sender objectForKey: @"name"];
-        senderLabel.font = [UIFont systemFontOfSize: 14];
-        senderLabel.alpha = 0.5;
-        if (@available(iOS 13.0, *)) {
-            senderLabel.textColor = [UIColor labelColor];
-        } else {
-            senderLabel.textColor = [UIColor blackColor];
-        }
-        [chatBubbleView addSubview: senderLabel];
-        
-        UILabel *contentLabel = [[UILabel alloc] initWithFrame: CGRectMake(16, 36, chatBubbleView.frame.size.width - 32, contentLabelSize.height)];
+        // Standard non-news notification. Avatar and text live inside one card
+        // (no speech-bubble tail), with the sender + time as a meta line below
+        // the message.
+        CGFloat contentPadding = 16.0;
+        CGFloat avatarSize = 32.0;
+
+        UIImageView *avatarView = [self avatarViewForSender: sender withFrame: CGRectMake(contentPadding, contentPadding, avatarSize, avatarSize)];
+
+        CGFloat bodyX = contentPadding + (avatarView != nil ? avatarSize + 10.0 : 0.0);
+        CGFloat bodyWidth = width - bodyX - contentPadding;
+
+        UIFont *contentFont = [UIFont systemFontOfSize: 15];
+        UILabel *contentLabel = [[UILabel alloc] init];
         contentLabel.text = textContent;
         contentLabel.font = contentFont;
-        contentLabel.lineBreakMode = NSLineBreakByWordWrapping;
+        contentLabel.lineBreakMode = NSLineBreakByTruncatingTail;
         contentLabel.numberOfLines = 2;
-        if (@available(iOS 13.0, *)) {
-            senderLabel.textColor = [UIColor labelColor];
-        } else {
-            senderLabel.textColor = [UIColor blackColor];
-        }
-        
-        [chatBubbleView addSubview: contentLabel];
-        
-        UIView * _notificationsContainerView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0, width, chatBubbleView.frame.size.height)];
-        
-        [_notificationsContainerView addSubview: chatBubbleView];
-        [_notificationsContainerView addSubview: senderOuterImageView];
-        
-        return _notificationsContainerView;
-    }
-}
+        contentLabel.textColor = contrastColor;
+        CGSize contentSize = [contentLabel sizeThatFits: CGSizeMake(bodyWidth, CGFLOAT_MAX)];
+        CGFloat contentHeight = MIN(contentSize.height, contentFont.lineHeight * 2.0 + 2.0);
+        contentLabel.frame = CGRectMake(bodyX, contentPadding, bodyWidth, contentHeight);
 
--(void)calculateHeightForLabel:(UILabel *)label {
-    CGSize constraint = CGSizeMake(label.frame.size.width, CGFLOAT_MAX);
-    CGSize size;
-    NSStringDrawingContext *context = [[NSStringDrawingContext alloc] init];
-    CGSize boundingBox = [label.text boundingRectWithSize:constraint    options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName: label.font}
-                                            context:context].size;
-    size = CGSizeMake(ceil(boundingBox.width), ceil(boundingBox.height));
-    label.frame = CGRectMake(label.frame.origin.x, label.frame.origin.y, label.frame.size.width, size.height);
+        // The "Sender · 5 minutes ago" line under the message. Either half may
+        // be missing, so the separator only appears when both are present.
+        NSString *senderName = sender != nil ? [sender objectForKey: @"name"] : nil;
+        NSString *timeLabelText = [GleapUIOverlayViewController relativeTimeLabelForNotification: notification];
+        BOOL hasMeta = (senderName != nil && senderName.length > 0) || (timeLabelText != nil && timeLabelText.length > 0);
+
+        CGFloat metaHeight = hasMeta ? 18.0 : 0.0;
+        CGFloat metaSpacing = hasMeta ? 5.0 : 0.0;
+        CGFloat bodyHeight = contentHeight + metaSpacing + metaHeight;
+        CGFloat innerHeight = MAX(avatarView != nil ? avatarSize : 0.0, bodyHeight);
+        CGFloat cardHeight = contentPadding + innerHeight + contentPadding;
+
+        UIView * cardView = [[UIView alloc] initWithFrame: CGRectMake(0.0, 0.0, width, cardHeight)];
+
+        if (avatarView != nil) {
+            [cardView addSubview: avatarView];
+        }
+        [cardView addSubview: contentLabel];
+
+        if (hasMeta) {
+            CGFloat metaY = contentPadding + contentHeight + metaSpacing;
+            CGFloat metaX = bodyX;
+            UIFont *metaFont = [UIFont systemFontOfSize: 13];
+            UIFont *senderFont = [UIFont systemFontOfSize: 13 weight: UIFontWeightMedium];
+
+            UILabel *timeLabel = nil;
+            CGFloat timeWidth = 0;
+            if (timeLabelText != nil && timeLabelText.length > 0) {
+                timeLabel = [[UILabel alloc] init];
+                timeLabel.text = timeLabelText;
+                timeLabel.font = metaFont;
+                timeLabel.textColor = subTextColor;
+                timeWidth = ceil([timeLabel sizeThatFits: CGSizeMake(CGFLOAT_MAX, metaHeight)].width);
+            }
+
+            if (senderName != nil && senderName.length > 0) {
+                UILabel *senderLabel = [[UILabel alloc] init];
+                senderLabel.text = senderName;
+                senderLabel.font = senderFont;
+                senderLabel.textColor = subTextColor;
+                senderLabel.lineBreakMode = NSLineBreakByTruncatingTail;
+
+                // The sender may truncate; the timestamp never does.
+                CGFloat dotWidth = timeLabel != nil ? 13.0 : 0.0;
+                CGFloat senderMaxWidth = bodyWidth - timeWidth - dotWidth;
+                CGFloat senderWidth = MIN(ceil([senderLabel sizeThatFits: CGSizeMake(CGFLOAT_MAX, metaHeight)].width), senderMaxWidth);
+                senderLabel.frame = CGRectMake(metaX, metaY, MAX(senderWidth, 0), metaHeight);
+                [cardView addSubview: senderLabel];
+                metaX += MAX(senderWidth, 0);
+
+                if (timeLabel != nil) {
+                    UILabel *dotLabel = [[UILabel alloc] initWithFrame: CGRectMake(metaX, metaY, dotWidth, metaHeight)];
+                    dotLabel.text = @"•";
+                    dotLabel.font = metaFont;
+                    dotLabel.textColor = [subTextColor colorWithAlphaComponent: 0.6];
+                    dotLabel.textAlignment = NSTextAlignmentCenter;
+                    [cardView addSubview: dotLabel];
+                    metaX += dotWidth;
+                }
+            }
+
+            if (timeLabel != nil) {
+                timeLabel.frame = CGRectMake(metaX, metaY, MIN(timeWidth, width - metaX - contentPadding), metaHeight);
+                [cardView addSubview: timeLabel];
+            }
+        }
+
+        return [self styledCardWrapperWithCard: cardView];
+    }
 }
 
 @end
