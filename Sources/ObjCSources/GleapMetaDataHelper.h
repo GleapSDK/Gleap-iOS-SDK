@@ -8,7 +8,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-#define SDK_VERSION @"16.4.5"
+#define SDK_VERSION @"17.0.0"
 
 NS_ASSUME_NONNULL_BEGIN
 
