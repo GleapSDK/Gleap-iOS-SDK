@@ -13,6 +13,14 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (instancetype)sharedInstance;
 - (void)run;
+
+/**
+ * Fetches the widget config again for an already running SDK — used when the
+ * language changes after initialization, since all copy in the config is
+ * translated server-side at load time. Applies the config and pushes it to an
+ * open widget, but skips the one-time initialized / configLoaded delegate calls.
+ */
+- (void)reload;
 - (int)getButtonX;
 - (int)getButtonY;
 

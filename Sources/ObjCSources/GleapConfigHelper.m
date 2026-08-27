@@ -36,6 +36,14 @@
 }
 
 - (void)run {
+    [self loadConfigAsReload: NO];
+}
+
+- (void)reload {
+    [self loadConfigAsReload: YES];
+}
+
+- (void)loadConfigAsReload: (BOOL)isReload {
     NSString *widgetConfigURL = [NSString stringWithFormat: @"%@/config/%@?lang=%@", Gleap.sharedInstance.apiUrl, Gleap.sharedInstance.token, GleapTranslationHelper.sharedInstance.language];
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
     [request setHTTPMethod:@"GET"];
@@ -50,7 +58,7 @@
             NSData *jsonData = [responseString dataUsingEncoding:NSUTF8StringEncoding];
             NSDictionary *configData = [NSJSONSerialization JSONObjectWithData:jsonData options: NSJSONReadingMutableContainers error: &e];
             if (e == nil && configData != nil) {
-                [self configureGleapWithConfig: configData];
+                [self configureGleapWithConfig: configData isReload: isReload];
                 return;
             }
         }
@@ -60,6 +68,10 @@
 }
 
 - (void)configureGleapWithConfig: (NSDictionary *)data {
+    [self configureGleapWithConfig: data isReload: NO];
+}
+
+- (void)configureGleapWithConfig: (NSDictionary *)data isReload: (BOOL)isReload {
     NSDictionary *config = [data objectForKey: @"flowConfig"];
     NSDictionary *projectActions = [data objectForKey: @"projectActions"];
     
@@ -125,11 +137,18 @@
     // Update notification UI components.
     [GleapUIOverlayHelper updateUI];
     
+    // A reload (e.g. after a language change) only swaps the config content — the
+    // app has already been told the SDK loaded its config and initialized, so
+    // firing those callbacks again would be a lie.
+    if (isReload) {
+        return;
+    }
+
     // Config loaded delegate
     if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(configLoaded:)]) {
         [Gleap.sharedInstance.delegate configLoaded: config];
     }
-    
+
     // Send initialization done callback.
     if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(initialized)]) {
         [Gleap.sharedInstance.delegate initialized];
