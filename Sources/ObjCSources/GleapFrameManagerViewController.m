@@ -581,6 +581,35 @@ static id ObjectOrNull(id object)
     }];
 }
 
+// Full-screen presentations (iPad) extend the web view under the status bar
+// and home indicator. env(safe-area-inset-*) is only available to the shell
+// page, not to the messenger's iframe, and WebKit populates it late — so the
+// insets the view controller knows for certain are sent explicitly. The
+// messenger pads its headers with the top inset (--safe-area-top). Sent on
+// connect and whenever UIKit reports a change (rotation, multitasking).
+- (void)sendSafeAreaInsets {
+    UIEdgeInsets insets = UIEdgeInsetsZero;
+    if (@available(iOS 11.0, *)) {
+        insets = self.view.safeAreaInsets;
+    }
+    [self sendMessageWithData: @{
+        @"name": @"safe-area-update",
+        @"data": @{
+            @"top": @(MAX(0, insets.top)),
+            @"right": @(MAX(0, insets.right)),
+            @"bottom": @(MAX(0, insets.bottom)),
+            @"left": @(MAX(0, insets.left)),
+        }
+    }];
+}
+
+- (void)viewSafeAreaInsetsDidChange {
+    [super viewSafeAreaInsetsDidChange];
+    if (self.connected) {
+        [self sendSafeAreaInsets];
+    }
+}
+
 - (void)sendPreFillData {
     [self sendMessageWithData: @{
         @"name": @"prefill-form-data",
@@ -658,6 +687,7 @@ static id ObjectOrNull(id object)
             
             [self sendWidgetStatusUpdate];
             [self sendConfigUpdate];
+            [self sendSafeAreaInsets];
             [self sendSessionUpdate];
             [self sendPreFillData];
             [self sendScreenshotUpdate];
