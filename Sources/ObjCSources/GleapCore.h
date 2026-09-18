@@ -422,6 +422,17 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)clearCustomData;
 
 /**
+ * Sets the data region of your Gleap project. This must be called BEFORE initializing the SDK.
+ * Supported regions are "eu" (default) and "us" (case-insensitive). Unknown regions are ignored.
+ * Sets the api url, the websocket api url and the realtime host at once. The frame, banner and modal urls are global and stay unchanged.
+ * A manual setter (setApiUrl, setWSApiUrl, setRealtimeHost) called after setRegion overrides that single host.
+ * @author Gleap
+ *
+ * @param region The data region ("eu" or "us").
+ */
++ (void)setRegion: (NSString *)region;
+
+/**
  * Sets a custom api url.
  * @author Gleap
  *
@@ -444,6 +455,30 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
  * @param frameUrl The custom frame url.
  */
 + (void)setFrameUrl: (NSString *)frameUrl;
+
+/**
+ * Sets a custom realtime host (hostname only, without protocol or path).
+ * @author Gleap
+ *
+ * @param realtimeHost The custom realtime host.
+ */
++ (void)setRealtimeHost: (NSString *)realtimeHost;
+
+/**
+ * Sets a custom banner url.
+ * @author Gleap
+ *
+ * @param bannerUrl The custom banner url.
+ */
++ (void)setBannerUrl: (NSString *)bannerUrl;
+
+/**
+ * Sets a custom modal url.
+ * @author Gleap
+ *
+ * @param modalUrl The custom modal url.
+ */
++ (void)setModalUrl: (NSString *)modalUrl;
 
 /**
  * Disables the console logging. This must be called BEFORE initializing the SDK.
@@ -583,6 +618,7 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 @property (nonatomic, retain) NSString* token;
 @property (nonatomic, retain) NSString* apiUrl;
 @property (nonatomic, retain) NSString *wsApiUrl;
+@property (nonatomic, retain, nullable) NSString* realtimeHost;
 @property (nonatomic, retain) NSString* frameUrl;
 @property (nonatomic, retain) NSString* bannerUrl;
 @property (nonatomic, retain) NSString* modalUrl;
