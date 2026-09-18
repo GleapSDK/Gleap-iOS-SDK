@@ -555,13 +555,21 @@ static id ObjectOrNull(id object)
         currentSession = [GleapSessionHelper.sharedInstance.currentSession toDictionary];
     }
     
+    NSMutableDictionary *sessionUpdateData = [[NSMutableDictionary alloc] initWithDictionary: @{
+        @"sessionData": currentSession,
+        @"apiUrl": Gleap.sharedInstance.apiUrl,
+        @"sdkKey": Gleap.sharedInstance.token
+    }];
+    
+    // Pass the realtime host (region) to the widget.
+    NSString *realtimeHost = Gleap.sharedInstance.realtimeHost;
+    if (realtimeHost != nil && realtimeHost.length > 0) {
+        [sessionUpdateData setObject: realtimeHost forKey: @"realtimeHost"];
+    }
+    
     [self sendMessageWithData: @{
         @"name": @"session-update",
-        @"data": @{
-            @"sessionData": currentSession,
-            @"apiUrl": Gleap.sharedInstance.apiUrl,
-            @"sdkKey": Gleap.sharedInstance.token
-        }
+        @"data": sessionUpdateData
     }];
 }
 

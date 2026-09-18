@@ -1,11 +1,58 @@
 import XCTest
 @testable import Gleap
-import Gleap_ObjC
 
 final class iOS_SDK_crossTests: XCTestCase {
-    func testExample() throws {
-        Gleap.initialize(withToken: "")
-        XCTAssertEqual(iOS_SDK_cross().text, "Hello, World!")
+    override func setUp() {
+        super.setUp()
+        Gleap.setRegion("eu")
+    }
+
+    override func tearDown() {
+        Gleap.setRegion("eu")
+        super.tearDown()
+    }
+
+    func testDefaultRegionIsEU() throws {
+        let gleap = Gleap.sharedInstance()
+        XCTAssertEqual(gleap.apiUrl, "https://api.gleap.io")
+        XCTAssertEqual(gleap.wsApiUrl, "wss://ws.gleap.io")
+        XCTAssertEqual(gleap.realtimeHost, "sockets.gleap.io")
+    }
+
+    func testSetRegionUSIsCaseInsensitiveAndKeepsStaticHosts() throws {
+        let gleap = Gleap.sharedInstance()
+        let frameUrl = gleap.frameUrl
+        let bannerUrl = gleap.bannerUrl
+        let modalUrl = gleap.modalUrl
+
+        Gleap.setRegion("US")
+
+        XCTAssertEqual(gleap.apiUrl, "https://api.us.gleap.ai")
+        XCTAssertEqual(gleap.wsApiUrl, "wss://ws.us.gleap.ai")
+        XCTAssertEqual(gleap.realtimeHost, "sockets.us.gleap.ai")
+        XCTAssertEqual(gleap.frameUrl, frameUrl)
+        XCTAssertEqual(gleap.bannerUrl, bannerUrl)
+        XCTAssertEqual(gleap.modalUrl, modalUrl)
+    }
+
+    func testUnknownRegionChangesNothing() throws {
+        let gleap = Gleap.sharedInstance()
+        Gleap.setRegion("us")
+        Gleap.setRegion("mars")
+
+        XCTAssertEqual(gleap.apiUrl, "https://api.us.gleap.ai")
+        XCTAssertEqual(gleap.wsApiUrl, "wss://ws.us.gleap.ai")
+        XCTAssertEqual(gleap.realtimeHost, "sockets.us.gleap.ai")
+    }
+
+    func testManualSetterAfterSetRegionOverridesSingleHost() throws {
+        let gleap = Gleap.sharedInstance()
+        Gleap.setRegion("us")
+        Gleap.setRealtimeHost("sockets.example.com")
+
+        XCTAssertEqual(gleap.apiUrl, "https://api.us.gleap.ai")
+        XCTAssertEqual(gleap.wsApiUrl, "wss://ws.us.gleap.ai")
+        XCTAssertEqual(gleap.realtimeHost, "sockets.example.com")
     }
 
     func testLogEventWithDataRecoversImmutableBuffers() throws {

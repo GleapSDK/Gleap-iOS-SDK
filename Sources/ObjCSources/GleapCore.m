@@ -68,8 +68,7 @@ static id ObjectOrNull(id object)
  */
 - (void)initHelper {
     self.token = @"";
-    self.apiUrl = @"https://api.gleap.io";
-    self.wsApiUrl = @"wss://ws.gleap.io";
+    [self applyRegion: @"eu"];
     self.frameUrl = @"https://messenger-app.gleap.io/appnew";
     self.bannerUrl = @"https://outboundmedia.gleap.io";
     self.modalUrl = @"https://outboundmedia.gleap.io/modal";
@@ -82,6 +81,51 @@ static id ObjectOrNull(id object)
     self.applicationType = NATIVE;
     
     [[GleapMetaDataHelper sharedInstance] startSession];
+}
+
+/*
+ Region table. The single place where the regional hosts are defined.
+ The static widget hosts (frame, banner & modal url) are global and not part of it.
+ */
++ (NSDictionary *)regionHosts {
+    return @{
+        @"eu": @{
+            @"apiUrl": @"https://api.gleap.io",
+            @"wsApiUrl": @"wss://ws.gleap.io",
+            @"realtimeHost": @"sockets.gleap.io"
+        },
+        @"us": @{
+            @"apiUrl": @"https://api.us.gleap.ai",
+            @"wsApiUrl": @"wss://ws.us.gleap.ai",
+            @"realtimeHost": @"sockets.us.gleap.ai"
+        }
+    };
+}
+
+/*
+ Applies the hosts of a region. Returns NO for unknown regions.
+ */
+- (BOOL)applyRegion: (NSString *)region {
+    if (region == nil || ![region isKindOfClass: [NSString class]]) {
+        return NO;
+    }
+    
+    NSDictionary *hosts = [[Gleap regionHosts] objectForKey: [region lowercaseString]];
+    if (hosts == nil) {
+        return NO;
+    }
+    
+    self.apiUrl = [hosts objectForKey: @"apiUrl"];
+    self.wsApiUrl = [hosts objectForKey: @"wsApiUrl"];
+    self.realtimeHost = [hosts objectForKey: @"realtimeHost"];
+    
+    return YES;
+}
+
++ (void)setRegion: (NSString *)region {
+    if (![[Gleap sharedInstance] applyRegion: region]) {
+        NSLog(@"[GLEAP_SDK] Unknown region '%@'. Supported regions are 'eu' and 'us'.", region);
+    }
 }
 
 + (void)setActivationMethods: (NSArray *)activationMethods {
@@ -272,6 +316,18 @@ static id ObjectOrNull(id object)
 
 + (void)setFrameUrl: (NSString *)frameUrl {
     Gleap.sharedInstance.frameUrl = frameUrl;
+}
+
++ (void)setRealtimeHost: (NSString *)realtimeHost {
+    Gleap.sharedInstance.realtimeHost = realtimeHost;
+}
+
++ (void)setBannerUrl: (NSString *)bannerUrl {
+    Gleap.sharedInstance.bannerUrl = bannerUrl;
+}
+
++ (void)setModalUrl: (NSString *)modalUrl {
+    Gleap.sharedInstance.modalUrl = modalUrl;
 }
 
 + (BOOL)isOpened {
