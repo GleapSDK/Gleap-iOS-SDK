@@ -94,9 +94,9 @@ static id ObjectOrNull(id object)
 + (NSDictionary *)regionHosts {
     return @{
         @"eu": @{
-            @"apiUrl": @"https://api.gleap.io",
-            @"wsApiUrl": @"wss://ws.gleap.io",
-            @"realtimeHost": @"sockets.gleap.io"
+            @"apiUrl": @"https://api.eu.gleap.ai",
+            @"wsApiUrl": @"wss://ws.eu.gleap.ai",
+            @"realtimeHost": @"sockets.eu.gleap.ai"
         },
         @"us": @{
             @"apiUrl": @"https://api.us.gleap.ai",

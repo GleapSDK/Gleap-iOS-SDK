@@ -99,7 +99,7 @@ Gleap.initialize(withToken: "YOUR_API_KEY")
 
 | Region | API url | WebSocket api url | Realtime host |
 |--------|---------|-------------------|---------------|
-| `eu` (default) | `https://api.gleap.io` | `wss://ws.gleap.io` | `sockets.gleap.io` |
+| `eu` (default) | `https://api.eu.gleap.ai` | `wss://ws.eu.gleap.ai` | `sockets.eu.gleap.ai` |
 | `us` | `https://api.us.gleap.ai` | `wss://ws.us.gleap.ai` | `sockets.us.gleap.ai` |
 
 **Order matters:** call `setRegion` first, then any manual setter (`setApiUrl`, `setWSApiUrl`, `setRealtimeHost`), then `initialize`. A manual setter called after `setRegion` overrides that single host.
