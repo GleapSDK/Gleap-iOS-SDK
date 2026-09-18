@@ -76,3 +76,32 @@ Gleap.initialize(withToken: "YOUR_API_KEY")
 ```
 
 (Your API key can be found in the project settings within Gleap)
+
+## Data regions
+
+Gleap projects are hosted in the EU by default. If your project lives in the US data region, set the region **before** initializing the SDK:
+
+**Swift**
+
+```
+Gleap.setRegion("us")
+Gleap.initialize(withToken: "YOUR_API_KEY")
+```
+
+**Objective-C**
+
+```
+[Gleap setRegion: @"us"];
+[Gleap initializeWithToken: @"YOUR_API_KEY"];
+```
+
+`setRegion` accepts `"eu"` (default) or `"us"` (case-insensitive) and sets all regional hosts at once. Unknown regions are ignored.
+
+| Region | API url | WebSocket api url | Realtime host |
+|--------|---------|-------------------|---------------|
+| `eu` (default) | `https://api.gleap.io` | `wss://ws.gleap.io` | `sockets.gleap.io` |
+| `us` | `https://api.us.gleap.ai` | `wss://ws.us.gleap.ai` | `sockets.us.gleap.ai` |
+
+**Order matters:** call `setRegion` first, then any manual setter (`setApiUrl`, `setWSApiUrl`, `setRealtimeHost`), then `initialize`. A manual setter called after `setRegion` overrides that single host.
+
+The static widget hosts are global and are not changed by `setRegion`: the frame url (`messenger-app.gleap.io/appnew`), the banner & modal urls (`outboundmedia.gleap.io`). They can be customized with `setFrameUrl`, `setBannerUrl` and `setModalUrl`.
