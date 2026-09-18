@@ -16,7 +16,9 @@ final class iOS_SDK_crossTests: XCTestCase {
         let gleap = Gleap.sharedInstance()
         XCTAssertEqual(gleap.apiUrl, "https://api.gleap.io")
         XCTAssertEqual(gleap.wsApiUrl, "wss://ws.gleap.io")
-        XCTAssertNil(gleap.realtimeHost)
+        // setUp selects "eu" explicitly, which sends the EU realtime host; without any
+        // setRegion / setRealtimeHost call the SDK sends none and the widget derives it.
+        XCTAssertEqual(gleap.realtimeHost, "sockets.gleap.io")
     }
 
     func testSetRegionUSIsCaseInsensitiveAndKeepsStaticHosts() throws {
