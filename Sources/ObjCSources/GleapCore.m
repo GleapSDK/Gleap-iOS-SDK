@@ -69,6 +69,10 @@ static id ObjectOrNull(id object)
 - (void)initHelper {
     self.token = @"";
     [self applyRegion: @"eu"];
+    // Only an explicit setRegion / setRealtimeHost sends a realtime host to the
+    // widget. By default the widget derives it from apiUrl, so a manually set
+    // regional or custom apiUrl is never paired with the EU sockets host.
+    self.realtimeHost = nil;
     self.frameUrl = @"https://messenger-app.gleap.io/appnew";
     self.bannerUrl = @"https://outboundmedia.gleap.io";
     self.modalUrl = @"https://outboundmedia.gleap.io/modal";

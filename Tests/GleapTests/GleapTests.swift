@@ -16,7 +16,7 @@ final class iOS_SDK_crossTests: XCTestCase {
         let gleap = Gleap.sharedInstance()
         XCTAssertEqual(gleap.apiUrl, "https://api.gleap.io")
         XCTAssertEqual(gleap.wsApiUrl, "wss://ws.gleap.io")
-        XCTAssertEqual(gleap.realtimeHost, "sockets.gleap.io")
+        XCTAssertNil(gleap.realtimeHost)
     }
 
     func testSetRegionUSIsCaseInsensitiveAndKeepsStaticHosts() throws {
