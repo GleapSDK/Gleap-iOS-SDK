@@ -2,18 +2,18 @@
 
 ![Gleap iOS SDK Intro](https://raw.githubusercontent.com/GleapSDK/Gleap-iOS-SDK/main/Resources/GleapHeaderImage.png)
 
-The [Gleap SDK for iOS](https://www.gleap.io) is the easiest way to integrate Gleap into your apps!
+Add AI-native customer support, live chat, in-app bug reporting, a help center and surveys to your iOS apps with [Gleap](https://www.gleap.ai). Gleap is an Intercom alternative for software teams that connects customer conversations and feedback with product development.
 
-You have two ways to set up the Gleap SDK for iOS. The easiest way ist to install and link the SDK with CocoaPods. If you haven't heard about [CocoaPods](https://cocoapods.org) yet, we strongly encourage you to check out their getting started here (it's super easy to get started & worth using 😍)
+[SDK documentation](https://docs.gleap.ai/documentation/ios/README) · [Website](https://www.gleap.ai) · [Plans and pricing](https://www.gleap.ai/pricing)
 
 ## Docs & Examples
 
-Checkout our [documentation](https://docs.gleap.io/ios) for full reference.
+Checkout our [documentation](https://docs.gleap.ai/documentation/ios/README) for full reference.
 
 
 ## Installation with Swift Package Manager
 
-The [Swift Package Manager](https://www.swift.org/package-manager/) is a tool for automating the distribution of Swift code and is integrated into the swift compiler. It is in early development, but Gleap does support its use on supported platforms.
+The [Swift Package Manager](https://www.swift.org/package-manager/) is a tool for automating the distribution of Swift code and is integrated into the swift compiler. Gleap supports installation with Swift Package Manager.
 
 To get started, open your Xcode project and select File > Add packages...
 
