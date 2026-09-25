@@ -23,6 +23,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (retain, nonatomic) NSDate *sessionStart;
 @property (retain, nonatomic) NSString *lastScreenName;
+@property (copy, nonatomic, nullable) NSArray *envDataPropsToIgnore;
+@property (assign, nonatomic) BOOL envDataDisabled;
 
 @end
 

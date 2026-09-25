@@ -597,6 +597,23 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 
 + (void)setNetworkLogPropsToIgnore: (NSArray *)networkLogPropsToIgnore;
 
+/**
+ * Sets the env data props to ignore. These keys (e.g. deviceName) are removed from the env data before a ticket is sent.
+ * Each call replaces the previous list, an empty array resets it.
+ * @author Gleap
+ *
+ * @param envDataPropsToIgnore The env data keys to ignore.
+ */
++ (void)setEnvDataPropsToIgnore: (NSArray *)envDataPropsToIgnore;
+
+/**
+ * Disables the env data. While disabled, no env data is collected at all.
+ * @author Gleap
+ *
+ * @param disableEnvData YES to stop collecting env data, NO to collect it again.
+ */
++ (void)setDisableEnvData:(Boolean)disableEnvData;
+
 + (void)handleURL: (NSString *)url;
 
 /**

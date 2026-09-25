@@ -105,3 +105,23 @@ Gleap.initialize(withToken: "YOUR_API_KEY")
 **Order matters:** call `setRegion` first, then any manual setter (`setApiUrl`, `setWSApiUrl`, `setRealtimeHost`), then `initialize`. A manual setter called after `setRegion` overrides that single host.
 
 The static widget hosts are global and are not changed by `setRegion`: the frame url (`messenger-app.gleap.io/appnew`), the banner & modal urls (`outboundmedia.gleap.io`). They can be customized with `setFrameUrl`, `setBannerUrl` and `setModalUrl`.
+
+## Env data
+
+With every ticket the SDK sends env data (device model, OS version, screen size, locale, battery state, …), shown under the **Env data** tab in Gleap. To leave out individual keys, pass them to `setEnvDataPropsToIgnore`; to stop collecting env data entirely, use `setDisableEnvData`:
+
+**Swift**
+
+```
+Gleap.setEnvDataPropsToIgnore(["deviceName", "batteryLevel"])
+Gleap.setDisableEnvData(true)
+```
+
+**Objective-C**
+
+```
+[Gleap setEnvDataPropsToIgnore: @[@"deviceName", @"batteryLevel"]];
+[Gleap setDisableEnvData: YES];
+```
+
+Both can be called at any time and apply to the next ticket. Each `setEnvDataPropsToIgnore` call replaces the previous list, an empty array resets it. `setDisableEnvData(false)` turns the collection back on.
