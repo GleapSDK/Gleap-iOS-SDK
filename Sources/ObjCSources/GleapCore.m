@@ -568,6 +568,14 @@ static id ObjectOrNull(id object)
     [Gleap sharedInstance].networkLogPropsToIgnore = networkLogPropsToIgnore;
 }
 
++ (void)setEnvDataPropsToIgnore: (NSArray *)envDataPropsToIgnore {
+    [GleapMetaDataHelper sharedInstance].envDataPropsToIgnore = envDataPropsToIgnore;
+}
+
++ (void)setDisableEnvData:(Boolean)disableEnvData {
+    [GleapMetaDataHelper sharedInstance].envDataDisabled = disableEnvData;
+}
+
 /**
  * Starts a classic form flow.
  */

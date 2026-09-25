@@ -36,9 +36,25 @@
 }
 
 /*
- Returns all meta data as an NSDictionary.
+ Returns all meta data as an NSDictionary, without the env data props to ignore.
  */
 - (NSDictionary *)getMetaData {
+    // Disabled env data is never gathered, rather than gathered and dropped.
+    if (self.envDataDisabled) {
+        return @{};
+    }
+    
+    NSMutableDictionary *metaData = [self collectMetaData];
+    if (self.envDataPropsToIgnore != nil) {
+        [metaData removeObjectsForKeys: self.envDataPropsToIgnore];
+    }
+    return metaData;
+}
+
+/*
+ Collects all meta data.
+ */
+- (NSMutableDictionary *)collectMetaData {
     UIDevice *currentDevice = [UIDevice currentDevice];
     NSString *deviceName = currentDevice.name;
     NSString *deviceModel = [self getDeviceModelName];
