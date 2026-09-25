@@ -1,3 +1,9 @@
+## 18.1.0
+Added control over the env data (device, OS, screen, locale and battery details shown under the Env data tab of a ticket) the SDK collects:
+`Gleap.setEnvDataPropsToIgnore(["deviceName", "batteryLevel"])` removes individual env data keys from every ticket and conversation before it is sent. Each call replaces the previous list; an empty array resets it.
+`Gleap.setDisableEnvData(true)` stops collecting env data entirely (tickets arrive with an empty Env data tab); `Gleap.setDisableEnvData(false)` turns it back on.
+Both can be called before or after `initialize` and apply to the next ticket. The per-form "Exclude data → Env data" switch in the dashboard keeps working as before.
+
 ## 18.0.0
 
 * **Breaking:** minimum deployment target is now iOS 15.0 (Xcode 27 no longer builds for anything lower).
