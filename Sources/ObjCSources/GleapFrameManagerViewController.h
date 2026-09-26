@@ -23,6 +23,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)sendMessageWithData:(NSDictionary *)data;
 - (void)sendSessionUpdate;
 - (void)sendConfigUpdate;
+- (void)updateBackgroundColor;
 - (id)initWithFormat:(NSString *)format;
 
 @property (nonatomic, retain, nullable) NSTimer* timeoutTimer;

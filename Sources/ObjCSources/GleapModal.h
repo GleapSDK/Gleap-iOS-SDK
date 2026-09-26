@@ -17,6 +17,10 @@ NS_ASSUME_NONNULL_BEGIN
 /// Configure the modal with given data
 - (void)setupWithData:(NSDictionary *)modalData;
 
+/// Sends the modal data (incl. the widget colors) to the loaded modal. A resend
+/// only recolors, the current step is kept.
+- (void)sendModalData;
+
 @property (nonatomic, strong) UIView *backdropView;
 @property (nonatomic, strong) WKWebView *webView;
 @property (nonatomic, strong) NSDictionary *modalData;

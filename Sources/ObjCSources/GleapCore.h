@@ -614,6 +614,28 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
  */
 + (void)setDisableEnvData:(Boolean)disableEnvData;
 
+/**
+ * Sets the widget color scheme. "auto" follows the app's interface style (incl. overrideUserInterfaceStyle) and switches live,
+ * "light" / "dark" force a scheme and "default" keeps the dashboard setting. Overrides the color scheme set in the dashboard.
+ * A dashboard background that already fits the scheme is kept, otherwise the light / dark background from the dashboard
+ * (default #ffffff / #18181b) is used. Primary, header and button colors are unchanged.
+ * Can be called before or after initialize.
+ * @author Gleap
+ *
+ * @param colorScheme "default", "auto", "light" or "dark".
+ */
++ (void)setColorScheme:(NSString *)colorScheme;
+
+/**
+ * Sets the widget color scheme with custom light / dark backgrounds (#rrggbb). nil keeps the dashboard's color.
+ * @author Gleap
+ *
+ * @param colorScheme "default", "auto", "light" or "dark".
+ * @param lightBackgroundColor The background used in light mode when the dashboard background is dark.
+ * @param darkBackgroundColor The background used in dark mode when the dashboard background is light.
+ */
++ (void)setColorScheme:(NSString *)colorScheme lightBackgroundColor:(nullable NSString *)lightBackgroundColor darkBackgroundColor:(nullable NSString *)darkBackgroundColor;
+
 + (void)handleURL: (NSString *)url;
 
 /**

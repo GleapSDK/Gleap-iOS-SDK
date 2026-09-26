@@ -47,6 +47,7 @@ FOUNDATION_EXPORT const unsigned char GleapVersionString[];
 #import "./GleapUserProperty.h"
 #import "./GleapWidgetManager.h"
 #import "./GleapTagHelper.h"
+#import "./GleapThemeHelper.h"
 #import "./GleapBanner.h"
 #import "./GleapWebSocketHelper.h"
 #import "./GleapAgentToolHelper.h"

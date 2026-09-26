@@ -29,6 +29,7 @@
 #import "GleapExternalDataHelper.h"
 #import "GleapPreFillHelper.h"
 #import "GleapTagHelper.h"
+#import "GleapThemeHelper.h"
 #import <SafariServices/SafariServices.h>
 
 @interface Gleap ()
@@ -220,6 +221,7 @@ static id ObjectOrNull(id object)
     
     [[GleapConsoleLogHelper sharedInstance] start];
     [[GleapScreenshotListener sharedInstance] start];
+    [[GleapThemeHelper sharedInstance] start];
     [[GleapSessionHelper sharedInstance] startSessionWith:^(bool success) {
         [[GleapConfigHelper sharedInstance] run];
     }];
@@ -574,6 +576,14 @@ static id ObjectOrNull(id object)
 
 + (void)setDisableEnvData:(Boolean)disableEnvData {
     [GleapMetaDataHelper sharedInstance].envDataDisabled = disableEnvData;
+}
+
++ (void)setColorScheme:(NSString *)colorScheme {
+    [Gleap setColorScheme: colorScheme lightBackgroundColor: nil darkBackgroundColor: nil];
+}
+
++ (void)setColorScheme:(NSString *)colorScheme lightBackgroundColor:(nullable NSString *)lightBackgroundColor darkBackgroundColor:(nullable NSString *)darkBackgroundColor {
+    [[GleapThemeHelper sharedInstance] setColorScheme: colorScheme lightBackgroundColor: lightBackgroundColor darkBackgroundColor: darkBackgroundColor];
 }
 
 /**

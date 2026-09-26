@@ -161,6 +161,29 @@
     [self.webView loadRequest:request];
 }
 
+- (void)sendModalData {
+    if (!self.webContentLoaded) {
+        return;
+    }
+
+    NSDictionary *flowConfig = [GleapConfigHelper sharedInstance].config;
+    NSString *primaryColor = flowConfig[@"color"] ?: @"#485BFF";
+    NSString *backgroundColor = flowConfig[@"backgroundColor"] ?: @"#FFFFFF";
+    NSMutableDictionary *payload = [[self.modalData objectForKey:@"config"] mutableCopy];
+    payload[@"primaryColor"] = primaryColor;
+    payload[@"backgroundColor"] = backgroundColor;
+
+    // Tell the card how much room it has, so it scrolls its own content
+    // instead of reporting a height we'd have to clip or scroll again.
+    CGFloat maxHeight = [self maxContentHeight];
+    if (maxHeight > 0) {
+        payload[@"maxHeight"] = @(floor(maxHeight));
+        self.lastSentMaxHeight = maxHeight;
+    }
+
+    [self sendMessageWithData:@{@"name":@"modal-data",@"data":payload}];
+}
+
 - (void)handleBackdropTap {
     BOOL showClose = self.modalData[@"config"][@"showCloseButton"]
         ? [self.modalData[@"config"][@"showCloseButton"] boolValue]
@@ -198,22 +221,7 @@
         
         if ([name isEqualToString:@"modal-loaded"]) {
             self.webContentLoaded = YES;
-            NSDictionary *flowConfig = [GleapConfigHelper sharedInstance].config;
-            NSString *primaryColor = flowConfig[@"color"] ?: @"#485BFF";
-            NSString *backgroundColor = flowConfig[@"backgroundColor"] ?: @"#FFFFFF";
-            NSMutableDictionary *payload = [[self.modalData objectForKey:@"config"] mutableCopy];
-            payload[@"primaryColor"] = primaryColor;
-            payload[@"backgroundColor"] = backgroundColor;
-
-            // Tell the card how much room it has, so it scrolls its own content
-            // instead of reporting a height we'd have to clip or scroll again.
-            CGFloat maxHeight = [self maxContentHeight];
-            if (maxHeight > 0) {
-                payload[@"maxHeight"] = @(floor(maxHeight));
-                self.lastSentMaxHeight = maxHeight;
-            }
-
-            [self sendMessageWithData:@{@"name":@"modal-data",@"data":payload}];
+            [self sendModalData];
         }
         else if ([name isEqualToString:@"modal-height"]) {
             NSNumber *h = data[@"height"];
