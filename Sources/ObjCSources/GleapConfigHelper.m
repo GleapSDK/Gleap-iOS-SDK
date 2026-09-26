@@ -13,6 +13,7 @@
 #import "GleapWidgetManager.h"
 #import "GleapUIOverlayHelper.h"
 #import "GleapTranslationHelper.h"
+#import "GleapThemeHelper.h"
 
 @implementation GleapConfigHelper
 
@@ -79,8 +80,13 @@
         return;
     }
     
-    self.config = config;
+    // Keep the server config to re-theme it whenever the color scheme changes.
+    self.rawConfig = config;
+    self.config = [[GleapThemeHelper sharedInstance] applyToConfig: config];
     self.projectActions = projectActions;
+    
+    // Follow the app's interface style if the dashboard asks for "auto".
+    [[GleapThemeHelper sharedInstance] start];
     
     // Network config
     if ([config objectForKey: @"networkLogPropsToIgnore"] != nil && [[config objectForKey: @"networkLogPropsToIgnore"] isKindOfClass:[NSArray class]]) {
@@ -153,6 +159,31 @@
     if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(initialized)]) {
         [Gleap.sharedInstance.delegate initialized];
     }
+}
+
+- (void)refreshColorScheme {
+    NSDictionary *rawConfig = self.rawConfig;
+    if (rawConfig == nil) {
+        return;
+    }
+    
+    NSDictionary *config = [[GleapThemeHelper sharedInstance] applyToConfig: rawConfig];
+    id backgroundColor = [config objectForKey: @"backgroundColor"];
+    id previousBackgroundColor = [self.config objectForKey: @"backgroundColor"];
+    if (backgroundColor == previousBackgroundColor || [backgroundColor isEqual: previousBackgroundColor]) {
+        return;
+    }
+    self.config = config;
+    
+    // Update widget config
+    [[GleapWidgetManager sharedInstance] sendConfigUpdate];
+    [[GleapWidgetManager sharedInstance].gleapWidget updateBackgroundColor];
+    
+    // Update notification UI components.
+    [GleapUIOverlayHelper updateUI];
+    
+    // Recolor a showing modal.
+    [[GleapUIOverlayHelper sharedInstance].uiOverlayViewController.modal sendModalData];
 }
 
 - (int)getButtonX {

@@ -21,10 +21,24 @@ NS_ASSUME_NONNULL_BEGIN
  * open widget, but skips the one-time initialized / configLoaded delegate calls.
  */
 - (void)reload;
+/**
+ * Re-applies the active color scheme to the raw config. When the resulting
+ * background changes, pushes the config to an open widget and refreshes the
+ * native UI (notifications, widget background). Call on the main thread.
+ */
+- (void)refreshColorScheme;
 - (int)getButtonX;
 - (int)getButtonY;
 
+/**
+ * The flow config with the active color scheme applied (see GleapThemeHelper).
+ */
 @property (nonatomic, retain) NSDictionary* config;
+
+/**
+ * The flow config as delivered by the server.
+ */
+@property (nonatomic, retain, nullable) NSDictionary* rawConfig;
 @property (nonatomic, retain) NSDictionary* projectActions;
 
 @end

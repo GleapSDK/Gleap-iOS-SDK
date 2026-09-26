@@ -71,23 +71,31 @@ static id ObjectOrNull(id object)
        // Apply preview only if not simple survey.
        if (!self.isCardSurvey) {
            self.view.backgroundColor = [UIColor colorWithRed: 0.0 green: 0.0 blue: 0.0 alpha: 0.7];
-           
-           NSDictionary *config = GleapConfigHelper.sharedInstance.config;
-           if (config != nil) {
-               NSString *backgroundColor = [config objectForKey: @"backgroundColor"];
-               if (backgroundColor != nil && backgroundColor.length > 0) {
-                   self.view.backgroundColor = [GleapUIHelper colorFromHexString: backgroundColor];
-               } else {
-                   if (@available(iOS 13.0, *)) {
-                       self.view.backgroundColor = [UIColor systemBackgroundColor];
-                   } else {
-                       self.view.backgroundColor = [UIColor whiteColor];
-                   }
-               }
-           }
+           [self updateBackgroundColor];
        }
    }
    return self;
+}
+
+// Applies the config background (it changes with the color scheme).
+- (void)updateBackgroundColor {
+    if (self.isCardSurvey) {
+        return;
+    }
+    
+    NSDictionary *config = GleapConfigHelper.sharedInstance.config;
+    if (config != nil) {
+        NSString *backgroundColor = [config objectForKey: @"backgroundColor"];
+        if (backgroundColor != nil && backgroundColor.length > 0) {
+            self.view.backgroundColor = [GleapUIHelper colorFromHexString: backgroundColor];
+        } else {
+            if (@available(iOS 13.0, *)) {
+                self.view.backgroundColor = [UIColor systemBackgroundColor];
+            } else {
+                self.view.backgroundColor = [UIColor whiteColor];
+            }
+        }
+    }
 }
 
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {

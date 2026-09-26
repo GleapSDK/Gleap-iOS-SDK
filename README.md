@@ -125,3 +125,23 @@ Gleap.setDisableEnvData(true)
 ```
 
 Both can be called at any time and apply to the next ticket. Each `setEnvDataPropsToIgnore` call replaces the previous list, an empty array resets it. `setDisableEnvData(false)` turns the collection back on.
+
+## Dark mode
+
+The widget background follows the color scheme set in the dashboard. To set it from the app, use `setColorScheme`. `auto` follows the app's interface style (including `overrideUserInterfaceStyle`) and switches live, `light` / `dark` force a scheme, `default` falls back to the dashboard setting:
+
+**Swift**
+
+```
+Gleap.setColorScheme("auto")
+Gleap.setColorScheme("dark", lightBackgroundColor: nil, darkBackgroundColor: "#121212")
+```
+
+**Objective-C**
+
+```
+[Gleap setColorScheme: @"auto"];
+[Gleap setColorScheme: @"dark" lightBackgroundColor: nil darkBackgroundColor: @"#121212"];
+```
+
+A dashboard background that already fits the active scheme is kept. Otherwise the light / dark background (#rrggbb, default `#ffffff` / `#18181b`) is used. Primary, header and button colors are unchanged. Can be called before or after `initialize`.
