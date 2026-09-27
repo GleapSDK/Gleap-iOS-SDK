@@ -89,6 +89,7 @@ static BOOL GleapIsTextContentType(NSString *contentType);
 static NSString *GleapBodyString(NSData *data, NSString *contentType, unsigned long long totalBytes);
 static NSString *GleapErrorText(NSError *error);
 static NSString *GleapStatusText(NSInteger status);
+static NSDate *GleapParseLogDate(id value);
 static void GleapObserveSessionDelegate(NSURLSession *session);
 
 @implementation GleapHttpTrafficRecorder
@@ -194,6 +195,53 @@ static void GleapObserveSessionDelegate(NSURLSession *session);
         }
     } @catch (NSException *exception) {}
     return [GleapNetworkLogSanitizer sanitizeNetworkLogs: networkLogs propsToIgnore: propsToIgnore blacklist: blacklist];
+}
+
++ (NSArray *)mergeNetworkLogs:(NSArray *)networkLogs withExternalNetworkLogs:(NSArray *)externalNetworkLogs {
+    NSMutableArray *merged = [NSMutableArray arrayWithArray: [networkLogs isKindOfClass: [NSArray class]] ? networkLogs : @[]];
+    if (![externalNetworkLogs isKindOfClass: [NSArray class]] || externalNetworkLogs.count == 0) {
+        return merged;
+    }
+
+    NSMutableArray<NSDictionary *> *spans = [NSMutableArray array];
+    for (NSDictionary *log in merged) {
+        if (![log isKindOfClass: [NSDictionary class]]) {
+            continue;
+        }
+        NSDate *start = GleapParseLogDate(log[@"date"]);
+        if (start == nil || ![log[@"url"] isKindOfClass: [NSString class]]) {
+            continue;
+        }
+        NSTimeInterval duration = [log[@"duration"] isKindOfClass: [NSNumber class]] ? [log[@"duration"] doubleValue] / 1000.0 : -[start timeIntervalSinceNow];
+        [spans addObject: @{
+            @"key": [NSString stringWithFormat: @"%@ %@", [[log[@"type"] description] uppercaseString], log[@"url"]],
+            @"start": @(start.timeIntervalSince1970 - 1),
+            @"end": @(start.timeIntervalSince1970 + MAX(duration, 0) + 2)
+        }];
+    }
+
+    for (id external in externalNetworkLogs) {
+        if ([external isKindOfClass: [NSDictionary class]] && spans.count > 0) {
+            NSDictionary *log = (NSDictionary *)external;
+            NSDate *date = GleapParseLogDate(log[@"date"]);
+            if (date != nil && [log[@"url"] isKindOfClass: [NSString class]]) {
+                NSString *key = [NSString stringWithFormat: @"%@ %@", [[log[@"type"] description] uppercaseString], log[@"url"]];
+                NSTimeInterval time = date.timeIntervalSince1970;
+                BOOL alreadyLogged = NO;
+                for (NSDictionary *span in spans) {
+                    if ([span[@"key"] isEqualToString: key] && time >= [span[@"start"] doubleValue] && time <= [span[@"end"] doubleValue]) {
+                        alreadyLogged = YES;
+                        break;
+                    }
+                }
+                if (alreadyLogged) {
+                    continue;
+                }
+            }
+        }
+        [merged addObject: external];
+    }
+    return merged;
 }
 
 #pragma mark - Records
@@ -864,4 +912,21 @@ static NSString *GleapStatusText(NSInteger status) {
         return phrase;
     }
     return [[NSHTTPURLResponse localizedStringForStatusCode: status] capitalizedString] ?: @"";
+}
+
+// ISO 8601 with or without fractional seconds (other formats are not matched).
+static NSDate *GleapParseLogDate(id value) {
+    if (![value isKindOfClass: [NSString class]]) {
+        return nil;
+    }
+    static NSISO8601DateFormatter *withFraction = nil;
+    static NSISO8601DateFormatter *withoutFraction = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        withFraction = [[NSISO8601DateFormatter alloc] init];
+        withFraction.formatOptions = NSISO8601DateFormatWithInternetDateTime | NSISO8601DateFormatWithFractionalSeconds;
+        withoutFraction = [[NSISO8601DateFormatter alloc] init];
+        withoutFraction.formatOptions = NSISO8601DateFormatWithInternetDateTime;
+    });
+    return [withFraction dateFromString: value] ?: [withoutFraction dateFromString: value];
 }

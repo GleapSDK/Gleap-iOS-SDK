@@ -31,6 +31,13 @@
 - (void)setMaxRequests:(int)maxRequests;
 
 /*
+ The recorded logs plus the external ones (attached by a wrapper SDK or a plugin) that don't
+ describe a request the recorder logged itself: same method and URL, dated within that
+ request's time span.
+ */
++ (NSArray *)mergeNetworkLogs:(NSArray *)networkLogs withExternalNetworkLogs:(NSArray *)externalNetworkLogs;
+
+/*
  Drops blacklisted requests and removes ignored props and credentials (see GleapNetworkLogSanitizer).
  */
 - (NSArray *)filterNetworkLogs:(NSArray *)networkLogs;

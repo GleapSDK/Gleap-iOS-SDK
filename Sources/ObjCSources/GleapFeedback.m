@@ -206,14 +206,9 @@
 
     // Attach and merge network logs: the SDK's own recording (while it runs) and the logs a
     // wrapper SDK (React Native, Flutter, Capacitor) attached, both sanitized.
-    NSMutableArray *networkLogs = [[NSMutableArray alloc] init];
-    if ([GleapHttpTrafficRecorder sharedRecorder].isRecording) {
-        [networkLogs addObjectsFromArray: [[GleapHttpTrafficRecorder sharedRecorder] networkLogs]];
-    }
+    NSArray *recordedNetworkLogs = [GleapHttpTrafficRecorder sharedRecorder].isRecording ? [[GleapHttpTrafficRecorder sharedRecorder] networkLogs] : @[];
     NSArray *existingNetworkLogs = [[GleapExternalDataHelper sharedInstance].data objectForKey: @"networkLogs"];
-    if ([existingNetworkLogs isKindOfClass: [NSArray class]] && existingNetworkLogs.count > 0) {
-        [networkLogs addObjectsFromArray: existingNetworkLogs];
-    }
+    NSArray *networkLogs = [GleapHttpTrafficRecorder mergeNetworkLogs: recordedNetworkLogs withExternalNetworkLogs: existingNetworkLogs];
     if ([networkLogs count] > 0) {
         [self attachData: @{ @"networkLogs": [[GleapHttpTrafficRecorder sharedRecorder] filterNetworkLogs: networkLogs] }];
     }
