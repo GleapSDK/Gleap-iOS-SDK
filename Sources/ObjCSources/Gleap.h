@@ -30,6 +30,7 @@ FOUNDATION_EXPORT const unsigned char GleapVersionString[];
 #import "./GleapFeedbackButton.h"
 #import "./GleapFrameManagerViewController.h"
 #import "./GleapHttpTrafficRecorder.h"
+#import "./GleapNetworkLogSanitizer.h"
 #import "./GleapMetaDataHelper.h"
 #import "./GleapUIOverlayHelper.h"
 #import "./GleapPreFillHelper.h"

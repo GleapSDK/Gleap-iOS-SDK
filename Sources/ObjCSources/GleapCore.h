@@ -481,14 +481,15 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)setModalUrl: (NSString *)modalUrl;
 
 /**
- * Disables the console logging. This must be called BEFORE initializing the SDK.
+ * Disables the console logging (stdout, stderr and the unified log). Logs added with Gleap.log are still sent.
+ * This must be called BEFORE initializing the SDK.
  * @author Gleap
  *
  */
 + (void)disableConsoleLog;
 
 /**
- * Enables the debug console logging. This must be called BEFORE initializing the SDK.
+ * Deprecated: console output is now captured in debug and release builds alike. Kept for compatibility, has no effect.
  * @author Gleap
  *
  */
@@ -578,17 +579,19 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (BOOL)isOpened;
 
 /**
- * Starts network recording.
+ * Starts network recording. Logs every NSURLSession request of the app: completion handler,
+ * delegate-based (Alamofire, Apollo, Moya, AFNetworking, ...) and Swift async/await APIs.
+ * Also started automatically when network logs are enabled in the dashboard.
  * @author Gleap
  *
  */
 + (void)startNetworkRecording;
 
 /**
- * Starts network recording with a session configuration.
+ * Deprecated: every NSURLSession is logged once recording runs. Same as startNetworkRecording.
  * @author Gleap
  *
- * @param configuration the NSURLSessionConfiguration which should be logged
+ * @param configuration ignored
  *
  */
 + (void)startNetworkRecordingForSessionConfiguration:(NSURLSessionConfiguration *)configuration;
