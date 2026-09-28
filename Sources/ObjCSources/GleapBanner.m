@@ -26,6 +26,10 @@
     return self;
 }
 
+- (void)dealloc {
+    [GleapWebViewSupport removeMessageHandlerNamed: @"gleapBannerCallback" fromWebView: _webView];
+}
+
 - (void)setupWithData:(NSDictionary *)bannerData {
     self.bannerData = bannerData;
     
@@ -116,7 +120,10 @@
             } completion:^(BOOL finished) {
                 dispatch_async(dispatch_get_main_queue(), ^{
                     [self removeFromSuperview];
-                    self.uiOverlayViewController.banner = nil;
+                    // Unless a newer banner has taken this one's place already.
+                    if (self.uiOverlayViewController.banner == self) {
+                        self.uiOverlayViewController.banner = nil;
+                    }
                 });
             }];
         }

@@ -16,10 +16,14 @@ GLEAP_INTERNAL
 @interface GleapWebViewSupport : NSObject
 
 /// A private (non-persistent) website data store and `handler` registered as
-/// `window.webkit.messageHandlers.<name>`.
+/// `window.webkit.messageHandlers.<name>`. The configuration only keeps a weak reference to
+/// `handler`, so a web view does not keep its owner alive.
 + (WKWebViewConfiguration *)configurationWithMessageHandler:(id<WKScriptMessageHandler>)handler
                                                        name:(NSString *)name
                                   allowsInlineMediaPlayback:(BOOL)allowsInlineMediaPlayback;
+
+/// Unregisters the message handler `name` of `webView`; call it when the web view's owner goes away.
++ (void)removeMessageHandlerNamed:(NSString *)name fromWebView:(nullable WKWebView *)webView;
 
 /// The page lays itself out: no scrolling, bouncing or automatic content insets.
 + (void)disableScrollingInWebView:(WKWebView *)webView;

@@ -6,6 +6,23 @@
 #import "GleapWebViewSupport.h"
 #import <SafariServices/SafariServices.h>
 
+// WKUserContentController keeps its message handlers strongly, and the owner of a web view keeps
+// the web view and with it the controller. Registering the owner itself made a cycle that kept
+// every closed widget, banner and modal (and its web view) alive; this proxy forwards the
+// messages without keeping the owner.
+GLEAP_INTERNAL
+@interface GleapWeakScriptMessageHandler : NSObject <WKScriptMessageHandler>
+@property (nonatomic, weak, nullable) id<WKScriptMessageHandler> handler;
+@end
+
+@implementation GleapWeakScriptMessageHandler
+
+- (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message {
+    [self.handler userContentController: userContentController didReceiveScriptMessage: message];
+}
+
+@end
+
 @implementation GleapWebViewSupport
 
 + (WKWebViewConfiguration *)configurationWithMessageHandler:(id<WKScriptMessageHandler>)handler
@@ -13,13 +30,19 @@
                                   allowsInlineMediaPlayback:(BOOL)allowsInlineMediaPlayback {
     WKWebViewConfiguration *configuration = [[WKWebViewConfiguration alloc] init];
     WKUserContentController *userController = [[WKUserContentController alloc] init];
-    [userController addScriptMessageHandler: handler name: name];
+    GleapWeakScriptMessageHandler *proxy = [[GleapWeakScriptMessageHandler alloc] init];
+    proxy.handler = handler;
+    [userController addScriptMessageHandler: proxy name: name];
     configuration.userContentController = userController;
     if (allowsInlineMediaPlayback) {
         configuration.allowsInlineMediaPlayback = YES;
     }
     configuration.websiteDataStore = [WKWebsiteDataStore nonPersistentDataStore];
     return configuration;
+}
+
++ (void)removeMessageHandlerNamed:(NSString *)name fromWebView:(WKWebView *)webView {
+    [webView.configuration.userContentController removeScriptMessageHandlerForName: name];
 }
 
 + (void)disableScrollingInWebView:(WKWebView *)webView {

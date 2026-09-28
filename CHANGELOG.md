@@ -11,6 +11,8 @@ A failed request no longer costs the user their identity. When starting a sessio
 
 Custom actions from banners reach the app again, the same way as those from modals: `customActionCalled(_:withShareToken:)` when the delegate implements it, otherwise `customActionCalled(_:)`. A banner action used to crash apps whose delegate implements `customActionCalled(_:)` (the Flutter plugin) and never reached apps that only implement the two-argument version (React Native, Capacitor).
 
+A closed widget, banner or modal is released again, together with its web view and web content process. Each one used to stay in memory until the app quit, because its web view kept it alive.
+
 ## 18.1.0
 Added control over the env data (device, OS, screen, locale and battery details shown under the Env data tab of a ticket) the SDK collects:
 `Gleap.setEnvDataPropsToIgnore(["deviceName", "batteryLevel"])` removes individual env data keys from every ticket and conversation before it is sent. Each call replaces the previous list; an empty array resets it.

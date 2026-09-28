@@ -28,6 +28,10 @@
 
 @implementation GleapModal
 
+- (void)dealloc {
+    [GleapWebViewSupport removeMessageHandlerNamed: @"gleapModalCallback" fromWebView: _webView];
+}
+
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
@@ -224,7 +228,10 @@
         self.alpha = 0.0;
     } completion:^(BOOL finished) {
         [self removeFromSuperview];
-        self.uiOverlayViewController.modal = nil;
+        // Unless a newer modal has taken this one's place already.
+        if (self.uiOverlayViewController.modal == self) {
+            self.uiOverlayViewController.modal = nil;
+        }
     }];
 }
 

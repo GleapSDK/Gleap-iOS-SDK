@@ -182,6 +182,8 @@
         }
 
         self.banner = [[GleapBanner alloc] initWithFrame: CGRectMake(0, 0, keyWindow.frame.size.width, 70.0)];
+        // Lets the banner drop itself from here once it is closed.
+        self.banner.uiOverlayViewController = self;
         self.banner.translatesAutoresizingMaskIntoConstraints = NO;
         self.banner.layer.zPosition = INT_MAX;
         [keyWindow addSubview: self.banner];
@@ -237,6 +239,8 @@
 
         // Create the modal full-screen
         self.modal = [[GleapModal alloc] initWithFrame:keyWindow.bounds];
+        // Lets the modal drop itself from here once it is closed.
+        self.modal.uiOverlayViewController = self;
         self.modal.translatesAutoresizingMaskIntoConstraints = NO;
         self.modal.layer.zPosition = INT_MAX;
         self.modal.alpha = 0.0; // start hidden

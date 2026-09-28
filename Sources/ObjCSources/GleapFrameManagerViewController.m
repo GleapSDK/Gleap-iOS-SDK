@@ -119,6 +119,10 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
     [loadingView setUpFromConfig: GleapConfigHelper.sharedInstance.config];
 }
 
+- (void)dealloc {
+    [GleapWebViewSupport removeMessageHandlerNamed: @"gleapCallback" fromWebView: _webView];
+}
+
 - (void)invalidateTimeout {
     if (self.timeoutTimer) {
         [self.timeoutTimer invalidate];
