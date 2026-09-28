@@ -17,6 +17,8 @@ The realtime connection no longer reconnects every 5 seconds after the session c
 
 Replays keep recording after the app returns from the background or the config is loaded again; until now they stopped for good the first time either happened.
 
+Restarting the session (for example on `identify`) no longer adds another page tracking timer each time.
+
 ## 18.1.0
 Added control over the env data (device, OS, screen, locale and battery details shown under the Env data tab of a ticket) the SDK collects:
 `Gleap.setEnvDataPropsToIgnore(["deviceName", "batteryLevel"])` removes individual env data keys from every ticket and conversation before it is sent. Each call replaces the previous list; an empty array resets it.

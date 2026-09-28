@@ -105,6 +105,7 @@
         [self.eventStreamTimer invalidate];
         self.eventStreamTimer = nil;
     }
+    [self.pageNameTimer invalidate];
 }
 
 - (void)start {
@@ -123,6 +124,9 @@
         [self lastPageNameUpdate];
         [self sendEventStreamToServer];
         
+        // Two starts in a row both get here before either timer exists: replace, don't add.
+        [self.pageNameTimer invalidate];
+        [self.eventStreamTimer invalidate];
         self.pageNameTimer = [NSTimer scheduledTimerWithTimeInterval: 1
                                                               target: self
                                                             selector: @selector(lastPageNameUpdate)
