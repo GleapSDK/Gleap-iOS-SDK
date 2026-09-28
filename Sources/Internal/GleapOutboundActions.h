@@ -20,6 +20,11 @@ GLEAP_INTERNAL
 /// Performs the action a banner or modal message asked for; does nothing for other names.
 + (void)performAction:(nullable NSString *)name data:(nullable id)data;
 
+/// Hands a banner's or modal's custom action to the app: customActionCalled:withShareToken: when
+/// the delegate implements it, otherwise customActionCalled:. An action that is not a string is
+/// dropped.
++ (void)notifyCustomAction:(nullable id)action;
+
 @end
 
 NS_ASSUME_NONNULL_END

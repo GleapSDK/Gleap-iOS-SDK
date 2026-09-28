@@ -9,6 +9,8 @@ Reports only count as sent once the server accepted them. A report the server re
 
 A failed request no longer costs the user their identity. When starting a session, `identify` or `updateContact` failed (the server was overloaded, the request was too large, a server error), the SDK could delete the stored guest or user identity, so the user continued as a new guest without their conversations. Only an answer that contains a session replaces the stored identity now. An `identify` the server refuses (for example because of a wrong user hash) still starts a new guest session, as before.
 
+Custom actions from banners reach the app again, the same way as those from modals: `customActionCalled(_:withShareToken:)` when the delegate implements it, otherwise `customActionCalled(_:)`. A banner action used to crash apps whose delegate implements `customActionCalled(_:)` (the Flutter plugin) and never reached apps that only implement the two-argument version (React Native, Capacitor).
+
 ## 18.1.0
 Added control over the env data (device, OS, screen, locale and battery details shown under the Env data tab of a ticket) the SDK collects:
 `Gleap.setEnvDataPropsToIgnore(["deviceName", "batteryLevel"])` removes individual env data keys from every ticket and conversation before it is sent. Each call replaces the previous list; an empty array resets it.

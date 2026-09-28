@@ -208,15 +208,7 @@
         }
         else if ([name isEqualToString:@"start-custom-action"]) {
             [self hideModal];
-            if ([Gleap.sharedInstance.delegate respondsToSelector:
-                 @selector(customActionCalled:withShareToken:)]) {
-                [Gleap.sharedInstance.delegate
-                 customActionCalled:data[@"action"] withShareToken:nil];
-            } else if ([Gleap.sharedInstance.delegate respondsToSelector:
-                        @selector(customActionCalled:)]) {
-                [Gleap.sharedInstance.delegate
-                 customActionCalled:data[@"action"]];
-            }
+            [GleapOutboundActions notifyCustomAction: data[@"action"]];
         } else if ([GleapOutboundActions handlesAction: name]) {
             // Conversations, forms, surveys, articles, checklists and links close the modal first.
             [self hideModal];

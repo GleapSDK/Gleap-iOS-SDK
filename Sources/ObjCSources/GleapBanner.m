@@ -121,14 +121,8 @@
             }];
         }
         
-        if ([name isEqualToString: @"start-custom-action"]) {
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(customActionCalled:)]) {
-                [Gleap.sharedInstance.delegate customActionCalled: (NSString *)[messageData objectForKey: @"action"] withShareToken: nil];
-            }
-            
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(customActionCalled:)]) {
-                [Gleap.sharedInstance.delegate customActionCalled: (NSString *)messageData];
-            }
+        if ([name isEqualToString: @"start-custom-action"] && [messageData isKindOfClass: [NSDictionary class]]) {
+            [GleapOutboundActions notifyCustomAction: [messageData objectForKey: @"action"]];
         }
         
         // Conversations, forms, surveys, articles, checklists and links.

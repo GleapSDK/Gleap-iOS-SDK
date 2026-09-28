@@ -40,4 +40,16 @@
     }
 }
 
++ (void)notifyCustomAction:(id)action {
+    if (action != nil && ![action isKindOfClass: [NSString class]]) {
+        return;
+    }
+    id<GleapDelegate> delegate = Gleap.sharedInstance.delegate;
+    if ([delegate respondsToSelector: @selector(customActionCalled:withShareToken:)]) {
+        [delegate customActionCalled: action withShareToken: nil];
+    } else if ([delegate respondsToSelector: @selector(customActionCalled:)]) {
+        [delegate customActionCalled: action];
+    }
+}
+
 @end
