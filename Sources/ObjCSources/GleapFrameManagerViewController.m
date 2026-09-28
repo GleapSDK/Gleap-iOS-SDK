@@ -16,6 +16,7 @@
 #import "GleapTranslationHelper.h"
 #import "GleapConfigHelper.h"
 #import "GleapFeedback.h"
+#import "GleapFeedback+Widget.h"
 #import "GleapWidgetManager.h"
 #import "GleapScreenshotManager.h"
 #import "GleapUIHelper.h"
@@ -250,207 +251,202 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
     });
 }
 
+#pragma mark - Messages from the widget
+
 - (void)userContentController:(WKUserContentController*)userContentController didReceiveScriptMessage:(WKScriptMessage*)message
 {
-    if ([message.name isEqualToString: @"gleapCallback"]) {
-        NSString *name = [message.body objectForKey: @"name"];
-        NSDictionary *messageData = [message.body objectForKey: @"data"];
-        
-        if ([name isEqualToString: @"ping"]) {
-            [self invalidateTimeout];
-            self.connected = YES;
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-                [self stopLoading];
-            });
-            
-            [self sendWidgetStatusUpdate];
-            [self sendConfigUpdate];
-            [self sendSafeAreaInsets];
-            [self sendSessionUpdate];
-            [self sendPreFillData];
-            [self sendScreenshotUpdate];
-            
-            if (self.delegate != nil && [self.delegate respondsToSelector:@selector(connected)]) {
-                [self.delegate connected];
-            }
-        }
-        
-        if ([name isEqualToString: @"tool-execution"]) {
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(onToolExecution:)]) {
-                [Gleap.sharedInstance.delegate onToolExecution: messageData];
-            }
-        }
+    if (![message.name isEqualToString: @"gleapCallback"]) {
+        return;
+    }
+    NSString *name = [message.body objectForKey: @"name"];
+    id messageData = [message.body objectForKey: @"data"];
+    
+    if ([name isEqualToString: @"ping"]) {
+        [self widgetDidConnect];
+    } else if ([name isEqualToString: @"tool-execution"]) {
+        [self notifyToolExecution: messageData];
+    } else if ([name isEqualToString: @"frontend-tool-execute"]) {
+        [self executeFrontendTool: messageData];
+    } else if ([name isEqualToString: @"collect-ticket-data"]) {
+        [self replyWithTicketData];
+    } else if ([name isEqualToString: @"cleanup-drawings"]) {
+        [GleapScreenshotManager sharedInstance].updatedScreenshot = nil;
+    } else if ([name isEqualToString: @"close-widget"]) {
+        [self closeWidget: nil];
+    } else if ([name isEqualToString: @"screenshot-updated"]) {
+        [self updateScreenshotFromDataURL: messageData];
+    } else if ([name isEqualToString: @"run-custom-action"]) {
+        [self runCustomAction: messageData shareToken: [message.body objectForKey: @"shareToken"]];
+    } else if ([name isEqualToString: @"open-url"]) {
+        [self openURLFromWidget: messageData];
+    } else if ([name isEqualToString: @"notify-event"]) {
+        [self handleWidgetEvent: messageData];
+    } else if ([name isEqualToString: @"send-feedback"]) {
+        [self sendFeedbackFromWidget: messageData];
+    }
+}
 
-        if ([name isEqualToString: @"frontend-tool-execute"] && messageData != nil) {
-            __weak typeof(self) weakSelf = self;
-            [[GleapAgentToolHelper sharedInstance] executeToolWithData: messageData completion:^(NSDictionary *resultData) {
-                [weakSelf sendMessageWithData: @{
-                    @"name": @"frontend-tool-result",
-                    @"data": resultData
-                }];
-            }];
-        }
-        
-        if ([name isEqualToString: @"collect-ticket-data"]) {
-            // The widget waits a fixed, short time for this reply and silently
-            // creates the ticket with NO data at all when it is late — not just
-            // without console logs, but without environment data, custom data and
-            // tags too. So nothing here may block on slow collection: everything
-            // except the console log is read from memory and is instant, and the
-            // logs (OSLogStore, regularly slower than the widget will wait) are
-            // collected under a deadline and dropped when they miss it.
-            GleapFeedback *feedback = [[GleapFeedback alloc] init];
-            __weak typeof(self) weakSelf = self;
-            [feedback prepareDataWithDeadline: kGleapCollectTicketDataDeadline completion:^{
-                [weakSelf sendMessageWithData: @{
-                    @"name": @"collect-ticket-data",
-                    @"data": @{
-                        @"customData": GleapObjectOrNull([feedback.data objectForKey: @"customData"]),
-                        @"formData": GleapObjectOrNull([feedback.data objectForKey: @"formData"]),
-                        @"metaData": GleapObjectOrNull([feedback.data objectForKey: @"metaData"]),
-                        @"consoleLog": GleapObjectOrNull([feedback.data objectForKey: @"consoleLog"]),
-                        @"networkLogs": GleapObjectOrNull([feedback.data objectForKey: @"networkLogs"]),
-                        @"customEventLog": GleapObjectOrNull([feedback.data objectForKey: @"customEventLog"]),
-                        @"tags": GleapObjectOrNull([feedback.data objectForKey: @"tags"])
-                    }
-                }];
-            }];
-        }
-        
-        if ([name isEqualToString: @"cleanup-drawings"]) {
-            [GleapScreenshotManager sharedInstance].updatedScreenshot = nil;
-        }
-        
-        if ([name isEqualToString: @"close-widget"]) {
-            [self closeWidget: nil];
-        }
-        
-        if ([name isEqualToString: @"screenshot-updated"] && messageData != nil) {
-            @try
-            {
-                NSString *screenshotBase64String = (NSString *)messageData;
-                if (screenshotBase64String != nil) {
-                    screenshotBase64String = [screenshotBase64String stringByReplacingOccurrencesOfString: @"data:image/png;base64," withString: @""];
-                    NSData *dataEncoded = [[NSData alloc] initWithBase64EncodedString: screenshotBase64String options:0];
-                    if (dataEncoded != nil) {
-                        [GleapScreenshotManager sharedInstance].updatedScreenshot = [UIImage imageWithData:dataEncoded];
-                    }
-                }
-            }
-            @catch(id exception) {}
-        }
-        
-        if ([name isEqualToString: @"run-custom-action"] && messageData != nil) {
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(customActionCalled:withShareToken:)]) {
-                NSString *shareToken = [message.body objectForKey: @"shareToken"];
-                
-                [Gleap.sharedInstance.delegate customActionCalled: (NSString *)messageData withShareToken: shareToken];
-            }
-            
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(customActionCalled:)]) {
-                [Gleap.sharedInstance.delegate customActionCalled: (NSString *)messageData];
-            }
-        }
-        
-        if ([name isEqualToString: @"open-url"] && messageData != nil) {
-            if (Gleap.sharedInstance.closeWidgetOnExternalLinkOpen == YES) {
-                [self closeWidget:^{
-                    [Gleap handleURL: (NSString *)messageData];
-                }];
-            } else {
-                [Gleap handleURL: (NSString *)messageData];
-            }
-        }
-        
-        if ([name isEqualToString: @"notify-event"] && messageData != nil) {
-            NSString *eventType = [messageData objectForKey: @"type"];
-            NSDictionary *eventData = [messageData objectForKey: @"data"];
-            
-            if ([eventType isEqualToString: @"flow-started"]) {
-                [GleapScreenshotManager sharedInstance].updatedScreenshot = nil;
-                
-                if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackFlowStarted:)]) {
-                    [Gleap.sharedInstance.delegate feedbackFlowStarted: eventData];
-                }
-            }
-        }
-        
-        if ([name isEqualToString: @"send-feedback"] && messageData != nil) {
-            NSDictionary *formData = [messageData objectForKey: @"formData"];
-            NSDictionary *action = [messageData objectForKey: @"action"];
-            NSString *outboundId = [messageData objectForKey: @"outboundId"];
-            
-            GleapFeedback *feedback = [[GleapFeedback alloc] init];
-            [feedback appendData: @{
-                @"formData": formData,
-            }];
-            
-            NSString *spamToken = [messageData objectForKey: @"spamToken"];
-            if (spamToken != nil) {
-                [feedback appendData: @{
-                    @"spamToken": spamToken,
-                }];
-            }
-            
-            // Attach exclude data.
-            if (action != nil && [action objectForKey: @"excludeData"] != nil) {
-                feedback.excludeData = [action objectForKey: @"excludeData"];
-            }
-            
-            UIImage *screenshot = [GleapScreenshotManager getScreenshotToAttach];
-            if (screenshot != nil) {
-                feedback.screenshot = screenshot;
-            }
-            
-            if (outboundId != nil) {
-                feedback.outboundId = outboundId;
-            }
-            
-            if (action != nil && [action objectForKey: @"feedbackType"] != nil) {
-                feedback.feedbackType = [action objectForKey: @"feedbackType"];
-            }
-            
-            [feedback send:^(bool success, NSDictionary* data) {
-                if (success) {
-                    [self sendMessageWithData: @{
-                        @"name": @"feedback-sent",
-                        @"data": data
-                    }];
-                    
-                    @try {
-                        if (outboundId != nil) {
-                            [Gleap trackEvent: [NSString stringWithFormat: @"outbound-%@-submitted", outboundId] withData: formData];
-                            
-                            // Notify about outbound sent event.
-                            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(outboundSent:)]) {
-                                [Gleap.sharedInstance.delegate outboundSent: @{
-                                    @"outboundId": GleapObjectOrNull(outboundId),
-                                    @"outbound": GleapObjectOrNull(action),
-                                    @"formData": GleapObjectOrNull(formData),
-                                }];
-                            }
-                        }
-                    } @catch (id exp) {}
-                } else {
-                    NSError *error;
-                    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
-                    
-                    NSString *jsonString;
-                    if (!jsonData) {
-                        NSLog(@"Error converting data to JSON: %@", error);
-                        jsonString = @"{\"error\": \"Conversion to JSON failed\"}";
-                    } else {
-                        jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                    }
+- (void)widgetDidConnect {
+    [self invalidateTimeout];
+    self.connected = YES;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        [self stopLoading];
+    });
+    
+    [self sendWidgetStatusUpdate];
+    [self sendConfigUpdate];
+    [self sendSafeAreaInsets];
+    [self sendSessionUpdate];
+    [self sendPreFillData];
+    [self sendScreenshotUpdate];
+    
+    if (self.delegate != nil && [self.delegate respondsToSelector:@selector(connected)]) {
+        [self.delegate connected];
+    }
+}
 
-                    [self sendMessageWithData: @{
-                        @"name": @"feedback-sending-failed",
-                        @"data": jsonString
-                    }];
-                }
-            }];
+- (void)notifyToolExecution:(NSDictionary *)toolExecution {
+    if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(onToolExecution:)]) {
+        [Gleap.sharedInstance.delegate onToolExecution: toolExecution];
+    }
+}
+
+- (void)executeFrontendTool:(NSDictionary *)toolCall {
+    if (toolCall == nil) {
+        return;
+    }
+    __weak typeof(self) weakSelf = self;
+    [[GleapAgentToolHelper sharedInstance] executeToolWithData: toolCall completion:^(NSDictionary *resultData) {
+        [weakSelf sendMessageWithData: @{
+            @"name": @"frontend-tool-result",
+            @"data": resultData
+        }];
+    }];
+}
+
+- (void)replyWithTicketData {
+    // The widget waits a fixed, short time for this reply and silently
+    // creates the ticket with NO data at all when it is late — not just
+    // without console logs, but without environment data, custom data and
+    // tags too. So nothing here may block on slow collection: everything
+    // except the console log is read from memory and is instant, and the
+    // logs (OSLogStore, regularly slower than the widget will wait) are
+    // collected under a deadline and dropped when they miss it.
+    GleapFeedback *feedback = [[GleapFeedback alloc] init];
+    __weak typeof(self) weakSelf = self;
+    [feedback prepareDataWithDeadline: kGleapCollectTicketDataDeadline completion:^{
+        [weakSelf sendMessageWithData: @{
+            @"name": @"collect-ticket-data",
+            @"data": [feedback widgetTicketData]
+        }];
+    }];
+}
+
+- (void)updateScreenshotFromDataURL:(NSString *)dataURL {
+    if (dataURL == nil) {
+        return;
+    }
+    @try
+    {
+        NSString *screenshotBase64String = [dataURL stringByReplacingOccurrencesOfString: @"data:image/png;base64," withString: @""];
+        NSData *dataEncoded = [[NSData alloc] initWithBase64EncodedString: screenshotBase64String options:0];
+        if (dataEncoded != nil) {
+            [GleapScreenshotManager sharedInstance].updatedScreenshot = [UIImage imageWithData:dataEncoded];
         }
     }
+    @catch(id exception) {}
+}
+
+- (void)runCustomAction:(NSString *)action shareToken:(NSString *)shareToken {
+    if (action == nil) {
+        return;
+    }
+    if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(customActionCalled:withShareToken:)]) {
+        [Gleap.sharedInstance.delegate customActionCalled: action withShareToken: shareToken];
+    }
+    
+    if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(customActionCalled:)]) {
+        [Gleap.sharedInstance.delegate customActionCalled: action];
+    }
+}
+
+- (void)openURLFromWidget:(NSString *)url {
+    if (url == nil) {
+        return;
+    }
+    if (Gleap.sharedInstance.closeWidgetOnExternalLinkOpen == YES) {
+        [self closeWidget:^{
+            [Gleap handleURL: url];
+        }];
+    } else {
+        [Gleap handleURL: url];
+    }
+}
+
+- (void)handleWidgetEvent:(NSDictionary *)event {
+    if (event == nil) {
+        return;
+    }
+    NSString *eventType = [event objectForKey: @"type"];
+    NSDictionary *eventData = [event objectForKey: @"data"];
+    
+    if ([eventType isEqualToString: @"flow-started"]) {
+        [GleapScreenshotManager sharedInstance].updatedScreenshot = nil;
+        
+        if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackFlowStarted:)]) {
+            [Gleap.sharedInstance.delegate feedbackFlowStarted: eventData];
+        }
+    }
+}
+
+- (void)sendFeedbackFromWidget:(NSDictionary *)messageData {
+    if (messageData == nil) {
+        return;
+    }
+    NSDictionary *formData = [messageData objectForKey: @"formData"];
+    NSDictionary *action = [messageData objectForKey: @"action"];
+    NSString *outboundId = [messageData objectForKey: @"outboundId"];
+    
+    GleapFeedback *feedback = [GleapFeedback feedbackFromWidgetMessage: messageData];
+    [feedback send:^(bool success, NSDictionary* data) {
+        if (success) {
+            [self sendMessageWithData: @{
+                @"name": @"feedback-sent",
+                @"data": data
+            }];
+            
+            @try {
+                if (outboundId != nil) {
+                    [Gleap trackEvent: [NSString stringWithFormat: @"outbound-%@-submitted", outboundId] withData: formData];
+                    
+                    // Notify about outbound sent event.
+                    if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(outboundSent:)]) {
+                        [Gleap.sharedInstance.delegate outboundSent: @{
+                            @"outboundId": GleapObjectOrNull(outboundId),
+                            @"outbound": GleapObjectOrNull(action),
+                            @"formData": GleapObjectOrNull(formData),
+                        }];
+                    }
+                }
+            } @catch (id exp) {}
+        } else {
+            NSError *error;
+            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:data options:0 error:&error];
+            
+            NSString *jsonString;
+            if (!jsonData) {
+                NSLog(@"Error converting data to JSON: %@", error);
+                jsonString = @"{\"error\": \"Conversion to JSON failed\"}";
+            } else {
+                jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+            }
+
+            [self sendMessageWithData: @{
+                @"name": @"feedback-sending-failed",
+                @"data": jsonString
+            }];
+        }
+    }];
 }
 
 - (void)webView:(WKWebView *)webView runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))completionHandler
