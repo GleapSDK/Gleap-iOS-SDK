@@ -29,8 +29,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)reload;
 /**
  * Re-applies the active color scheme to the raw config. When the resulting
- * background changes, pushes the config to an open widget and refreshes the
- * native UI (notifications, widget background). Call on the main thread.
+ * config changes (palette, logo, header image, composer glow), pushes it to an
+ * open widget and refreshes the native UI (widget background and loading view,
+ * notifications, a showing modal). Call on the main thread.
  */
 - (void)refreshColorScheme;
 - (int)getButtonX;

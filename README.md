@@ -128,7 +128,7 @@ Both can be called at any time and apply to the next ticket. Each `setEnvDataPro
 
 ## Dark mode
 
-The widget background follows the color scheme set in the dashboard. To set it from the app, use `setColorScheme`. `auto` follows the app's interface style (including `overrideUserInterfaceStyle`) and switches live, `light` / `dark` force a scheme, `default` falls back to the dashboard setting:
+The widget colors follow the color scheme set in the dashboard. To set it from the app, use `setColorScheme`. It only takes effect when "Adapt to dark / light mode" is enabled in the dashboard; otherwise the widget keeps its normal colors. `auto` follows the app's interface style (including `overrideUserInterfaceStyle`) and switches live, `light` / `dark` force a scheme, `default` falls back to the dashboard setting:
 
 **Swift**
 
@@ -144,4 +144,4 @@ Gleap.setColorScheme("dark", lightBackgroundColor: nil, darkBackgroundColor: "#1
 [Gleap setColorScheme: @"dark" lightBackgroundColor: nil darkBackgroundColor: @"#121212"];
 ```
 
-A dashboard background that already fits the active scheme is kept. Otherwise the light / dark background (#rrggbb, default `#ffffff` / `#18181b`) is used. Primary, header and button colors are unchanged. Can be called before or after `initialize`.
+Light mode uses the widget colors from the dashboard, dark mode the dark colors set in the dashboard (header colors, UI color and background); a dark color that is not set keeps the normal one. Dark mode also uses the dark logo, header background image and composer glow set in the dashboard. Without dark colors the widget keeps its normal colors, also in dark mode. The `lightBackgroundColor` / `darkBackgroundColor` parameters (#rrggbb) override the background of the respective scheme. Button colors are unchanged. Can be called before or after `initialize`.

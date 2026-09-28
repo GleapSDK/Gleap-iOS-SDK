@@ -187,16 +187,16 @@
     }
     
     NSDictionary *config = [[GleapThemeHelper sharedInstance] applyToConfig: rawConfig];
-    id backgroundColor = [config objectForKey: @"backgroundColor"];
-    id previousBackgroundColor = [self.config objectForKey: @"backgroundColor"];
-    if (backgroundColor == previousBackgroundColor || [backgroundColor isEqual: previousBackgroundColor]) {
+    // The scheme changes the palette (background, UI and header colors), the
+    // logo, the header background image and the composer glow.
+    if (config == self.config || [config isEqualToDictionary: self.config]) {
         return;
     }
     self.config = config;
     
     // Update widget config
     [[GleapWidgetManager sharedInstance] sendConfigUpdate];
-    [[GleapWidgetManager sharedInstance].gleapWidget updateBackgroundColor];
+    [[GleapWidgetManager sharedInstance].gleapWidget updateThemeColors];
     
     // Update notification UI components.
     [GleapUIOverlayHelper updateUI];

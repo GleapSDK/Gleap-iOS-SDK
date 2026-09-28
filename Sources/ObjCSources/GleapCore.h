@@ -620,8 +620,11 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 /**
  * Sets the widget color scheme. "auto" follows the app's interface style (incl. overrideUserInterfaceStyle) and switches live,
  * "light" / "dark" force a scheme and "default" keeps the dashboard setting. Overrides the color scheme set in the dashboard.
- * A dashboard background that already fits the scheme is kept, otherwise the light / dark background from the dashboard
- * (default #ffffff / #18181b) is used. Primary, header and button colors are unchanged.
+ * Only takes effect when "Adapt to dark / light mode" is enabled in the dashboard; otherwise the widget keeps its normal colors.
+ * Light mode uses the dashboard colors, dark mode the dark colors set in the dashboard (header, UI color, background);
+ * a dark color that is not set keeps the normal one. Dark mode also uses the dark logo, header background image and composer
+ * glow set in the dashboard. Without dark colors the widget keeps its normal colors, also in dark mode. Button colors are
+ * unchanged.
  * Can be called before or after initialize.
  * @author Gleap
  *
@@ -631,11 +634,12 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 
 /**
  * Sets the widget color scheme with custom light / dark backgrounds (#rrggbb). nil keeps the dashboard's color.
+ * Only takes effect when "Adapt to dark / light mode" is enabled in the dashboard.
  * @author Gleap
  *
  * @param colorScheme "default", "auto", "light" or "dark".
- * @param lightBackgroundColor The background used in light mode when the dashboard background is dark.
- * @param darkBackgroundColor The background used in dark mode when the dashboard background is light.
+ * @param lightBackgroundColor The background used in light mode.
+ * @param darkBackgroundColor The background used in dark mode (instead of the dashboard's dark background).
  */
 + (void)setColorScheme:(NSString *)colorScheme lightBackgroundColor:(nullable NSString *)lightBackgroundColor darkBackgroundColor:(nullable NSString *)darkBackgroundColor;
 

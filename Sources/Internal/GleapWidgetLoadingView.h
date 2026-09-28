@@ -19,6 +19,10 @@ GLEAP_INTERNAL
 /// view is in the hierarchy; the bounds-dependent layers follow in layoutSubviews.
 - (void)setUpFromConfig:(nullable NSDictionary *)config;
 
+/// Re-reads the background and header colors and the background image (e.g. after
+/// a color scheme change) and redraws. No-op before setUpFromConfig:.
+- (void)updateThemeFromConfig:(nullable NSDictionary *)config;
+
 @end
 
 NS_ASSUME_NONNULL_END

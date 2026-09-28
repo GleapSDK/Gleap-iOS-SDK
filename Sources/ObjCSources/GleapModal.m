@@ -20,6 +20,7 @@
 // and this scroll view sits idle. It's the fallback for content that reports
 // more than the cap anyway — an older web bundle, or a card that can't shrink.
 @property (nonatomic, strong) UIScrollView *scrollView;
+@property (nonatomic, weak) UIView *containerView;
 @property (nonatomic, strong) NSLayoutConstraint *containerHeightConstraint;
 @property (nonatomic, assign) CGFloat reportedContentHeight;
 @property (nonatomic, assign) CGFloat lastSentMaxHeight;
@@ -63,9 +64,9 @@
     container.translatesAutoresizingMaskIntoConstraints = NO;
     container.layer.cornerRadius = 20.0;
     container.layer.masksToBounds = YES;
-    container.backgroundColor = [GleapUIHelper colorFromHexString:
-        [modalData valueForKeyPath:@"config.backgroundColor"] ?: @"#FFFFFF"];
     [self addSubview:container];
+    self.containerView = container;
+    [self updateContainerBackgroundColor];
 
     // compute initial cap based on screen size
     CGFloat screenW = CGRectGetWidth(self.bounds);
@@ -153,14 +154,28 @@
     [self.webView loadRequest:request];
 }
 
+// The card renders on the themed widget background (sent as backgroundColor in
+// modal-data), so the container behind it matches it.
+- (NSString *)modalBackgroundColor {
+    NSString *backgroundColor = [GleapConfigHelper sharedInstance].config[@"backgroundColor"];
+    return backgroundColor ?: @"#FFFFFF";
+}
+
+- (void)updateContainerBackgroundColor {
+    self.containerView.backgroundColor = [GleapUIHelper colorFromHexString: [self modalBackgroundColor]];
+}
+
 - (void)sendModalData {
+    // Also runs on a color scheme change.
+    [self updateContainerBackgroundColor];
+
     if (!self.webContentLoaded) {
         return;
     }
 
     NSDictionary *flowConfig = [GleapConfigHelper sharedInstance].config;
     NSString *primaryColor = flowConfig[@"color"] ?: @"#485BFF";
-    NSString *backgroundColor = flowConfig[@"backgroundColor"] ?: @"#FFFFFF";
+    NSString *backgroundColor = [self modalBackgroundColor];
     NSMutableDictionary *payload = [[self.modalData objectForKey:@"config"] mutableCopy];
     payload[@"primaryColor"] = primaryColor;
     payload[@"backgroundColor"] = backgroundColor;

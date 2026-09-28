@@ -50,14 +50,15 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
        // Apply preview only if not simple survey.
        if (!self.isCardSurvey) {
            self.view.backgroundColor = [UIColor colorWithRed: 0.0 green: 0.0 blue: 0.0 alpha: 0.7];
-           [self updateBackgroundColor];
+           [self updateThemeColors];
        }
    }
    return self;
 }
 
-// Applies the config background (it changes with the color scheme).
-- (void)updateBackgroundColor {
+// Applies the config background and the loading view's colors and background
+// image (they change with the color scheme).
+- (void)updateThemeColors {
     if (self.isCardSurvey) {
         return;
     }
@@ -70,6 +71,10 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
         } else {
             self.view.backgroundColor = [UIColor systemBackgroundColor];
         }
+    }
+    
+    if ([self.loadingView isKindOfClass: [GleapWidgetLoadingView class]]) {
+        [(GleapWidgetLoadingView *)self.loadingView updateThemeFromConfig: config];
     }
 }
 

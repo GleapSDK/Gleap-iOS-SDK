@@ -15,6 +15,7 @@
 // any) is framed there as well and only its fade overlay is reframed.
 @property (retain, nonatomic) UIImageView *imageView;
 @property (retain, nonatomic) CAGradientLayer *imageFadeLayer;
+@property (nonatomic, copy) NSString *bgImageURL;
 @property (nonatomic, copy) NSString *bgType;
 @property (nonatomic) NSInteger homeVersion;
 @property (nonatomic) BOOL isV4;
@@ -35,11 +36,8 @@
     [self renderBackground];
 }
 
-// Reads the fetched config, captures the loading-background state, and builds
-// the persistent subviews (background layer container + optional image view).
-// Bounds-dependent drawing happens in layoutSubviews.
-- (void)setUpFromConfig:(NSDictionary *)config {
-
+// Captures the background and header colors from the config.
+- (void)applyColorsFromConfig:(NSDictionary *)config {
     // Background color (fallback to the system/white default).
     UIColor *backgroundColor = nil;
     NSString *backgroundColorHex = [config objectForKey: @"backgroundColor"];
@@ -64,6 +62,22 @@
         ? [GleapUIHelper colorFromHexString: headerColor2Hex] : headerColor;
     self.headerColor3 = (headerColor3Hex != nil && [headerColor3Hex isKindOfClass: [NSString class]] && headerColor3Hex.length > 0)
         ? [GleapUIHelper colorFromHexString: headerColor3Hex] : headerColor;
+}
+
+- (void)updateThemeFromConfig:(NSDictionary *)config {
+    if (!self.configured) {
+        return;
+    }
+    [self applyColorsFromConfig: config];
+    [self applyImageFromConfig: config];
+    [self renderBackground];
+}
+
+// Reads the fetched config, captures the loading-background state, and builds
+// the persistent subviews (background layer container + optional image view).
+// Bounds-dependent drawing happens in layoutSubviews.
+- (void)setUpFromConfig:(NSDictionary *)config {
+    [self applyColorsFromConfig: config];
 
     // bgType + version resolution (mirrors resolveHomeVersion: 1-3 are the
     // classic homes, anything else — incl. unset — resolves to v4).
@@ -77,8 +91,27 @@
     id bgBlurValue = [config objectForKey: @"bgBlur"];
     self.bgBlur = (bgBlurValue == nil) ? YES : [bgBlurValue boolValue];
 
+    [self applyImageFromConfig: config];
+
+    self.configured = YES;
+    [self renderBackground];
+}
+
+// Builds the background image view for the config's bgImage (it changes with the
+// color scheme), or removes it when there is no image. No-op when unchanged.
+- (void)applyImageFromConfig:(NSDictionary *)config {
     NSString *bgImage = [config objectForKey: @"bgImage"];
     BOOL hasImage = [self.bgType isEqualToString: @"image"] && [bgImage isKindOfClass: [NSString class]] && bgImage.length > 0;
+    NSString *bgImageURL = hasImage ? bgImage : nil;
+    if (bgImageURL == self.bgImageURL || [bgImageURL isEqualToString: self.bgImageURL]) {
+        return;
+    }
+    self.bgImageURL = bgImageURL;
+    [self.imageView removeFromSuperview];
+    self.imageView = nil;
+    [self.imageFadeLayer removeFromSuperlayer];
+    self.imageFadeLayer = nil;
+
     if (hasImage) {
         // White fallback + the background image fading in once loaded (matches
         // the web loader). Frames are assigned in renderBackground so
@@ -105,20 +138,19 @@
             self.imageFadeLayer = fade;
         }
 
-        [self loadImageFromURL: bgImage];
+        [self loadImageFromURL: bgImage intoImageView: imageView];
     }
-
-    self.configured = YES;
-    [self renderBackground];
 }
 
-// Downloads the background image and fades it in on the main thread.
-- (void)loadImageFromURL:(NSString *)urlString {
+// Downloads the background image and fades it in on the main thread, unless the
+// image view has been replaced in the meantime.
+- (void)loadImageFromURL:(NSString *)urlString intoImageView:(UIImageView *)imageView {
     NSURL *url = [NSURL URLWithString: urlString];
     if (url == nil) {
         return;
     }
     __weak typeof(self) weakSelf = self;
+    __weak UIImageView *weakImageView = imageView;
     [[[NSURLSession sharedSession] dataTaskWithURL: url completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
         if (data == nil || error != nil) {
             return;
@@ -129,12 +161,13 @@
         }
         dispatch_async(dispatch_get_main_queue(), ^{
             typeof(self) strongSelf = weakSelf;
-            if (strongSelf == nil || strongSelf.imageView == nil) {
+            UIImageView *strongImageView = weakImageView;
+            if (strongSelf == nil || strongImageView == nil || strongImageView != strongSelf.imageView) {
                 return;
             }
-            strongSelf.imageView.image = image;
+            strongImageView.image = image;
             [UIView animateWithDuration: 0.25 animations:^{
-                strongSelf.imageView.alpha = 1.0;
+                strongImageView.alpha = 1.0;
             }];
         });
     }] resume];
@@ -154,6 +187,14 @@
 
     [CATransaction begin];
     [CATransaction setDisableActions: YES];
+
+    // Clear the vector/gradient layers (tagged so we only clear our own); also
+    // when the image replaces them after a color scheme change.
+    for (CALayer *layer in [loadingView.layer.sublayers copy]) {
+        if ([layer.name isEqualToString: @"gleap-loading-bg"]) {
+            [layer removeFromSuperlayer];
+        }
+    }
 
     // Image type: frame the image view to the SAME box the messenger renders
     // the image into, so the aspect-fill crop is identical and the loader
@@ -202,13 +243,7 @@
         return;
     }
 
-    // Rebuild the vector/gradient layers (tagged so we only clear our own).
-    for (CALayer *layer in [loadingView.layer.sublayers copy]) {
-        if ([layer.name isEqualToString: @"gleap-loading-bg"]) {
-            [layer removeFromSuperlayer];
-        }
-    }
-
+    // Rebuild the vector/gradient layers.
     if (self.isV4) {
         [self drawV4ColourBackgroundInBounds: bounds intoView: loadingView];
     } else if ([self.bgType isEqualToString: @"classic"]) {

@@ -14,9 +14,6 @@ NSString * const GleapColorSchemeAuto = @"auto";
 NSString * const GleapColorSchemeLight = @"light";
 NSString * const GleapColorSchemeDark = @"dark";
 
-static NSString * const GleapDefaultLightBackgroundColor = @"#ffffff";
-static NSString * const GleapDefaultDarkBackgroundColor = @"#18181b";
-
 @class GleapTraitObserverView;
 
 @interface GleapThemeHelper ()
@@ -194,118 +191,140 @@ static NSString * const GleapDefaultDarkBackgroundColor = @"#18181b";
     return nil;
 }
 
-// Runtime scheme first, then the dashboard setting.
+// Dark / light mode is off unless the dashboard enables it (colorScheme
+// "auto", "light" or "dark"); then the runtime scheme wins over the dashboard's.
 - (NSString *)effectiveColorSchemeForConfig:(nullable NSDictionary *)config {
-    NSString *colorScheme = [GleapThemeHelper validColorScheme: self.colorScheme];
-    if (colorScheme == nil) {
-        colorScheme = [GleapThemeHelper validColorScheme: [config objectForKey: @"colorScheme"]];
+    NSString *dashboardColorScheme = [GleapThemeHelper validColorScheme: [config objectForKey: @"colorScheme"]];
+    if (dashboardColorScheme == nil) {
+        return GleapColorSchemeDefault;
     }
-    return colorScheme != nil ? colorScheme : GleapColorSchemeDefault;
+    NSString *colorScheme = [GleapThemeHelper validColorScheme: self.colorScheme];
+    return colorScheme != nil ? colorScheme : dashboardColorScheme;
 }
 
 - (nullable NSString *)activeColorSchemeForConfig:(nullable NSDictionary *)config {
     NSString *colorScheme = [self effectiveColorSchemeForConfig: config];
     if ([colorScheme isEqualToString: GleapColorSchemeAuto]) {
-        return self.detectedColorScheme;
+        colorScheme = self.detectedColorScheme;
     }
-    if ([colorScheme isEqualToString: GleapColorSchemeLight] || [colorScheme isEqualToString: GleapColorSchemeDark]) {
+    if ([colorScheme isEqualToString: GleapColorSchemeLight]) {
+        return colorScheme;
+    }
+    // No dark colors = no dark mode.
+    if ([colorScheme isEqualToString: GleapColorSchemeDark] &&
+        [GleapThemeHelper hasDarkPaletteInConfig: config darkBackgroundColor: self.darkBackgroundColor]) {
         return colorScheme;
     }
     return nil;
 }
 
 - (NSDictionary *)applyToConfig:(NSDictionary *)config {
-    NSString *lightBackgroundColor = self.lightBackgroundColor;
-    if (lightBackgroundColor == nil) {
-        lightBackgroundColor = [GleapThemeHelper normalizeHexColor: [config objectForKey: @"lightBackgroundColor"]];
-    }
-    NSString *darkBackgroundColor = self.darkBackgroundColor;
-    if (darkBackgroundColor == nil) {
-        darkBackgroundColor = [GleapThemeHelper normalizeHexColor: [config objectForKey: @"darkBackgroundColor"]];
-    }
-
     return [GleapThemeHelper applyColorScheme: [self activeColorSchemeForConfig: config]
                                      toConfig: config
-                         lightBackgroundColor: lightBackgroundColor != nil ? lightBackgroundColor : GleapDefaultLightBackgroundColor
-                          darkBackgroundColor: darkBackgroundColor != nil ? darkBackgroundColor : GleapDefaultDarkBackgroundColor];
+                         lightBackgroundColor: self.lightBackgroundColor
+                          darkBackgroundColor: self.darkBackgroundColor];
 }
 
-+ (NSDictionary *)applyColorScheme:(nullable NSString *)activeColorScheme toConfig:(NSDictionary *)config lightBackgroundColor:(NSString *)lightBackgroundColor darkBackgroundColor:(NSString *)darkBackgroundColor {
+// Base (light) key -> dark palette key.
++ (NSDictionary<NSString *, NSString *> *)darkPaletteKeys {
+    return @{
+        @"headerColor": @"darkHeaderColor",
+        @"headerColor2": @"darkHeaderColor2",
+        @"headerColor3": @"darkHeaderColor3",
+        @"color": @"darkColor",
+        @"backgroundColor": @"darkBackgroundColor"
+    };
+}
+
+// Base key -> dark key for the dashboard's dark logo, header background image
+// and composer glow. Independent fields without fallback: a present dark value
+// (also "") is used as it is, an absent one keeps the base value.
++ (NSDictionary<NSString *, NSString *> *)darkAssetKeys {
+    return @{
+        @"logo": @"darkLogo",
+        @"bgImage": @"darkBgImage",
+        @"aurora": @"darkAurora"
+    };
+}
+
++ (BOOL)hasDarkPaletteInConfig:(nullable NSDictionary *)config darkBackgroundColor:(nullable NSString *)darkBackgroundColor {
+    if ([GleapThemeHelper normalizeHexColor: darkBackgroundColor] != nil) {
+        return YES;
+    }
+    for (NSString *darkKey in [GleapThemeHelper darkPaletteKeys].allValues) {
+        if ([GleapThemeHelper normalizeHexColor: [config objectForKey: darkKey]] != nil) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
++ (NSDictionary *)applyColorScheme:(nullable NSString *)activeColorScheme toConfig:(NSDictionary *)config lightBackgroundColor:(nullable NSString *)lightBackgroundColor darkBackgroundColor:(nullable NSString *)darkBackgroundColor {
     if (config == nil || activeColorScheme == nil) {
         return config;
     }
 
-    BOOL dark = [activeColorScheme isEqualToString: GleapColorSchemeDark];
-    NSString *configuredBackgroundColor = [config objectForKey: @"backgroundColor"];
-    if (![configuredBackgroundColor isKindOfClass: [NSString class]] || configuredBackgroundColor.length == 0) {
-        configuredBackgroundColor = GleapDefaultLightBackgroundColor;
+    if ([activeColorScheme isEqualToString: GleapColorSchemeLight]) {
+        // The base colors are the light palette.
+        NSString *backgroundColor = [GleapThemeHelper normalizeHexColor: lightBackgroundColor];
+        if (backgroundColor == nil) {
+            return config;
+        }
+        NSMutableDictionary *themedConfig = [config mutableCopy];
+        [themedConfig setObject: backgroundColor forKey: @"backgroundColor"];
+        return themedConfig;
     }
 
-    // A dashboard background that already fits the scheme keeps the brand look.
-    if (dark == [GleapThemeHelper isDarkBackgroundColor: configuredBackgroundColor]) {
+    if (![activeColorScheme isEqualToString: GleapColorSchemeDark] ||
+        ![GleapThemeHelper hasDarkPaletteInConfig: config darkBackgroundColor: darkBackgroundColor]) {
         return config;
     }
 
     NSMutableDictionary *themedConfig = [config mutableCopy];
-    [themedConfig setObject: dark ? darkBackgroundColor : lightBackgroundColor forKey: @"backgroundColor"];
+    NSDictionary<NSString *, NSString *> *darkPaletteKeys = [GleapThemeHelper darkPaletteKeys];
+    for (NSString *key in darkPaletteKeys) {
+        NSString *darkColor = [GleapThemeHelper normalizeHexColor: [config objectForKey: darkPaletteKeys[key]]];
+        if (darkColor != nil) {
+            [themedConfig setObject: darkColor forKey: key];
+        }
+    }
+    NSString *runtimeDarkBackgroundColor = [GleapThemeHelper normalizeHexColor: darkBackgroundColor];
+    if (runtimeDarkBackgroundColor != nil) {
+        [themedConfig setObject: runtimeDarkBackgroundColor forKey: @"backgroundColor"];
+    }
+    NSDictionary<NSString *, NSString *> *darkAssetKeys = [GleapThemeHelper darkAssetKeys];
+    for (NSString *key in darkAssetKeys) {
+        id darkValue = [config objectForKey: darkAssetKeys[key]];
+        if (darkValue != nil && darkValue != [NSNull null]) {
+            [themedConfig setObject: darkValue forKey: key];
+        }
+    }
     return themedConfig;
 }
 
 #pragma mark - Colors
 
-// Parses #rgb, #rrggbb and #rrggbbaa into 0-255 channels.
-+ (BOOL)parseHexColor:(nullable id)color red:(CGFloat *)red green:(CGFloat *)green blue:(CGFloat *)blue {
-    if (![color isKindOfClass: [NSString class]]) {
-        return NO;
-    }
-    NSString *value = [(NSString *)color stringByTrimmingCharactersInSet: NSCharacterSet.whitespaceCharacterSet];
-    if (![value hasPrefix: @"#"]) {
-        return NO;
-    }
-    NSString *hex = [value substringFromIndex: 1];
-    NSCharacterSet *nonHex = [[NSCharacterSet characterSetWithCharactersInString: @"0123456789abcdefABCDEF"] invertedSet];
-    if ([hex rangeOfCharacterFromSet: nonHex].location != NSNotFound) {
-        return NO;
-    }
-    if (hex.length == 3) {
-        unichar r = [hex characterAtIndex: 0], g = [hex characterAtIndex: 1], b = [hex characterAtIndex: 2];
-        hex = [NSString stringWithFormat: @"%C%C%C%C%C%C", r, r, g, g, b, b];
-    } else if (hex.length == 8) {
-        hex = [hex substringToIndex: 6];
-    } else if (hex.length != 6) {
-        return NO;
-    }
-
-    unsigned int rgb = 0;
-    [[NSScanner scannerWithString: hex] scanHexInt: &rgb];
-    *red = (rgb >> 16) & 0xFF;
-    *green = (rgb >> 8) & 0xFF;
-    *blue = rgb & 0xFF;
-    return YES;
-}
-
-+ (BOOL)isDarkBackgroundColor:(nullable NSString *)color {
-    CGFloat red = 0, green = 0, blue = 0;
-    if (![GleapThemeHelper parseHexColor: color red: &red green: &green blue: &blue]) {
-        return NO;
-    }
-    CGFloat yiq = ((red * 299.0) + (green * 587.0) + (blue * 114.0)) / 1000.0;
-    return yiq < 160.0;
-}
-
 + (nullable NSString *)normalizeHexColor:(nullable id)color {
     if (![color isKindOfClass: [NSString class]]) {
         return nil;
     }
-    NSString *value = [(NSString *)color stringByTrimmingCharactersInSet: NSCharacterSet.whitespaceCharacterSet];
-    if (value.length != 4 && value.length != 7) {
+    NSString *value = [[(NSString *)color stringByTrimmingCharactersInSet: NSCharacterSet.whitespaceCharacterSet] lowercaseString];
+    if (![value hasPrefix: @"#"]) {
         return nil;
     }
-    CGFloat red = 0, green = 0, blue = 0;
-    if (![GleapThemeHelper parseHexColor: value red: &red green: &green blue: &blue]) {
+    NSString *hex = [value substringFromIndex: 1];
+    if (hex.length != 3 && hex.length != 6) {
         return nil;
     }
-    return [NSString stringWithFormat: @"#%02x%02x%02x", (int)red, (int)green, (int)blue];
+    NSCharacterSet *nonHex = [[NSCharacterSet characterSetWithCharactersInString: @"0123456789abcdef"] invertedSet];
+    if ([hex rangeOfCharacterFromSet: nonHex].location != NSNotFound) {
+        return nil;
+    }
+    if (hex.length == 3) {
+        unichar r = [hex characterAtIndex: 0], g = [hex characterAtIndex: 1], b = [hex characterAtIndex: 2];
+        hex = [NSString stringWithFormat: @"%C%C%C%C%C%C", r, r, g, g, b, b];
+    }
+    return [@"#" stringByAppendingString: hex];
 }
 
 @end
