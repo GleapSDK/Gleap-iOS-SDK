@@ -166,6 +166,14 @@
                     [Gleap.sharedInstance.delegate widgetOpened];
                 }
             }];
+        } else {
+            // Nothing to present on (no key window yet): the widget stays closed, so a later open
+            // can succeed, and the messages queued for this one are dropped as on close.
+            NSLog(@"[GLEAP_SDK] The widget could not be opened: there is no view controller to present it on.");
+            self.gleapWidget = nil;
+            self.widgetOpened = NO;
+            [self.messageQueue removeAllObjects];
+            [GleapUIOverlayHelper updateUI];
         }
     });
 }
