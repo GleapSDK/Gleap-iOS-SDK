@@ -12,6 +12,7 @@
 #import "GleapUIOverlayViewController.h"
 #import "Gleap.h"
 #import "GleapWebViewSupport.h"
+#import "GleapOutboundActions.h"
 #import <math.h>
 
 @implementation GleapBanner
@@ -120,10 +121,6 @@
             }];
         }
         
-        if ([name isEqualToString: @"start-conversation"]) {
-            [Gleap startBot: [messageData objectForKey: @"botId"] showBackButton: YES];
-        }
-        
         if ([name isEqualToString: @"start-custom-action"]) {
             if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(customActionCalled:)]) {
                 [Gleap.sharedInstance.delegate customActionCalled: (NSString *)[messageData objectForKey: @"action"] withShareToken: nil];
@@ -134,33 +131,8 @@
             }
         }
         
-        if ([name isEqualToString: @"open-url"]) {
-            [Gleap handleURL: (NSString *)messageData];
-        }
-        
-        if ([name isEqualToString: @"show-form"]) {
-            [Gleap startFeedbackFlow: [messageData objectForKey: @"formId"] showBackButton: YES];
-        }
-        
-        if ([name isEqualToString: @"show-survey"]) {
-            GleapSurveyFormat format = SURVEY;
-            if ([[messageData objectForKey: @"surveyFormat"] isEqualToString: @"survey_full"]) {
-                format = SURVEY_FULL;
-            }
-            [Gleap showSurvey: [messageData objectForKey: @"formId"] andFormat: format];
-        }
-        
-        if ([name isEqualToString: @"show-news-article"]) {
-            [Gleap openNewsArticle: [messageData objectForKey: @"articleId"] andShowBackButton: NO];
-        }
-        
-        if ([name isEqualToString: @"show-help-article"]) {
-            [Gleap openHelpCenterArticle: [messageData objectForKey: @"articleId"] andShowBackButton: NO];
-        }
-        
-        if ([name isEqualToString: @"show-checklist"]) {
-            [Gleap startChecklist: [messageData objectForKey: @"checklistId"] andShowBackButton: NO];
-        }
+        // Conversations, forms, surveys, articles, checklists and links.
+        [GleapOutboundActions performAction: name data: messageData];
     }
 }
 

@@ -7,6 +7,7 @@
 #import "GleapUIOverlayViewController.h"
 #import "Gleap.h"
 #import "GleapWebViewSupport.h"
+#import "GleapOutboundActions.h"
 #import <SafariServices/SafariServices.h>
 #import <WebKit/WebKit.h>
 
@@ -205,10 +206,7 @@
         else if ([name isEqualToString:@"modal-close"]) {
             [self hideModal];
         }
-        else if ([name isEqualToString:@"start-conversation"]) {
-            [self hideModal];
-            [Gleap startBot:data[@"botId"] showBackButton:YES];
-        } else if ([name isEqualToString:@"start-custom-action"]) {
+        else if ([name isEqualToString:@"start-custom-action"]) {
             [self hideModal];
             if ([Gleap.sharedInstance.delegate respondsToSelector:
                  @selector(customActionCalled:withShareToken:)]) {
@@ -219,29 +217,10 @@
                 [Gleap.sharedInstance.delegate
                  customActionCalled:data[@"action"]];
             }
-        } else if ([name isEqualToString:@"open-url"]) {
+        } else if ([GleapOutboundActions handlesAction: name]) {
+            // Conversations, forms, surveys, articles, checklists and links close the modal first.
             [self hideModal];
-            [Gleap handleURL: (NSString *)data];
-        } else if ([name isEqualToString:@"show-form"]) {
-            [self hideModal];
-            [Gleap startFeedbackFlow:data[@"formId"] showBackButton:YES];
-        } else if ([name isEqualToString:@"show-survey"]) {
-            GleapSurveyFormat format = SURVEY;
-            if ([data[@"surveyFormat"] isEqualToString:@"survey_full"]) {
-                format = SURVEY_FULL;
-            }
-            
-            [self hideModal];
-            [Gleap showSurvey:data[@"formId"] andFormat:format];
-        } else if ([name isEqualToString:@"show-news-article"]) {
-            [self hideModal];
-            [Gleap openNewsArticle:data[@"articleId"] andShowBackButton:NO];
-        } else if ([name isEqualToString:@"show-help-article"]) {
-            [self hideModal];
-            [Gleap openHelpCenterArticle:data[@"articleId"] andShowBackButton:NO];
-        } else if ([name isEqualToString:@"show-checklist"]) {
-            [self hideModal];
-            [Gleap startChecklist:data[@"checklistId"] andShowBackButton:NO];
+            [GleapOutboundActions performAction: name data: data];
         }
     } @catch (NSException * e) {
         NSLog(@"Modal action error, %@", e);
