@@ -27,6 +27,8 @@ Links in modals that are not web links (`tel:`, `sms:`, links into other apps) n
 
 The widget, banners and modals only accept messages from their own page: the main frame of the configured frame, banner or modal URL. Content embedded in help articles, news or banners (for example a third-party iframe) can no longer open links, run custom actions or agent tools, or send tickets through the SDK.
 
+Banners only grant camera and microphone access without asking to their own page; any other origin gets the system prompt. They used to grant it to any origin, including embedded third-party content.
+
 ## 18.1.0
 Added control over the env data (device, OS, screen, locale and battery details shown under the Env data tab of a ticket) the SDK collects:
 `Gleap.setEnvDataPropsToIgnore(["deviceName", "batteryLevel"])` removes individual env data keys from every ticket and conversation before it is sent. Each call replaces the previous list; an empty array resets it.

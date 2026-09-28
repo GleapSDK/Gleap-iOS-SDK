@@ -1,18 +1,20 @@
 import XCTest
 import ObjectiveC
+import WebKit
 @testable import Gleap
 
-/// Which web content may use the native bridge. The rules live in an internal class, so they are
-/// reached through the Objective-C runtime.
+/// Which web content may use the native bridge, the camera and the microphone. The rules live in
+/// an internal class, so they are reached through the Objective-C runtime.
 final class GleapWebContentTrustTests: XCTestCase {
     private typealias AcceptsMessage = @convention(c) (AnyClass, Selector, Bool, NSString?, NSString?) -> Bool
+    private typealias MediaCaptureDecision = @convention(c) (AnyClass, Selector, NSString?, NSString?) -> Int
 
     private func webViewSupport() throws -> AnyClass {
         try XCTUnwrap(NSClassFromString("GleapWebViewSupport"))
     }
 
     private func acceptsMessage() throws -> (Bool, String?, String?) -> Bool {
-        let support = try webViewSupport()
+        let support: AnyClass = try webViewSupport()
         let selector = NSSelectorFromString("acceptsMessageFromMainFrame:host:forPageURL:")
         let method = try XCTUnwrap(class_getClassMethod(support, selector))
         let function = unsafeBitCast(method_getImplementation(method), to: AcceptsMessage.self)
@@ -35,5 +37,19 @@ final class GleapWebContentTrustTests: XCTestCase {
         XCTAssertFalse(accepts(true, "messenger-app.gleap.io", "not a url"))
         XCTAssertTrue(accepts(true, "outboundmedia.gleap.io", "https://outboundmedia.gleap.io/modal"))
         XCTAssertTrue(accepts(true, "localhost", "http://localhost:8765/frame"), "custom URLs work the same way")
+    }
+
+    func testOnlyTheBannersOwnPageGetsCameraAndMicrophoneWithoutAsking() throws {
+        let support: AnyClass = try webViewSupport()
+        let selector = NSSelectorFromString("mediaCaptureDecisionForHost:pageURL:")
+        let method = try XCTUnwrap(class_getClassMethod(support, selector))
+        let function = unsafeBitCast(method_getImplementation(method), to: MediaCaptureDecision.self)
+        let decision = { (host: String?) in WKPermissionDecision(rawValue: function(support, selector, host as NSString?, "https://outboundmedia.gleap.io" as NSString)) }
+
+        XCTAssertEqual(decision("outboundmedia.gleap.io"), .grant)
+        XCTAssertEqual(decision("OutboundMedia.gleap.io"), .grant)
+        XCTAssertEqual(decision("www.youtube.com"), .prompt)
+        XCTAssertEqual(decision("outboundmedia.gleap.io.example.com"), .prompt)
+        XCTAssertEqual(decision(nil), .prompt)
     }
 }

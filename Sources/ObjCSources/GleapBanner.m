@@ -79,7 +79,9 @@
      initiatedByFrame:(WKFrameInfo *)frame type:(WKMediaCaptureType)type
      decisionHandler:(void (^)(WKPermissionDecision decision))decisionHandler
 {
-    decisionHandler(WKPermissionDecisionGrant);
+    // The banner's own page gets camera and microphone without asking; any other origin (for
+    // example an embedded third-party frame) gets the system prompt.
+    decisionHandler([GleapWebViewSupport mediaCaptureDecisionForHost: origin.host pageURL: Gleap.sharedInstance.bannerUrl]);
 }
 
 - (void)sendMessageWithData:(NSDictionary *)data {

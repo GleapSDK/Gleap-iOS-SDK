@@ -63,6 +63,10 @@ GLEAP_INTERNAL
     return host.length > 0 && pageHost.length > 0 && [host caseInsensitiveCompare: pageHost] == NSOrderedSame;
 }
 
++ (WKPermissionDecision)mediaCaptureDecisionForHost:(NSString *)host pageURL:(NSString *)pageURL {
+    return [self isHost: host ofPageURL: pageURL] ? WKPermissionDecisionGrant : WKPermissionDecisionPrompt;
+}
+
 + (void)disableScrollingInWebView:(WKWebView *)webView {
     webView.scrollView.scrollEnabled = NO;
     webView.scrollView.bounces = NO;

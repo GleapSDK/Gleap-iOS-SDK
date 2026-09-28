@@ -36,6 +36,10 @@ GLEAP_INTERNAL
 /// YES when `host` is the host of `pageURL` (case-insensitive).
 + (BOOL)isHost:(nullable NSString *)host ofPageURL:(nullable NSString *)pageURL;
 
+/// Camera and microphone for a page: granted without asking only for the host of `pageURL`,
+/// every other origin gets the system prompt.
++ (WKPermissionDecision)mediaCaptureDecisionForHost:(nullable NSString *)host pageURL:(nullable NSString *)pageURL;
+
 /// The page lays itself out: no scrolling, bouncing or automatic content insets.
 + (void)disableScrollingInWebView:(WKWebView *)webView;
 
