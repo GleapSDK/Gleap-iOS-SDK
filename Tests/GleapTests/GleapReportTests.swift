@@ -1,4 +1,5 @@
 import XCTest
+import ObjectiveC
 @testable import Gleap
 
 /// Report submission: what is uploaded, what reaches `/bugs/v2`, what is left out.
@@ -119,6 +120,21 @@ final class GleapReportTests: GleapNetworkTestCase {
         XCTAssertEqual(body["priority"] as? String, "HIGH")
         XCTAssertEqual((body["formData"] as? [String: Any])?["description"] as? String, "Payment failed")
         XCTAssertNil(body["attachments"])
+    }
+
+    func testSilentCrashReportWithoutDescriptionOrCompletionIsStillSent() throws {
+        // Only Objective-C callers can pass nil for these; they used to crash the app.
+        typealias SendSilentCrashReport = @convention(c) (AnyClass, Selector, NSString?, GleapBugSeverity, NSDictionary?, (@convention(block) (Bool) -> Void)?) -> Void
+        let selector = NSSelectorFromString("sendSilentCrashReportWith:andSeverity:andDataExclusion:andCompletion:")
+        let method = try XCTUnwrap(class_getClassMethod(Gleap.self, selector))
+        let sendReport = unsafeBitCast(method_getImplementation(method), to: SendSilentCrashReport.self)
+
+        sendReport(Gleap.self, selector, nil, HIGH, nil, nil)
+
+        let body = try XCTUnwrap(waitForRequest("/bugs/v2", timeout: 20)?.json)
+        XCTAssertEqual((body["formData"] as? [String: Any])?["description"] as? String, "")
+        XCTAssertEqual(body["priority"] as? String, "HIGH")
+        spin(0.5)
     }
 
     func testSilentCrashReportSeverityMapping() throws {

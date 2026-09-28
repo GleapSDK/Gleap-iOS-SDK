@@ -373,7 +373,7 @@
 
 + (void)openChecklist:(NSString *)checklistId andShowBackButton:(Boolean)showBackButton {
     [self openWidgetAndSend: @"open-checklist" data: ^{
-        return @{ @"id": checklistId, @"hideBackButton": @(!showBackButton) };
+        return @{ @"id": GleapObjectOrNull(checklistId), @"hideBackButton": @(!showBackButton) };
     }];
 }
 
@@ -383,7 +383,7 @@
 
 + (void)startChecklist:(NSString *)outboundId andShowBackButton:(Boolean)showBackButton {
     [self openWidgetAndSend: @"start-checklist" data: ^{
-        return @{ @"outboundId": outboundId, @"hideBackButton": @(!showBackButton) };
+        return @{ @"outboundId": GleapObjectOrNull(outboundId), @"hideBackButton": @(!showBackButton) };
     }];
 }
 
@@ -625,7 +625,7 @@
         GleapFeedback *feedback = [[GleapFeedback alloc] init];
         [feedback appendData: @{
             @"formData": @{
-                @"description": description
+                @"description": description ?: @""
             },
             @"isSilent": @(YES),
             @"type": @"CRASH",
@@ -651,7 +651,9 @@
         
         // Send crash report.
         [feedback send:^(bool success, NSDictionary* data) {
-            completion(success);
+            if (completion != nil) {
+                completion(success);
+            }
         }];
     });
 }
