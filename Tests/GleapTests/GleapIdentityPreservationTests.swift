@@ -62,6 +62,10 @@ final class GleapIdentityPreservationTests: GleapNetworkTestCase {
             ("server failure", serverFailure),
             ("offline", .failure(.notConnectedToInternet)),
             ("answer without a session", .json([String: Any](), status: 201)),
+            ("rate limited", .text("Too Many Requests", status: 429)),
+            ("rate limited with an error body", .json(["error": "Too Many Requests"], status: 429)),
+            ("timed out", .json(["error": "Request Timeout"], status: 408)),
+            ("error body without an error status", .json(["error": "unexpected"], status: 200)),
         ]
         for (name, reply) in answers {
             startOver()

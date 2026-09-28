@@ -96,12 +96,12 @@
 }
 
 /*
- YES when the server answered with an explicit error (an `error` or `errors` body) that is not a
- server failure (5xx), i.e. it refused the request itself rather than failing to handle it.
+ YES when the server refused the request itself: a 4xx answer with an explicit error (an `error` or
+ `errors` body). Server failures (5xx), timeouts (408) and rate limits (429) are not refusals.
  */
 + (BOOL)isErrorAnswerInResponse:(NSURLResponse *)response data:(NSData *)data {
     NSInteger status = [GleapAPIClient statusCodeOfResponse: response];
-    if (status == 0 || status >= 500 || data == nil) {
+    if (status < 400 || status >= 500 || status == 408 || status == 429 || data == nil) {
         return NO;
     }
     id json = [NSJSONSerialization JSONObjectWithData: data options: 0 error: nil];
