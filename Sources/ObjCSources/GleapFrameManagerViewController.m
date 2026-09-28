@@ -8,12 +8,12 @@
 
 #import "GleapFrameManagerViewController.h"
 #import "GleapInternal.h"
+#import "GleapWebViewSupport.h"
 #import "GleapCore.h"
 #import "GleapReplayHelper.h"
 #import "GleapSessionHelper.h"
 #import "GleapTranslationHelper.h"
 #import "GleapConfigHelper.h"
-#import <SafariServices/SafariServices.h>
 #import <CoreImage/CoreImage.h>
 #import <math.h>
 #import "GleapFeedback.h"
@@ -604,24 +604,7 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 }
 
 - (void)sendMessageWithData:(NSDictionary *)data {
-    @try {
-        NSError *error;
-        NSData *jsonData = [NSJSONSerialization dataWithJSONObject: data
-                                                           options: 0
-                                                             error:&error];
-        if (!jsonData) {
-            NSLog(@"[GLEAP_SDK] Error sending message: %@", error);
-        } else {
-            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-            dispatch_async(dispatch_get_main_queue(), ^{
-                @try {
-                    [self.webView evaluateJavaScript: [NSString stringWithFormat: @"sendMessage(%@)", jsonString] completionHandler: nil];
-                }
-                @catch(id exception) {}
-            });
-        }
-    }
-    @catch(id exception) {}
+    [GleapWebViewSupport sendMessage: data toFunction: @"sendMessage" inWebView: self.webView];
 }
 
 - (void)stopLoading {
@@ -875,31 +858,18 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 }
 
 - (WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures {
-    NSURL *url = navigationAction.request.URL;
-    [self openURLExternally: url fromViewController: self];
+    [GleapWebViewSupport presentURLInSafari: navigationAction.request.URL from: self];
     return nil;
 }
 
 - (void)createWebView {
-    WKWebViewConfiguration *webConfig = [[WKWebViewConfiguration alloc] init];
-    WKUserContentController* userController = [[WKUserContentController alloc] init];
-    [userController addScriptMessageHandler: self name: @"gleapCallback"];
-    webConfig.userContentController = userController;
-    webConfig.websiteDataStore = [WKWebsiteDataStore nonPersistentDataStore];
-    
+    WKWebViewConfiguration *webConfig = [GleapWebViewSupport configurationWithMessageHandler: self name: @"gleapCallback" allowsInlineMediaPlayback: NO];
     self.webView = [[WKWebView alloc] initWithFrame:self.view.frame configuration: webConfig];
-    self.webView.opaque = false;
-    self.webView.backgroundColor = UIColor.clearColor;
-    self.webView.scrollView.backgroundColor = UIColor.clearColor;
+    [GleapWebViewSupport makeWebViewTransparent: self.webView];
+    [GleapWebViewSupport disableScrollingInWebView: self.webView];
     self.webView.navigationDelegate = self;
     self.webView.UIDelegate = self;
-    self.webView.scrollView.bounces = NO;
-    self.webView.scrollView.alwaysBounceVertical = NO;
-    self.webView.scrollView.alwaysBounceHorizontal = NO;
-    self.webView.scrollView.scrollEnabled = NO;
     self.webView.allowsBackForwardNavigationGestures = NO;
-    
-    [self.webView.scrollView setContentInsetAdjustmentBehavior: UIScrollViewContentInsetAdjustmentNever];
     
     [self.view addSubview: self.webView];
     self.webView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -960,27 +930,9 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
     [self presentViewController:alertController animated:YES completion:^{}];
 }
 
-- (void)openURLExternally:(NSURL *)url fromViewController:(UIViewController *)presentingViewController {
-    @try {
-        SFSafariViewController *viewController = [[SFSafariViewController alloc] initWithURL: url];
-        viewController.modalPresentationStyle = UIModalPresentationFormSheet;
-        viewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
-        [presentingViewController presentViewController:viewController animated:YES completion:nil];
-    } @catch (id exp) {
-        
-    }
-}
-
 - (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
     if (navigationAction.navigationType == WKNavigationTypeLinkActivated) {
-        NSURL *url = navigationAction.request.URL;
-        if ([url.absoluteString hasPrefix: @"mailto:"]) {
-            if ([[UIApplication sharedApplication] canOpenURL: url]) {
-                [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
-            }
-        } else {
-            [self openURLExternally: url fromViewController: self];
-        }
+        [GleapWebViewSupport openTappedLink: navigationAction.request.URL from: self];
         return decisionHandler(WKNavigationActionPolicyCancel);
     }
     

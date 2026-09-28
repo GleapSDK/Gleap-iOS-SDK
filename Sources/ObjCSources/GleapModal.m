@@ -6,6 +6,7 @@
 #import "GleapUIOverlayHelper.h"
 #import "GleapUIOverlayViewController.h"
 #import "Gleap.h"
+#import "GleapWebViewSupport.h"
 #import <SafariServices/SafariServices.h>
 #import <WebKit/WebKit.h>
 
@@ -92,13 +93,7 @@
     heightConstraint.active = YES;
 
     // 3) WKWebView config
-    WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
-    WKUserContentController *userController = [[WKUserContentController alloc] init];
-    [userController addScriptMessageHandler:self name:@"gleapModalCallback"];
-    config.userContentController = userController;
-    config.allowsInlineMediaPlayback = YES;
-    config.websiteDataStore = [WKWebsiteDataStore nonPersistentDataStore];
-
+    WKWebViewConfiguration *config = [GleapWebViewSupport configurationWithMessageHandler: self name: @"gleapModalCallback" allowsInlineMediaPlayback: YES];
     self.webView = [[WKWebView alloc] initWithFrame:CGRectZero configuration:config];
     self.webView.translatesAutoresizingMaskIntoConstraints = NO;
     self.webView.navigationDelegate = self;
@@ -106,13 +101,9 @@
     self.webView.scrollView.pinchGestureRecognizer.enabled = NO;
     self.webView.layer.cornerRadius = 20.0;
     self.webView.layer.masksToBounds = YES;
-    self.webView.scrollView.bounces = NO;
     // Disables the main frame's scroll view only — the card's own scroll region
     // still scrolls, and that's the one that should.
-    self.webView.scrollView.scrollEnabled = NO;
-    self.webView.scrollView.alwaysBounceHorizontal = NO;
-    self.webView.scrollView.alwaysBounceVertical = NO;
-    self.webView.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
+    [GleapWebViewSupport disableScrollingInWebView: self.webView];
 
     // 4) Scroll view + web view
     self.scrollView = [[UIScrollView alloc] init];
@@ -167,22 +158,7 @@
 }
 
 - (void)sendMessageWithData:(NSDictionary *)data {
-    @try {
-        NSError *err;
-        NSData *json = [NSJSONSerialization dataWithJSONObject:data options:0 error:&err];
-        if (!json) {
-            NSLog(@"[Gleap] JSON Error: %@", err);
-            return;
-        }
-        NSString *js = [[NSString alloc] initWithData:json encoding:NSUTF8StringEncoding];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.webView evaluateJavaScript:
-                [NSString stringWithFormat:@"appMessage(%@)", js]
-                             completionHandler:nil];
-        });
-    } @catch (NSException *ex) {
-        NSLog(@"[Gleap] Exception sending message: %@", ex);
-    }
+    [GleapWebViewSupport sendMessage: data toFunction: @"appMessage" inWebView: self.webView];
 }
 
 - (void)userContentController:(WKUserContentController *)uC didReceiveScriptMessage:(WKScriptMessage *)message {
