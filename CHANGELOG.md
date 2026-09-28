@@ -10,6 +10,42 @@ Network log filtering (`networkLogPropsToIgnore` from the dashboard and `Gleap.s
 
 Console logs capture the app's stdout and stderr again, now on iOS 15+ and in debug builds too: `print()`, `NSLog` (which the unified log only stores as `<private>`) and anything else written to the standard streams, while the output still reaches the Xcode console. os_log / Logger messages are read from the unified log as before, but now the most recent ones (the reader kept the oldest 300 entries since launch), with errors and faults marked as errors and `<private>` placeholders left out. `Gleap.enableDebugConsoleLog()` is no longer needed. Log dates are UTC with milliseconds, independent of the device's calendar and 12/24-hour setting (a non-Gregorian calendar produced dates the server dropped). Conversations always include the captured console output, even when reading the unified log takes longer than the widget waits. Inside the Capacitor SDK, Capacitor's own copies of the WebView console (`⚡️  [log] - ...`) are left out, since the Capacitor plugin records the WebView console itself. Data attached by the React Native, Flutter and Capacitor SDKs is now read and written under a lock (a report built while a wrapper attached new logs could crash).
 
+Reports only count as sent once the server accepted them. A report the server rejects (for example because it is too large) now calls `feedbackSendingFailed` and shows the error in the widget, where it used to call `feedbackSent` and `outboundSent` for a ticket that was never created. When the server is momentarily overloaded (503), a report and its uploads are sent once more after the delay the server asks for (at most 5 seconds). An attachment upload that was rejected, or whose answer does not list every uploaded file, no longer crashes the app; the report is sent without the attachments.
+
+A failed request no longer costs the user their identity. When a session start, `identify` or `updateContact` met an overloaded server or a server error, or `updateContact` was refused (for example because the request was too large), the SDK could delete the stored guest or user identity, so the user continued as a new guest without their conversations. Only an answer that contains a session replaces the stored identity now. An `identify` the server refuses with an error (for example because of a wrong user hash) still starts a new guest session, as before.
+
+Custom actions from banners now reach the app the same way as those from modals: `customActionCalled(_:withShareToken:)` when the delegate implements it, otherwise `customActionCalled(_:)`. A banner action used to crash apps whose delegate implements `customActionCalled(_:)` (the Flutter plugin) and never reached apps that only implement the two-argument version (React Native, Capacitor).
+
+A closed widget, banner or modal is released again, together with its web view and web content process. Each one used to stay in memory until the app quit, because its web view kept it alive.
+
+The realtime connection no longer reconnects every 5 seconds after the session changed (for example after `identify`), and all connections share one URL session instead of creating a new one per attempt. Realtime messages are now handled on the main queue, like the answers to the event stream.
+
+Replays keep recording after the app returns from the background or the config is loaded again; until now they stopped for good the first time either happened.
+
+Restarting the session (for example on `identify`) no longer adds another page tracking timer each time.
+
+`identifyContact` (and `identifyUserWith`) without user data and `updateContact(nil)` no longer crash; the header always declared the data optional.
+
+Opening the widget before the app has a window to show it on no longer leaves the SDK thinking the widget is open, which blocked every later attempt to open it and kept the feedback button hidden.
+
+Links in modals that are not web links (`tel:`, `sms:`, links into other apps) no longer crash the app; they open in the app that handles them.
+
+The widget, banners and modals only accept messages from their own page: the main frame of the configured frame, banner or modal URL. Content embedded in help articles, news or banners (for example a third-party iframe) can no longer open links, run custom actions or agent tools, or send tickets through the SDK.
+
+Banners only grant camera and microphone access without asking to their own page; any other origin gets the system prompt. They used to grant it to any origin, including embedded third-party content.
+
+Custom data, ticket attributes, tags, attachments, prefilled form data, the session and the commands waiting for the widget are now read and written under a lock, so they can be changed from any thread (as the wrappers do) while a report is built or the widget opens; this could crash with "Collection was mutated while being enumerated".
+
+`configLoaded` and `initialized` now arrive on the main thread, once per `initialize` call. A session recovery (opening the widget after an offline start) no longer reports them a second time; if the config had not loaded before, the recovery reports them instead. Calling `initialize` again with the same API key, as a reloaded JavaScript context does (a React Native reload or over-the-air update, a Capacitor WebView reload), no longer starts another session or loads the config again: once the config has loaded, the delegate set at that point gets `configLoaded` with the loaded config and then `initialized`; before that, the first config load reports to it. With a different key the SDK starts over as before.
+
+`openChecklist`, `startChecklist` and `sendSilentCrashReport` no longer crash when an Objective-C caller passes nil for the checklist id, the description or the completion block.
+
+Touches and motion events (such as a shake) that reach the app's window are now passed on along the responder chain, to the application and its delegate. The SDK's `UIWindow` category used to handle them without passing them on.
+
+A feedback button that is created again (for example after the app switched its key window) no longer gets a layout constraint that ties the button to itself.
+
+The SDK no longer adds a second feedback button when the config arrives while it is still setting up its overlay. The extra button sat underneath the real one without a notification badge, and stayed on screen after `showFeedbackButton(false)` hid the real one.
+
 ## 18.1.0
 Added control over the env data (device, OS, screen, locale and battery details shown under the Env data tab of a ticket) the SDK collects:
 `Gleap.setEnvDataPropsToIgnore(["deviceName", "batteryLevel"])` removes individual env data keys from every ticket and conversation before it is sent. Each call replaces the previous list; an empty array resets it.

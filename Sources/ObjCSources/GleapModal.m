@@ -6,11 +6,13 @@
 #import "GleapUIOverlayHelper.h"
 #import "GleapUIOverlayViewController.h"
 #import "Gleap.h"
-#import <SafariServices/SafariServices.h>
+#import "GleapWebViewSupport.h"
+#import "GleapOutboundActions.h"
+#import "GleapURLHandler.h"
 #import <WebKit/WebKit.h>
 
 @interface GleapModal ()
-// Redeclare as readwrite to match the public readonly in the header
+// Layout state; not part of the public header.
 @property (nonatomic, strong, readwrite) NSLayoutConstraint *heightConstraint;
 @property (nonatomic, strong, readwrite) NSLayoutConstraint *maxWidthConstraint;
 // The web content scrolls its own body once it knows how much room it has (we
@@ -25,6 +27,10 @@
 @end
 
 @implementation GleapModal
+
+- (void)dealloc {
+    [GleapWebViewSupport removeMessageHandlerNamed: @"gleapModalCallback" fromWebView: _webView];
+}
 
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
@@ -92,13 +98,7 @@
     heightConstraint.active = YES;
 
     // 3) WKWebView config
-    WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
-    WKUserContentController *userController = [[WKUserContentController alloc] init];
-    [userController addScriptMessageHandler:self name:@"gleapModalCallback"];
-    config.userContentController = userController;
-    config.allowsInlineMediaPlayback = YES;
-    config.websiteDataStore = [WKWebsiteDataStore nonPersistentDataStore];
-
+    WKWebViewConfiguration *config = [GleapWebViewSupport configurationWithMessageHandler: self name: @"gleapModalCallback" allowsInlineMediaPlayback: YES];
     self.webView = [[WKWebView alloc] initWithFrame:CGRectZero configuration:config];
     self.webView.translatesAutoresizingMaskIntoConstraints = NO;
     self.webView.navigationDelegate = self;
@@ -106,15 +106,9 @@
     self.webView.scrollView.pinchGestureRecognizer.enabled = NO;
     self.webView.layer.cornerRadius = 20.0;
     self.webView.layer.masksToBounds = YES;
-    self.webView.scrollView.bounces = NO;
     // Disables the main frame's scroll view only — the card's own scroll region
     // still scrolls, and that's the one that should.
-    self.webView.scrollView.scrollEnabled = NO;
-    self.webView.scrollView.alwaysBounceHorizontal = NO;
-    self.webView.scrollView.alwaysBounceVertical = NO;
-    if (@available(iOS 11.0, *)) {
-        self.webView.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
-    }
+    [GleapWebViewSupport disableScrollingInWebView: self.webView];
 
     // 4) Scroll view + web view
     self.scrollView = [[UIScrollView alloc] init];
@@ -122,9 +116,7 @@
     self.scrollView.showsVerticalScrollIndicator = YES;
     self.scrollView.showsHorizontalScrollIndicator = NO;
     self.scrollView.bounces = NO;
-    if (@available(iOS 11.0, *)) {
-        self.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
-    }
+    self.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
     [container addSubview:self.scrollView];
     [self.scrollView addSubview:self.webView];
 
@@ -194,27 +186,13 @@
 }
 
 - (void)sendMessageWithData:(NSDictionary *)data {
-    @try {
-        NSError *err;
-        NSData *json = [NSJSONSerialization dataWithJSONObject:data options:0 error:&err];
-        if (!json) {
-            NSLog(@"[Gleap] JSON Error: %@", err);
-            return;
-        }
-        NSString *js = [[NSString alloc] initWithData:json encoding:NSUTF8StringEncoding];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self.webView evaluateJavaScript:
-                [NSString stringWithFormat:@"appMessage(%@)", js]
-                             completionHandler:nil];
-        });
-    } @catch (NSException *ex) {
-        NSLog(@"[Gleap] Exception sending message: %@", ex);
-    }
+    [GleapWebViewSupport sendMessage: data toFunction: @"appMessage" inWebView: self.webView];
 }
 
 - (void)userContentController:(WKUserContentController *)uC didReceiveScriptMessage:(WKScriptMessage *)message {
     @try {
         if (![message.name isEqualToString:@"gleapModalCallback"]) return;
+        if (![GleapWebViewSupport isTrustedMessage: message forPageURL: Gleap.sharedInstance.modalUrl]) return;
         NSDictionary *body = message.body;
         NSString *name = body[@"name"];
         NSDictionary *data = body[@"data"];
@@ -241,43 +219,13 @@
         else if ([name isEqualToString:@"modal-close"]) {
             [self hideModal];
         }
-        else if ([name isEqualToString:@"start-conversation"]) {
+        else if ([name isEqualToString:@"start-custom-action"]) {
             [self hideModal];
-            [Gleap startBot:data[@"botId"] showBackButton:YES];
-        } else if ([name isEqualToString:@"start-custom-action"]) {
+            [GleapOutboundActions notifyCustomAction: data[@"action"]];
+        } else if ([GleapOutboundActions handlesAction: name]) {
+            // Conversations, forms, surveys, articles, checklists and links close the modal first.
             [self hideModal];
-            if ([Gleap.sharedInstance.delegate respondsToSelector:
-                 @selector(customActionCalled:withShareToken:)]) {
-                [Gleap.sharedInstance.delegate
-                 customActionCalled:data[@"action"] withShareToken:nil];
-            } else if ([Gleap.sharedInstance.delegate respondsToSelector:
-                        @selector(customActionCalled:)]) {
-                [Gleap.sharedInstance.delegate
-                 customActionCalled:data[@"action"]];
-            }
-        } else if ([name isEqualToString:@"open-url"]) {
-            [self hideModal];
-            [Gleap handleURL: (NSString *)data];
-        } else if ([name isEqualToString:@"show-form"]) {
-            [self hideModal];
-            [Gleap startFeedbackFlow:data[@"formId"] showBackButton:YES];
-        } else if ([name isEqualToString:@"show-survey"]) {
-            GleapSurveyFormat format = SURVEY;
-            if ([data[@"surveyFormat"] isEqualToString:@"survey_full"]) {
-                format = SURVEY_FULL;
-            }
-            
-            [self hideModal];
-            [Gleap showSurvey:data[@"formId"] andFormat:format];
-        } else if ([name isEqualToString:@"show-news-article"]) {
-            [self hideModal];
-            [Gleap openNewsArticle:data[@"articleId"] andShowBackButton:NO];
-        } else if ([name isEqualToString:@"show-help-article"]) {
-            [self hideModal];
-            [Gleap openHelpCenterArticle:data[@"articleId"] andShowBackButton:NO];
-        } else if ([name isEqualToString:@"show-checklist"]) {
-            [self hideModal];
-            [Gleap startChecklist:data[@"checklistId"] andShowBackButton:NO];
+            [GleapOutboundActions performAction: name data: data];
         }
     } @catch (NSException * e) {
         NSLog(@"Modal action error, %@", e);
@@ -289,7 +237,10 @@
         self.alpha = 0.0;
     } completion:^(BOOL finished) {
         [self removeFromSuperview];
-        self.uiOverlayViewController.modal = nil;
+        // Unless a newer modal has taken this one's place already.
+        if (self.uiOverlayViewController.modal == self) {
+            self.uiOverlayViewController.modal = nil;
+        }
     }];
 }
 
@@ -311,16 +262,9 @@ decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler
 }
 
 - (void)openURLExternally:(NSURL *)url {
-    UIViewController *vc = [GleapUIHelper getTopMostViewController];
-    if ([SFSafariViewController class]) {
-        SFSafariViewController *svc = [[SFSafariViewController alloc] initWithURL:url];
-        svc.modalPresentationStyle = UIModalPresentationFormSheet;
-        [vc presentViewController:svc animated:YES completion:nil];
-    } else {
-        if ([[UIApplication sharedApplication] canOpenURL:url]) {
-            [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
-        }
-    }
+    // Like +[Gleap handleURL:]: SFSafariViewController only takes http(s) and threw for tel:,
+    // sms: or app links, which crashed the app; those now open in the app that handles them.
+    [GleapURLHandler openURLExternally: url fromViewController: [GleapUIHelper getTopMostViewController]];
 }
 
 // 5) Re-clamp on size/orientation changes

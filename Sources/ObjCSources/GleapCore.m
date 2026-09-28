@@ -1,12 +1,13 @@
 //
-//  Gleap.m
-//  GleapCore
+//  GleapCore.m
+//  Gleap
 //
 //  Created by Lukas on 13.01.19.
 //  Copyright © 2021 Gleap. All rights reserved.
 //
 
 #import "GleapCore.h"
+#import "GleapInternal.h"
 #import "GleapFrameManagerViewController.h"
 #import "GleapReplayHelper.h"
 #import "GleapHttpTrafficRecorder.h"
@@ -14,6 +15,7 @@
 #import "GleapUserProperty.h"
 #import "GleapEventLogHelper.h"
 #import "GleapConfigHelper.h"
+#import "GleapConfigHelper+Internal.h"
 #import "GleapMetaDataHelper.h"
 #import "GleapScreenCaptureHelper.h"
 #import "GleapConsoleLogHelper.h"
@@ -30,16 +32,11 @@
 #import "GleapPreFillHelper.h"
 #import "GleapTagHelper.h"
 #import "GleapThemeHelper.h"
-#import <SafariServices/SafariServices.h>
+#import "GleapURLHandler.h"
 
 @interface Gleap ()
 
 @end
-
-static id ObjectOrNull(id object)
-{
-  return object ?: [NSNull null];
-}
 
 @implementation Gleap
 
@@ -205,7 +202,11 @@ static id ObjectOrNull(id object)
 }
 
 + (void)preFillForm: (NSDictionary *)data {
-    [[GleapPreFillHelper sharedInstance].preFillData addEntriesFromDictionary: data];
+    // Under the helper's lock: the widget serializes the prefill data on another thread.
+    GleapPreFillHelper *helper = [GleapPreFillHelper sharedInstance];
+    @synchronized (helper) {
+        [helper.preFillData addEntriesFromDictionary: data];
+    }
 }
 
 /*
@@ -213,6 +214,14 @@ static id ObjectOrNull(id object)
  */
 + (void)initializeWithToken: (NSString *)token {
     if ([Gleap sharedInstance].initialized) {
+        // Again with the same key: a reloaded JavaScript context (React Native reload or OTA update,
+        // Capacitor WebView reload). The session and config stay; the new context's delegate is
+        // told again that the config loaded and the SDK initialized, as it waits for that.
+        if (token != nil && [token isEqualToString: [Gleap sharedInstance].token]) {
+            NSLog(@"[GLEAP_SDK] Gleap has already been initialized with this API key.");
+            [[GleapConfigHelper sharedInstance] repeatInitializeCallbacks];
+            return;
+        }
         NSLog(@"[GLEAP_SDK] Gleap has already been initialized.");
     }
     
@@ -227,68 +236,26 @@ static id ObjectOrNull(id object)
     }];
 }
 
-/**
- * Updates a session's user data.
- * @author Gleap
- *
- * @param userId The user ID of the the user (can be an email as well)
- * @param data The updated user data.
- * @deprecated Use identifyContact instead.
- */
 + (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data {
     [GleapSessionHelper.sharedInstance identifySessionWith: userId andData: data andUserHash: nil];
 }
 
-/**
- * Updates a session's identity.
- * @author Gleap
- *
- * @param userId The user ID of the the user (can be an email as well)
- * @param data The updated user data.
- * @param userHash The calculated user hash to verify ownership.
- * @deprecated Use identifyContact instead.
- */
 + (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString *)userHash {
     [GleapSessionHelper.sharedInstance identifySessionWith: userId andData: data andUserHash: userHash];
 }
 
-/**
- * Identifies a guest as user.
- * @author Gleap
- *
- * @param userId The user ID of the the user (can be an email as well)
- * @param data The updated user data.
- */
 + (void)identifyContact:(NSString *)userId andData:(nullable GleapUserProperty *)data {
     [GleapSessionHelper.sharedInstance identifySessionWith: userId andData: data andUserHash: nil];
 }
 
-/**
- * Identifies a guest as user (secure).
- * @author Gleap
- *
- * @param userId The user ID of the the user (can be an email as well)
- * @param data The updated user data.
- * @param userHash The calculated user hash to verify ownership.
- */
 + (void)identifyContact:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString *)userHash {
     [GleapSessionHelper.sharedInstance identifySessionWith: userId andData: data andUserHash: userHash];
 }
 
-/**
- * Updates the current contact data.
- * @author Gleap
- *
- * @param data The updated user data.
- */
 + (void)updateContact:(nullable GleapUserProperty *)data {
     [GleapSessionHelper.sharedInstance updateContact: data];
 }
 
-/**
- * Clears a user session.
- * @author Gleap
- */
 + (void)clearIdentity {
     [GleapSessionHelper.sharedInstance clearSession];
 }
@@ -344,32 +311,35 @@ static id ObjectOrNull(id object)
     return [[Gleap sharedInstance] startFeedbackFlow: nil withOptions: nil];
 }
 
+#pragma mark - Widget commands
+
+/*
+ Opens the widget and hands it a command. The data is only built once the widget is open,
+ exactly like the commands did inline before.
+ */
++ (void)openWidgetAndSend:(NSString *)name data:(NSDictionary *(^)(void))data {
+    if ([Gleap open]) {
+        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
+            @"name": name,
+            @"data": data()
+        }];
+    }
+}
+
 + (void)openNewsArticle:(NSString *)articleId {
     [self openNewsArticle: articleId andShowBackButton: YES];
 }
 
 + (void)openNewsArticle:(NSString *)articleId andShowBackButton:(Boolean)showBackButton {
-    if ([Gleap open]) {
-        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"open-news-article",
-            @"data": @{
-              @"id": ObjectOrNull(articleId),
-              @"hideBackButton": @(!showBackButton)
-            }
-        }];
-    }
+    [self openWidgetAndSend: @"open-news-article" data: ^{
+        return @{ @"id": GleapObjectOrNull(articleId), @"hideBackButton": @(!showBackButton) };
+    }];
 }
 
 + (void)startBot:(NSString * _Nullable)botId showBackButton:(BOOL)showBackButton {
-    if ([Gleap open]) {
-        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"start-bot",
-            @"data": @{
-              @"botId": ObjectOrNull(botId),
-              @"hideBackButton": @(!showBackButton)
-            }
-        }];
-    }
+    [self openWidgetAndSend: @"start-bot" data: ^{
+        return @{ @"botId": GleapObjectOrNull(botId), @"hideBackButton": @(!showBackButton) };
+    }];
 }
 
 + (void)startConversation:(BOOL)showBackButton {
@@ -381,25 +351,15 @@ static id ObjectOrNull(id object)
 }
 
 + (void)openConversations:(Boolean)showBackButton {
-    if ([Gleap open]) {
-        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"open-conversations",
-            @"data": @{
-                @"hideBackButton": @(!showBackButton)
-            },
-        }];
-    }
+    [self openWidgetAndSend: @"open-conversations" data: ^{
+        return @{ @"hideBackButton": @(!showBackButton) };
+    }];
 }
 
 + (void)openConversation:(NSString *)shareToken {
-    if ([Gleap open]) {
-        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"open-conversation",
-            @"data": @{
-                @"shareToken": ObjectOrNull(shareToken)
-            },
-        }];
-    }
+    [self openWidgetAndSend: @"open-conversation" data: ^{
+        return @{ @"shareToken": GleapObjectOrNull(shareToken) };
+    }];
 }
 
 + (void)openChecklists {
@@ -407,14 +367,9 @@ static id ObjectOrNull(id object)
 }
 
 + (void)openChecklists:(Boolean)showBackButton {
-    if ([Gleap open]) {
-        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"open-checklists",
-            @"data": @{
-                @"hideBackButton": @(!showBackButton)
-            }
-        }];
-    }
+    [self openWidgetAndSend: @"open-checklists" data: ^{
+        return @{ @"hideBackButton": @(!showBackButton) };
+    }];
 }
 
 + (void)openChecklist:(NSString *)checklistId {
@@ -422,15 +377,9 @@ static id ObjectOrNull(id object)
 }
 
 + (void)openChecklist:(NSString *)checklistId andShowBackButton:(Boolean)showBackButton {
-    if ([Gleap open]) {
-        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"open-checklist",
-            @"data": @{
-                @"id": checklistId,
-                @"hideBackButton": @(!showBackButton)
-            }
-        }];
-    }
+    [self openWidgetAndSend: @"open-checklist" data: ^{
+        return @{ @"id": GleapObjectOrNull(checklistId), @"hideBackButton": @(!showBackButton) };
+    }];
 }
 
 + (void)startChecklist:(NSString *)outboundId {
@@ -438,15 +387,9 @@ static id ObjectOrNull(id object)
 }
 
 + (void)startChecklist:(NSString *)outboundId andShowBackButton:(Boolean)showBackButton {
-    if ([Gleap open]) {
-        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"start-checklist",
-            @"data": @{
-                @"outboundId": outboundId,
-                @"hideBackButton": @(!showBackButton)
-            }
-        }];
-    }
+    [self openWidgetAndSend: @"start-checklist" data: ^{
+        return @{ @"outboundId": GleapObjectOrNull(outboundId), @"hideBackButton": @(!showBackButton) };
+    }];
 }
 
 + (void)openNews {
@@ -454,14 +397,9 @@ static id ObjectOrNull(id object)
 }
 
 + (void)openNews:(Boolean)showBackButton {
-    if ([Gleap open]) {
-        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"open-news",
-            @"data": @{
-              @"hideBackButton": @(!showBackButton)
-            }
-        }];
-    }
+    [self openWidgetAndSend: @"open-news" data: ^{
+        return @{ @"hideBackButton": @(!showBackButton) };
+    }];
 }
 
 + (void)openFeatureRequests {
@@ -469,14 +407,9 @@ static id ObjectOrNull(id object)
 }
 
 + (void)openFeatureRequests:(Boolean)showBackButton {
-    if ([Gleap open]) {
-        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"open-feature-requests",
-            @"data": @{
-                @"hideBackButton": @(!showBackButton)
-            }
-        }];
-    }
+    [self openWidgetAndSend: @"open-feature-requests" data: ^{
+        return @{ @"hideBackButton": @(!showBackButton) };
+    }];
 }
 
 + (void)openHelpCenterCollection:(NSString *)collectionId {
@@ -484,15 +417,9 @@ static id ObjectOrNull(id object)
 }
 
 + (void)openHelpCenterCollection:(NSString *)collectionId andShowBackButton:(Boolean)showBackButton {
-    if ([Gleap open]) {
-        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"open-help-collection",
-            @"data": @{
-                @"collectionId": ObjectOrNull(collectionId),
-                @"hideBackButton": @(!showBackButton)
-            }
-        }];
-    }
+    [self openWidgetAndSend: @"open-help-collection" data: ^{
+        return @{ @"collectionId": GleapObjectOrNull(collectionId), @"hideBackButton": @(!showBackButton) };
+    }];
 }
 
 + (void)askAI:(NSString *)question {
@@ -500,15 +427,9 @@ static id ObjectOrNull(id object)
 }
 
 + (void)askAI:(NSString *)question andShowBackButton:(Boolean)showBackButton {
-    if ([Gleap open]) {
-        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"ask-ai",
-            @"data": @{
-                @"question": ObjectOrNull(question),
-                @"hideBackButton": @(!showBackButton)
-            }
-        }];
-    }
+    [self openWidgetAndSend: @"ask-ai" data: ^{
+        return @{ @"question": GleapObjectOrNull(question), @"hideBackButton": @(!showBackButton) };
+    }];
 }
 
 + (void)openHelpCenterArticle:(NSString *)articleId {
@@ -516,15 +437,9 @@ static id ObjectOrNull(id object)
 }
 
 + (void)openHelpCenterArticle:(NSString *)articleId andShowBackButton:(Boolean)showBackButton {
-    if ([Gleap open]) {
-        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"open-help-article",
-            @"data": @{
-                @"articleId": ObjectOrNull(articleId),
-                @"hideBackButton": @(!showBackButton)
-            }
-        }];
-    }
+    [self openWidgetAndSend: @"open-help-article" data: ^{
+        return @{ @"articleId": GleapObjectOrNull(articleId), @"hideBackButton": @(!showBackButton) };
+    }];
 }
 
 + (void)openHelpCenter {
@@ -532,14 +447,9 @@ static id ObjectOrNull(id object)
 }
 
 + (void)openHelpCenter:(Boolean)showBackButton {
-    if ([Gleap open]) {
-        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"open-helpcenter",
-            @"data": @{
-                @"hideBackButton": @(!showBackButton)
-            }
-        }];
-    }
+    [self openWidgetAndSend: @"open-helpcenter" data: ^{
+        return @{ @"hideBackButton": @(!showBackButton) };
+    }];
 }
 
 + (void)searchHelpCenter:(NSString *)searchTerm {
@@ -547,15 +457,9 @@ static id ObjectOrNull(id object)
 }
 
 + (void)searchHelpCenter:(NSString *)searchTerm andShowBackButton:(Boolean)showBackButton {
-    if ([Gleap open]) {
-        [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
-            @"name": @"open-helpcenter-search",
-            @"data": @{
-                @"term": ObjectOrNull(searchTerm),
-                @"hideBackButton": @(!showBackButton)
-            }
-        }];
-    }
+    [self openWidgetAndSend: @"open-helpcenter-search" data: ^{
+        return @{ @"term": GleapObjectOrNull(searchTerm), @"hideBackButton": @(!showBackButton) };
+    }];
 }
 
 + (void)close {
@@ -656,7 +560,7 @@ static id ObjectOrNull(id object)
     // Start a feedback flow.
     if (feedbackFlow != nil) {
         NSMutableDictionary *startFeedbackFlowData = [[NSMutableDictionary alloc] initWithDictionary: @{
-            @"flow": ObjectOrNull(feedbackFlow)
+            @"flow": GleapObjectOrNull(feedbackFlow)
         }];
         if (options != nil) {
             [startFeedbackFlowData addEntriesFromDictionary: options];
@@ -697,7 +601,9 @@ static id ObjectOrNull(id object)
         dispatch_async(dispatch_get_main_queue(), ^{
             sessionRecoveryInProgress = NO;
             if (success) {
-                [[GleapConfigHelper sharedInstance] run];
+                // A reload: the app hears configLoaded: and initialized only once per initialize
+                // (still from here, if the config never loaded before).
+                [[GleapConfigHelper sharedInstance] reload];
                 [self startFeedbackFlow: feedbackFlow withOptions: options];
             } else {
                 NSError *offlineError = [NSError errorWithDomain: NSURLErrorDomain code: NSURLErrorNotConnectedToInternet userInfo: nil];
@@ -732,7 +638,7 @@ static id ObjectOrNull(id object)
         GleapFeedback *feedback = [[GleapFeedback alloc] init];
         [feedback appendData: @{
             @"formData": @{
-                @"description": description
+                @"description": description ?: @""
             },
             @"isSilent": @(YES),
             @"type": @"CRASH",
@@ -758,13 +664,15 @@ static id ObjectOrNull(id object)
         
         // Send crash report.
         [feedback send:^(bool success, NSDictionary* data) {
-            completion(success);
+            if (completion != nil) {
+                completion(success);
+            }
         }];
     });
 }
 
 /*
- Invoked when a shake gesture is beeing performed.
+ Invoked when a shake gesture is being performed.
  */
 + (void)shakeInvocation {
     if ([GleapActivationMethodHelper isActivationMethodActive: SHAKE]) {
@@ -807,31 +715,14 @@ static id ObjectOrNull(id object)
     [GleapTagHelper setTags: tags];
 }
 
-/**
- * Sets the value of a ticket attribute.
- * @author Gleap
- *
- * @param value The value you want to add
- * @param key The key of the attribute
- */
 + (void)setTicketAttributeWithKey:(NSString *)key value:(id)value {
     [GleapCustomDataHelper setTicketAttributeWithKey: key value: value];
 }
 
-/**
- * Unsets the value of a ticket attribute.
- * @author Gleap
- *
- * @param key The key you want to unset.
- */
 + (void)unsetTicketAttributeWithKey:(NSString *)key {
     [GleapCustomDataHelper unsetTicketAttributeWithKey: key];
 }
 
-/**
- * Clears all ticket attributes.
- * @author Gleap
- */
 + (void)clearTicketAttributes {
     [GleapCustomDataHelper clearTicketAttributes];
 }
@@ -887,91 +778,7 @@ static id ObjectOrNull(id object)
 }
 
 + (void)handleURL: (NSString *)url {
-    if (url == nil || url.length == 0) {
-        return;
-    }
-    
-    if ([url containsString:@"gleap:"]) {
-        [Gleap handleGleapLink: url];
-        return;
-    }
-    
-    if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(openExternalLink:)]) {
-        [Gleap.sharedInstance.delegate openExternalLink: [NSURL URLWithString: url]];
-    } else {
-        [Gleap openURLExternally: [NSURL URLWithString: url] fromViewController: [GleapUIHelper getTopMostViewController]];
-    }
-}
-
-+ (void)handleGleapLink:(NSString *)href {
-    @try {
-        NSArray *urlParts = [href componentsSeparatedByString:@"/"];
-        NSString *type = urlParts[2];
-
-        if ([type isEqualToString:@"article"]) {
-            NSString *identifier = urlParts[3];
-            [Gleap openHelpCenterArticle: identifier andShowBackButton: YES];
-        } else if ([type isEqualToString:@"collection"]) {
-            NSString *identifier = urlParts[3];
-            [Gleap openHelpCenterCollection: identifier andShowBackButton: YES];
-        } else if ([type isEqualToString:@"survey"]) {
-            NSString *identifier = urlParts[3];
-            [Gleap showSurvey: identifier];
-        } else if ([type isEqualToString:@"bot"]) {
-            NSString *identifier = urlParts[3];
-            [Gleap startBot: identifier showBackButton: YES];
-        } else if ([type isEqualToString:@"flow"]) {
-            NSString *identifier = urlParts[3];
-            [Gleap startFeedbackFlow: identifier showBackButton: YES];
-        } else if ([type isEqualToString:@"news"]) {
-            NSString *identifier = urlParts[3];
-            [Gleap openNewsArticle: identifier andShowBackButton: YES];
-        } else if ([type isEqualToString:@"checklist"]) {
-            NSString *identifier = urlParts[3];
-            [Gleap startChecklist: identifier andShowBackButton: YES];
-        } else if ([type isEqualToString:@"tour"]) {
-            NSLog(@"Product tours are not available for the iOS SDK.");
-        } else {
-            NSLog(@"Invalid type provided in href: %@", href);
-        }
-    } @catch (NSException *exception) {
-        NSLog(@"Failed to handle Gleap link: %@, with exception: %@", href, exception);
-    }
-}
-
-+ (void)openURLExternally:(NSURL *)url fromViewController:(UIViewController *)presentingViewController {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        @try {
-            if ([url.scheme isEqualToString:@"http"] || [url.scheme isEqualToString:@"https"]) {
-                if ([SFSafariViewController class]) {
-                    SFSafariViewController *viewController = [[SFSafariViewController alloc] initWithURL: url];
-                    viewController.modalPresentationStyle = UIModalPresentationFormSheet;
-                    viewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
-                    [presentingViewController presentViewController:viewController animated:YES completion:nil];
-                } else {
-                    if ([[UIApplication sharedApplication] canOpenURL: url]) {
-                        if (@available(iOS 10.0, *)) {
-                            [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
-                        }
-                    }
-                }
-            } else {
-                if (![url.scheme isEqualToString:@"tel"] && ![url.scheme isEqualToString:@"mailto"]) {
-                    // Close Gleap when it's a deep link.
-                    [Gleap close];
-                }
-                
-                // Open deep link.
-                if ([[UIApplication sharedApplication] canOpenURL: url]) {
-                    if (@available(iOS 10.0, *)) {
-                        [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
-                    }
-                }
-            }
-        } @catch (id exp) {
-            
-        }
-    });
+    [GleapURLHandler handleURL: url];
 }
 
 @end

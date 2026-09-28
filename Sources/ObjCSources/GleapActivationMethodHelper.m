@@ -39,7 +39,7 @@
  Check if activation method exists
  */
 + (BOOL)isActivationMethodActive: (GleapActivationMethod)activationMethod {
-    for (int i = 0; i < [GleapActivationMethodHelper sharedInstance].activationMethods.count; i++) {
+    for (NSUInteger i = 0; i < [GleapActivationMethodHelper sharedInstance].activationMethods.count; i++) {
         GleapActivationMethod currentActivationMethod = [[[GleapActivationMethodHelper sharedInstance].activationMethods objectAtIndex: i] intValue];
         if (currentActivationMethod == activationMethod) {
             return true;

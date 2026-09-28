@@ -30,15 +30,22 @@
     return self;
 }
 
+// The property is nonatomic; reading it while another thread replaces it can use a released array.
 + (NSArray *)getTags {
-    return [GleapTagHelper sharedInstance].tags;
+    GleapTagHelper *helper = [GleapTagHelper sharedInstance];
+    @synchronized (helper) {
+        return helper.tags;
+    }
 }
 
 /*
- Attaches custom data, which can be viewed in the Gleap dashboard. New data will be merged with existing custom data.
+ Replaces the tags that are attached to new tickets.
  */
 + (void)setTags: (NSArray *)tags {
-    [GleapTagHelper sharedInstance].tags = tags;
+    GleapTagHelper *helper = [GleapTagHelper sharedInstance];
+    @synchronized (helper) {
+        helper.tags = [tags copy];
+    }
 }
 
 @end

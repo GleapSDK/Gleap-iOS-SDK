@@ -12,6 +12,8 @@ NS_ASSUME_NONNULL_BEGIN
 typedef void (^GleapAgentToolCompletion)(id _Nullable result);
 typedef void (^GleapAgentToolHandler)(NSDictionary * _Nonnull params, GleapAgentToolCompletion _Nonnull completion);
 
+// The typedefs above are part of the API (Gleap registerAgentTool:handler:). The class
+// below is internal to the SDK and may change without notice.
 @interface GleapAgentToolHelper : NSObject
 
 + (instancetype)sharedInstance;

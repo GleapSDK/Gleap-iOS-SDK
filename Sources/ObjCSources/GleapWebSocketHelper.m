@@ -8,6 +8,12 @@
 #import "GleapWebSocketHelper.h"
 #import "GleapEventLogHelper.h"
 
+@interface GleapWebSocketHelper ()
+// One session for all connections; a session per connection was never invalidated. Messages
+// arrive on the main queue, like the answers to the HTTP event stream.
+@property (nonatomic, strong) NSURLSession *urlSession;
+@end
+
 @implementation GleapWebSocketHelper
 
 + (instancetype)sharedInstance {
@@ -21,6 +27,9 @@
 }
 
 - (void)initialSetup {
+    self.urlSession = [NSURLSession sessionWithConfiguration: NSURLSessionConfiguration.defaultSessionConfiguration
+                                                   delegate: nil
+                                              delegateQueue: [NSOperationQueue mainQueue]];
     self.pingTimer = [NSTimer scheduledTimerWithTimeInterval: 40.0
                                          target: self
                                        selector: @selector(sendPingPong)
@@ -46,19 +55,15 @@
 }
 
 - (BOOL)connectToURL:(NSURL *)url {
-    if (@available(iOS 13.0, *)) {
-        [self disconnect];
-        
-        NSURLSession *urlSession = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.defaultSessionConfiguration];
-        self.webSocketTask = [urlSession webSocketTaskWithURL:url];
-        self.reconnectURL = url;
-        [self.webSocketTask resume];
-        [self sendPingPong];
-        [self receiveMessage];
-        return YES;
-    } else {
-        return NO;
-    }
+    [self disconnect];
+    
+    NSURLSessionWebSocketTask *task = [self.urlSession webSocketTaskWithURL:url];
+    self.webSocketTask = task;
+    self.reconnectURL = url;
+    [task resume];
+    [self sendPingPong];
+    [self receiveMessageFromTask: task];
+    return YES;
 }
 
 - (void)disconnect {
@@ -70,10 +75,17 @@
     self.connected = NO;
 }
 
-- (void)receiveMessage API_AVAILABLE(ios(13.0)) {
-    [self.webSocketTask receiveMessageWithCompletionHandler:^(NSURLSessionWebSocketMessage * _Nullable message, NSError * _Nullable error) {
+- (void)receiveMessageFromTask:(NSURLSessionWebSocketTask *)task {
+    [task receiveMessageWithCompletionHandler:^(NSURLSessionWebSocketMessage * _Nullable message, NSError * _Nullable error) {
+        // A connection that was replaced or closed in the meantime is done. Its cancellation used
+        // to count as a failure and reconnect, which replaced the current connection in turn and
+        // kept the SDK reconnecting every 5 seconds.
+        if (task != self.webSocketTask) {
+            return;
+        }
+        
         if (error) {
-            [self handleReconnect: error];
+            [self reconnectTask: task];
             return;
         }
         
@@ -97,13 +109,17 @@
             }
         }
         
-        // Recieve next message.
-        [self receiveMessage];
+        // Receive the next message.
+        [self receiveMessageFromTask: task];
     }];
 }
 
-- (void)handleReconnect:(NSError *)error API_AVAILABLE(ios(13.0)) {
+- (void)reconnectTask:(NSURLSessionWebSocketTask *)task {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        // Unless something connected (or disconnected) in the meantime.
+        if (task != self.webSocketTask || self.reconnectURL == nil) {
+            return;
+        }
         [self connectToURL: self.reconnectURL];
     });
 }

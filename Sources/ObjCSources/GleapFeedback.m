@@ -18,6 +18,7 @@
 #import "GleapSessionHelper.h"
 #import "GleapExternalDataHelper.h"
 #import "GleapTagHelper.h"
+#import "GleapAPIClient.h"
 
 @implementation GleapFeedback
 
@@ -73,14 +74,19 @@
     if ([self.excludeData objectForKey: @"attachments"] != nil && [[self.excludeData objectForKey: @"attachments"] boolValue] == YES) {
         completion(YES);
     } else {
-        NSArray * customAttachments = [GleapAttachmentHelper sharedInstance].customAttachments;
+        // A copy: the app may add or remove attachments while they upload.
+        NSArray *customAttachments;
+        GleapAttachmentHelper *attachmentHelper = [GleapAttachmentHelper sharedInstance];
+        @synchronized (attachmentHelper) {
+            customAttachments = [attachmentHelper.customAttachments copy];
+        }
         if (customAttachments.count > 0) {
             [GleapUploadManager uploadFiles: customAttachments forEndpoint: @"attachments" andCompletion:^(bool success, NSArray *fileUrls) {
                 if (success) {
                     // Attach attachments
                     NSMutableArray *attachmentsArray = [[NSMutableArray alloc] init];
                     
-                    for (int i = 0; i < customAttachments.count; i++) {
+                    for (NSUInteger i = 0; i < customAttachments.count; i++) {
                         NSMutableDictionary *currentAttachment = [[customAttachments objectAtIndex: i] mutableCopy];
                         NSString *currentAttachmentURL = [fileUrls objectAtIndex: i];
                         [currentAttachment setObject: currentAttachmentURL forKey: @"url"];
@@ -289,7 +295,7 @@
         return;
     }
     
-    for (int i = 0; i < self.excludeData.allKeys.count; i++) {
+    for (NSUInteger i = 0; i < self.excludeData.allKeys.count; i++) {
         NSString *key = [self.excludeData.allKeys objectAtIndex: i];
         if ([[self.excludeData objectForKey: key] boolValue] == YES) {
             [self.data removeObjectForKey: key];
@@ -319,24 +325,21 @@
             return completion(false, errorInfo);
         }
         
-        NSMutableURLRequest *request = [NSMutableURLRequest new];
-        request.HTTPMethod = @"POST";
-        [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/bugs/v2", Gleap.sharedInstance.apiUrl]]];
-        [GleapSessionHelper injectSessionInRequest: request];
-        [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
-        [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
+        NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/bugs/v2" identity: GleapRequestIdentityCurrentSession];
         [request setHTTPBody: jsonBodyData];
         
-        NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-        NSURLSession *session = [NSURLSession sessionWithConfiguration:config
-                                                              delegate:nil
-                                                         delegateQueue:[NSOperationQueue mainQueue]];
-        NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                                completionHandler:^(NSData * _Nullable data,
-                                                                    NSURLResponse * _Nullable response,
-                                                                    NSError * _Nullable error) {
+        [GleapAPIClient sendReportRequest: request completion:^(NSData * _Nullable data,
+                                                                NSURLResponse * _Nullable response,
+                                                                NSError * _Nullable error) {
             if (error != nil) {
                 NSDictionary *errorInfo = @{ @"error": @"Network error", @"details": error.localizedDescription };
+                return completion(false, errorInfo);
+            }
+            
+            // Only a 2xx creates the ticket; the server also answers errors with a JSON body.
+            if (![GleapAPIClient isSuccessResponse: response]) {
+                NSInteger statusCode = [GleapAPIClient statusCodeOfResponse: response];
+                NSDictionary *errorInfo = @{ @"error": @"Server error", @"statusCode": @(statusCode) };
                 return completion(false, errorInfo);
             }
             
@@ -349,7 +352,6 @@
                 return completion(false, errorInfo);
             }
         }];
-        [task resume];
     } @catch (NSException *exp) {
         NSLog(@"[GLEAP] Failed sending feedback: %@", NSThread.callStackSymbols);
         NSDictionary *errorInfo = @{ @"error": @"Exception occurred", @"details": exp.reason };

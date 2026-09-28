@@ -49,7 +49,10 @@
     if ([self isConnected]) {
         [self.gleapWidget sendMessageWithData: data];
     } else {
-        [self.messageQueue addObject: data];
+        // Commands can come from any thread (the wrappers call off the main thread).
+        @synchronized (self) {
+            [self.messageQueue addObject: data];
+        }
     }
 }
 
@@ -66,7 +69,9 @@
 }
 
 - (void)closeWidgetWithAnimation:(Boolean)animated andCompletion:(void (^)(void))completion {
-    [self.messageQueue removeAllObjects];
+    @synchronized (self) {
+        [self.messageQueue removeAllObjects];
+    }
     [[GleapAgentToolHelper sharedInstance] clearExecutionState];
     
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -99,14 +104,20 @@
         return;
     }
     
-    for (int i = 0; i < self.messageQueue.count; i++) {
-        [self.gleapWidget sendMessageWithData: [self.messageQueue objectAtIndex: i]];
+    NSArray *queuedMessages;
+    @synchronized (self) {
+        queuedMessages = [self.messageQueue copy];
+        [self.messageQueue removeAllObjects];
     }
-    [self.messageQueue removeAllObjects];
+    for (NSDictionary *message in queuedMessages) {
+        [self.gleapWidget sendMessageWithData: message];
+    }
 }
 
 - (void)failedToConnect {
-    [self.messageQueue removeAllObjects];
+    @synchronized (self) {
+        [self.messageQueue removeAllObjects];
+    }
 }
 
 - (void)showWidget {
@@ -144,11 +155,9 @@
         [navController.navigationBar setTitleTextAttributes:
            @{NSForegroundColorAttributeName:[UIColor blackColor]}];
         navController.navigationBar.hidden = YES;
-        if (@available(iOS 13.0, *)) {
-            [navController setModalInPresentation: YES];
-        }
+        [navController setModalInPresentation: YES];
         
-        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
+        if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad)
         {
             [navController setModalPresentationStyle: UIModalPresentationCustom];
         }
@@ -168,6 +177,16 @@
                     [Gleap.sharedInstance.delegate widgetOpened];
                 }
             }];
+        } else {
+            // Nothing to present on (no key window yet): the widget stays closed, so a later open
+            // can succeed, and the messages queued for this one are dropped as on close.
+            NSLog(@"[GLEAP_SDK] The widget could not be opened: there is no view controller to present it on.");
+            self.gleapWidget = nil;
+            self.widgetOpened = NO;
+            @synchronized (self) {
+                [self.messageQueue removeAllObjects];
+            }
+            [GleapUIOverlayHelper updateUI];
         }
     });
 }

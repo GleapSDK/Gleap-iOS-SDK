@@ -1,5 +1,5 @@
 //
-//  GleapReplayHelper.m
+//  GleapEventLogHelper.m
 //  Gleap
 //
 //  Created by Lukas Boehler on 15.01.21.
@@ -13,6 +13,7 @@
 #import "GleapMetaDataHelper.h"
 #import "GleapUIOverlayHelper.h"
 #import "GleapWebSocketHelper.h"
+#import "GleapAPIClient.h"
 
 @implementation GleapEventLogHelper
 
@@ -104,6 +105,7 @@
         [self.eventStreamTimer invalidate];
         self.eventStreamTimer = nil;
     }
+    [self.pageNameTimer invalidate];
 }
 
 - (void)start {
@@ -112,20 +114,19 @@
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
-        if (@available(iOS 13.0, *)) {
-            GleapSession *session = GleapSessionHelper.sharedInstance.currentSession;
-            if (session != nil && session.gleapId != nil && session.gleapHash != nil) {
-                self.webSocketEnabled = YES;
-                NSString *urlToConnectTo = [NSString stringWithFormat: @"%@?gleapId=%@&gleapHash=%@&apiKey=%@&sdkVersion=%@", [Gleap sharedInstance].wsApiUrl, session.gleapId, session.gleapHash, [Gleap sharedInstance].token, SDK_VERSION];
-                [[GleapWebSocketHelper sharedInstance] connectToURL: [NSURL URLWithString: urlToConnectTo]];
-            }
-        } else {
-            self.webSocketEnabled = NO;
+        GleapSession *session = GleapSessionHelper.sharedInstance.currentSession;
+        if (session != nil && session.gleapId != nil && session.gleapHash != nil) {
+            self.webSocketEnabled = YES;
+            NSString *urlToConnectTo = [NSString stringWithFormat: @"%@?gleapId=%@&gleapHash=%@&apiKey=%@&sdkVersion=%@", [Gleap sharedInstance].wsApiUrl, session.gleapId, session.gleapHash, [Gleap sharedInstance].token, SDK_VERSION];
+            [[GleapWebSocketHelper sharedInstance] connectToURL: [NSURL URLWithString: urlToConnectTo]];
         }
         
         [self lastPageNameUpdate];
         [self sendEventStreamToServer];
         
+        // Two starts in a row both get here before either timer exists: replace, don't add.
+        [self.pageNameTimer invalidate];
+        [self.eventStreamTimer invalidate];
         self.pageNameTimer = [NSTimer scheduledTimerWithTimeInterval: 1
                                                               target: self
                                                             selector: @selector(lastPageNameUpdate)
@@ -202,19 +203,9 @@
             return;
         }
         
-        NSMutableURLRequest *request = [NSMutableURLRequest new];
-        request.HTTPMethod = @"POST";
-        [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/sessions/ping", [Gleap sharedInstance].apiUrl]]];
-        [GleapSessionHelper injectSessionInRequest: request];
-        [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
-        [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
+        NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions/ping" identity: GleapRequestIdentityCurrentSession];
         [request setHTTPBody: jsonBodyData];
-        NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-        NSURLSession *session = [NSURLSession sessionWithConfiguration:config
-                                                              delegate:nil
-                                                         delegateQueue:[NSOperationQueue mainQueue]];
-        NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                                completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+        [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
             if (error != nil) {
                 return;
             }
@@ -233,7 +224,6 @@
                 [self parseUpdate: actionData];
             }
         }];
-        [task resume];
     } @catch(id exception) {
         
     }
@@ -255,7 +245,7 @@
         if (![Gleap isOpened]) {
             NSArray *actions = [actionData objectForKey: @"a"];
             if (actions != nil) {
-                for (int i = 0; i < actions.count; i++) {
+                for (NSUInteger i = 0; i < actions.count; i++) {
                     NSDictionary *action = [actions objectAtIndex: i];
                     if ([[action objectForKey: @"actionType"] isEqualToString: @"notification"]) {
                         NSDictionary *data = action[@"data"];
@@ -272,7 +262,7 @@
                         // BANNER
                         [GleapUIOverlayHelper showBanner: action];
                     } else if ([[action objectForKey: @"actionType"] isEqualToString: @"modal"]) {
-                        // BANNER
+                        // MODAL
                         [GleapUIOverlayHelper showModal: action];
                     } else {
                         // FEEDBACK FORMS

@@ -6,6 +6,8 @@
 //
 
 #import "GleapSessionHelper.h"
+#import "GleapInternal.h"
+#import "GleapAPIClient.h"
 #import "GleapCore.h"
 #import "GleapWidgetManager.h"
 #import "GleapUIOverlayHelper.h"
@@ -16,9 +18,21 @@
 
 @implementation GleapSessionHelper
 
-static id ObjectOrNull(id object)
-{
-  return object ?: [NSNull null];
+// The session and the pending identify, update and push actions are set from whatever thread
+// the app (or a wrapper) calls on and read from the main queue; every access holds this
+// object's lock, and an action is taken and cleared in one step, so it runs once.
+@synthesize currentSession = _currentSession;
+
+- (GleapSession *)currentSession {
+    @synchronized (self) {
+        return _currentSession;
+    }
+}
+
+- (void)setCurrentSession:(GleapSession *)currentSession {
+    @synchronized (self) {
+        _currentSession = currentSession;
+    }
 }
 
 /*
@@ -30,10 +44,8 @@ static id ObjectOrNull(id object)
     if (idiom == UIUserInterfaceIdiomPad) {
         return @"tablet";
     }
-    if (@available(iOS 14.0, *)) {
-        if (idiom == UIUserInterfaceIdiomMac) {
-            return @"desktop";
-        }
+    if (idiom == UIUserInterfaceIdiomMac) {
+        return @"desktop";
     }
     return @"mobile";
 }
@@ -62,26 +74,48 @@ static id ObjectOrNull(id object)
     [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
 }
 
+/*
+ The session in a server answer, or nil. Only a 2xx that names the session (gleapId and gleapHash)
+ may replace the stored identity: overload (503) and error answers arrive as JSON too, and taking
+ them for a session erased the stored identity.
+ */
++ (nullable NSDictionary *)sessionDataInResponse:(NSURLResponse *)response data:(NSData *)data {
+    if (![GleapAPIClient isSuccessResponse: response] || data == nil) {
+        return nil;
+    }
+    id json = [NSJSONSerialization JSONObjectWithData: data options: 0 error: nil];
+    if (![json isKindOfClass: [NSDictionary class]] || [json objectForKey: @"error"] != nil || [json objectForKey: @"errors"] != nil) {
+        return nil;
+    }
+    id gleapId = [json objectForKey: @"gleapId"];
+    id gleapHash = [json objectForKey: @"gleapHash"];
+    if (![gleapId isKindOfClass: [NSString class]] || [gleapId length] == 0 || ![gleapHash isKindOfClass: [NSString class]] || [gleapHash length] == 0) {
+        return nil;
+    }
+    return json;
+}
+
+/*
+ YES when the server refused the request itself: a 4xx answer with an explicit error (an `error` or
+ `errors` body). Server failures (5xx), timeouts (408) and rate limits (429) are not refusals.
+ */
++ (BOOL)isErrorAnswerInResponse:(NSURLResponse *)response data:(NSData *)data {
+    NSInteger status = [GleapAPIClient statusCodeOfResponse: response];
+    if (status < 400 || status >= 500 || status == 408 || status == 429 || data == nil) {
+        return NO;
+    }
+    id json = [NSJSONSerialization JSONObjectWithData: data options: 0 error: nil];
+    return [json isKindOfClass: [NSDictionary class]] && ([json objectForKey: @"error"] != nil || [json objectForKey: @"errors"] != nil);
+}
+
 - (id)init {
     self = [super init];
     return self;
 }
 
 - (void)startSessionWith:(void (^)(bool success))completion {
-    NSMutableURLRequest *request = [NSMutableURLRequest new];
-    request.HTTPMethod = @"POST";
-    [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/sessions", Gleap.sharedInstance.apiUrl]]];
-    [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
-    [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
-    [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
-    
-    // Merge guest session.
-    NSString *gleapId = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapId"];
-    NSString *gleapHash = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapHash"];
-    if (gleapId != nil && gleapId.length > 0 && gleapHash != nil && gleapHash.length > 0) {
-        [request setValue: gleapId forHTTPHeaderField: @"Gleap-Id"];
-        [request setValue: gleapHash forHTTPHeaderField: @"Gleap-Hash"];
-    }
+    // A stored guest identity is merged into the new session.
+    NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions" identity: GleapRequestIdentityStoredIfComplete];
     
     NSString *lang = [GleapTranslationHelper sharedInstance].language;
     if (lang != nil) {
@@ -96,25 +130,12 @@ static id ObjectOrNull(id object)
         }
     }
     
-    NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:config
-                                                          delegate:nil
-                                                     delegateQueue:[NSOperationQueue mainQueue]];
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                            completionHandler:^(NSData * _Nullable data,
-                                                                NSURLResponse * _Nullable response,
-                                                                NSError * _Nullable error) {
-        if (error != nil) {
-            return completion(false);
-        }
-        
-        if (![response isKindOfClass:[NSHTTPURLResponse class]]) {
-            return completion(false);
-        }
-        
-        NSError *jsonError;
-        NSDictionary *jsonResponse = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-        if (jsonError) {
+    [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
+                                                      NSURLResponse * _Nullable response,
+                                                      NSError * _Nullable error) {
+        // A failed start leaves the stored identity for the next attempt.
+        NSDictionary *sessionData = error == nil ? [GleapSessionHelper sessionDataInResponse: response data: data] : nil;
+        if (sessionData == nil) {
             return completion(false);
         }
         
@@ -122,42 +143,57 @@ static id ObjectOrNull(id object)
         [[GleapEventLogHelper sharedInstance] stop];
         [[GleapEventLogHelper sharedInstance] start];
     
-        return [self updateLocalSessionWith: jsonResponse andCompletion: completion];
+        return [self updateLocalSessionWith: sessionData andCompletion: completion];
     }];
-    [task resume];
 }
 
 - (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString * _Nullable)userHash {
-    self.openIdentityAction = @{
-        @"userId": userId,
-        @"userHash": ObjectOrNull(userHash),
-        @"data": data
-    };
+    if (userId == nil) {
+        NSLog(@"[GLEAP_SDK] identify needs a user id.");
+        return;
+    }
+    // The user data is optional; without it only the user id is sent.
+    @synchronized (self) {
+        self.openIdentityAction = @{
+            @"userId": userId,
+            @"userHash": GleapObjectOrNull(userHash),
+            @"data": data ?: [[GleapUserProperty alloc] init]
+        };
+    }
     [self processOpenIdentityAction];
     [self processOpenPushAction];
 }
 
 - (void)updateContact:(nullable GleapUserProperty *)data {
-    self.openUpdateAction = @{
-        @"data": data,
-    };
+    @synchronized (self) {
+        self.openUpdateAction = @{
+            @"data": data ?: [[GleapUserProperty alloc] init],
+        };
+    }
     
     [self processOpenUpdateAction];
 }
 
 + (void)handlePushNotification:(NSDictionary *)notificationData {
-    [GleapSessionHelper sharedInstance].openPushAction = notificationData;
-    [[GleapSessionHelper sharedInstance] processOpenPushAction];
+    GleapSessionHelper *helper = [GleapSessionHelper sharedInstance];
+    @synchronized (helper) {
+        helper.openPushAction = notificationData;
+    }
+    [helper processOpenPushAction];
 }
 
 - (void)processOpenPushAction {
-    if (self.openPushAction == nil || self.currentSession == nil) {
-        return;
+    NSDictionary *pushAction;
+    @synchronized (self) {
+        if (self.openPushAction == nil || self.currentSession == nil) {
+            return;
+        }
+        pushAction = self.openPushAction;
+        self.openPushAction = nil;
     }
     
-    NSString *type = [self.openPushAction objectForKey: @"type"];
-    NSString *itemId = [self.openPushAction objectForKey: @"id"];
-    self.openPushAction = nil;
+    NSString *type = [pushAction objectForKey: @"type"];
+    NSString *itemId = [pushAction objectForKey: @"id"];
     
     if (itemId != nil && itemId.length > 0) {
         if ([type isEqualToString: @"news"]) {
@@ -172,17 +208,20 @@ static id ObjectOrNull(id object)
 }
 
 - (void)processOpenUpdateAction {
-    if (self.openUpdateAction == nil || self.currentSession == nil || self.openIdentityAction != nil) {
-        return;
+    GleapUserProperty *data;
+    @synchronized (self) {
+        if (self.openUpdateAction == nil || self.currentSession == nil || self.openIdentityAction != nil) {
+            return;
+        }
+        
+        NSString *gleapId = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapId"];
+        NSString *gleapHash = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapHash"];
+        if (gleapId == nil || gleapHash == nil || gleapId.length == 0 || gleapHash.length == 0) {
+            return;
+        }
+        data = [self.openUpdateAction objectForKey: @"data"];
+        self.openUpdateAction = nil;
     }
-    
-    NSString *gleapId = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapId"];
-    NSString *gleapHash = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapHash"];
-    if (gleapId == nil || gleapHash == nil || gleapId.length == 0 || gleapHash.length == 0) {
-        return;
-    }
-    GleapUserProperty *data = [self.openUpdateAction objectForKey: @"data"];
-    self.openUpdateAction = nil;
     
     NSMutableDictionary *dataToSend = [[data dataDictToSendWith: nil and: nil] mutableCopy];
     
@@ -206,57 +245,34 @@ static id ObjectOrNull(id object)
             return;
         }
         
-        NSMutableURLRequest *request = [NSMutableURLRequest new];
-        request.HTTPMethod = @"POST";
-        [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/sessions/partialupdate", Gleap.sharedInstance.apiUrl]]];
-        [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
-        [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
-        [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
-        
-        [request setValue: gleapId forHTTPHeaderField: @"Gleap-Id"];
-        [request setValue: gleapHash forHTTPHeaderField: @"Gleap-Hash"];
-
+        NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions/partialupdate" identity: GleapRequestIdentityStored];
         [request setHTTPBody: jsonBodyData];
         
-        NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-        NSURLSession *session = [NSURLSession sessionWithConfiguration:config
-                                                              delegate:nil
-                                                         delegateQueue:[NSOperationQueue mainQueue]];
-        NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                                completionHandler:^(NSData * _Nullable data,
-                                                                    NSURLResponse * _Nullable response,
-                                                                    NSError * _Nullable error) {
-            if (error != nil) {
-                return;
-            }
-            
-            if (![response isKindOfClass:[NSHTTPURLResponse class]]) {
-                return;
-            }
-            
-            NSError *jsonError;
-            NSDictionary *jsonResponse = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-            if (jsonError) {
-                return;
-            }
-            
-            if (jsonResponse != nil && [jsonResponse objectForKey: @"errors"] == nil) {
-                [self updateLocalSessionWith: jsonResponse andCompletion:^(bool success) {}];
+        [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
+                                                          NSURLResponse * _Nullable response,
+                                                          NSError * _Nullable error) {
+            // A failed update leaves the session as it is.
+            NSDictionary *sessionData = error == nil ? [GleapSessionHelper sessionDataInResponse: response data: data] : nil;
+            if (sessionData != nil) {
+                [self updateLocalSessionWith: sessionData andCompletion:^(bool success) {}];
             }
         }];
-        [task resume];
     } @catch (id exp) {}
 }
 
 - (void)processOpenIdentityAction {
-    if (self.openIdentityAction == nil || self.currentSession == nil) {
-        return;
+    NSDictionary *identityAction;
+    @synchronized (self) {
+        if (self.openIdentityAction == nil || self.currentSession == nil) {
+            return;
+        }
+        identityAction = self.openIdentityAction;
+        self.openIdentityAction = nil;
     }
     
-    NSString *userId = [self.openIdentityAction objectForKey: @"userId"];
-    NSString *userHash = [self.openIdentityAction objectForKey: @"userHash"];
-    GleapUserProperty *data = [self.openIdentityAction objectForKey: @"data"];
-    self.openIdentityAction = nil;
+    NSString *userId = [identityAction objectForKey: @"userId"];
+    NSString *userHash = [identityAction objectForKey: @"userHash"];
+    GleapUserProperty *data = [identityAction objectForKey: @"data"];
     
     NSDictionary *sessionRequestData = [data dataDictToSendWith: userId and: userHash];
     
@@ -275,7 +291,7 @@ static id ObjectOrNull(id object)
     @try {
         if (data != nil && data.customData != nil) {
             NSArray *keys = data.customData.allKeys;
-            for (int i = 0; i < keys.count; i++) {
+            for (NSUInteger i = 0; i < keys.count; i++) {
                 NSString *key = [keys objectAtIndex: i];
                 [sessionRequestData setValue: [data.customData objectForKey: key] forKey: key];
             }
@@ -294,59 +310,34 @@ static id ObjectOrNull(id object)
         return;
     }
     
-    NSMutableURLRequest *request = [NSMutableURLRequest new];
-    request.HTTPMethod = @"POST";
-    [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/sessions/identify", Gleap.sharedInstance.apiUrl]]];
-    [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
-    [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
-    [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
-    
-    // Merge guest session.
-    NSString *gleapId = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapId"];
-    NSString *gleapHash = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapHash"];
-    [request setValue: gleapId forHTTPHeaderField: @"Gleap-Id"];
-    [request setValue: gleapHash forHTTPHeaderField: @"Gleap-Hash"];
-
+    // The stored guest identity is merged into the identified session.
+    NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions/identify" identity: GleapRequestIdentityStored];
     [request setHTTPBody: jsonBodyData];
     
-    NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:config
-                                                          delegate:nil
-                                                     delegateQueue:[NSOperationQueue mainQueue]];
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                            completionHandler:^(NSData * _Nullable data,
-                                                                NSURLResponse * _Nullable response,
-                                                                NSError * _Nullable error) {
+    [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
+                                                      NSURLResponse * _Nullable response,
+                                                      NSError * _Nullable error) {
         if (error != nil) {
             return;
         }
         
-        if (![response isKindOfClass:[NSHTTPURLResponse class]]) {
-            return;
-        }
-        
-        NSError *jsonError;
-        NSDictionary *jsonResponse = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-        if (jsonError) {
-            return;
-        }
-        
-        if (jsonResponse != nil && [jsonResponse objectForKey: @"errors"] == nil && [jsonResponse objectForKey: @"error"] == nil) {
+        NSDictionary *sessionData = [GleapSessionHelper sessionDataInResponse: response data: data];
+        if (sessionData != nil) {
             // Send unregister of previous group.
             [self sendPushMessageUnregister];
             
-            [self updateLocalSessionWith: jsonResponse andCompletion:^(bool success) {}];
+            [self updateLocalSessionWith: sessionData andCompletion:^(bool success) {}];
             
             // Restart logger.
             [Gleap logEvent: @"sessionStarted"];
             [[GleapEventLogHelper sharedInstance] stop];
             [[GleapEventLogHelper sharedInstance] start];
-        } else {
-            // Clear session due to an error.
+        } else if ([GleapSessionHelper isErrorAnswerInResponse: response data: data]) {
+            // The server refused this identity (for example a wrong user hash): start over as a guest.
             [self clearSession];
         }
+        // Anything else (overloaded, a server failure, an answer without a session) keeps the identity.
     }];
-    [task resume];
 }
 
 - (BOOL)isCustomData:(NSDictionary *)customDataSubset aSubsetOf:(NSDictionary *)customData {
@@ -487,8 +478,10 @@ static id ObjectOrNull(id object)
 - (void)clearSession {
     [self sendPushMessageUnregister];
     
-    self.currentSession = nil;
-    self.openIdentityAction = nil;
+    @synchronized (self) {
+        self.currentSession = nil;
+        self.openIdentityAction = nil;
+    }
     [[NSUserDefaults standardUserDefaults] removeObjectForKey: @"gleapId"];
     [[NSUserDefaults standardUserDefaults] removeObjectForKey: @"gleapHash"];
     

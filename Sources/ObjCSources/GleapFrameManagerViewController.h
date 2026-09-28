@@ -1,9 +1,13 @@
 //
-//  GleapWidgetViewController.h
+//  GleapFrameManagerViewController.h
 //  Gleap
 //
 //  Created by Lukas on 13.01.19.
 //  Copyright © 2019 Gleap. All rights reserved.
+//
+//  Internal to the Gleap SDK. This header is only public because every header in
+//  Sources/ObjCSources is; it is not part of the supported API and may change without
+//  notice. Use the Gleap class (GleapCore.h) instead.
 //
 
 #import <UIKit/UIKit.h>

@@ -18,7 +18,7 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/GleapSDK/Gleap-iOS-SDK.git", :tag => s.version.to_s }
   
   s.source_files = 'Sources/**/*.{h,m,c}'
-  s.public_header_files = 'Sources/**/*.h'
+  s.public_header_files = 'Sources/ObjCSources/*.h'
   s.resource_bundles = {"Gleap" => ["Sources/PrivacyInfo.xcprivacy"]}
   
   s.frameworks   = 'UIKit', 'Foundation'

@@ -31,58 +31,88 @@
     return self;
 }
 
+// The app (and the wrappers, often off the main thread) change custom data and ticket
+// attributes while a report copies them; every access goes through the shared instance's lock.
+
 /*
  Attaches custom data, which can be viewed in the Gleap dashboard. New data will be merged with existing custom data.
  */
 + (void)attachCustomData: (NSDictionary *)customData {
-    [[GleapCustomDataHelper sharedInstance].customData addEntriesFromDictionary: customData];
+    GleapCustomDataHelper *helper = [GleapCustomDataHelper sharedInstance];
+    @synchronized (helper) {
+        [helper.customData addEntriesFromDictionary: customData];
+    }
 }
 
 /*
  Clears all custom data.
  */
 + (void)clearCustomData {
-    [[GleapCustomDataHelper sharedInstance].customData removeAllObjects];
+    GleapCustomDataHelper *helper = [GleapCustomDataHelper sharedInstance];
+    @synchronized (helper) {
+        [helper.customData removeAllObjects];
+    }
 }
 
 /**
  * Attach one key value pair to existing custom data.
  */
 + (void)setCustomData: (NSString *)value forKey: (NSString *)key {
-    [[GleapCustomDataHelper sharedInstance].customData setObject: value forKey: key];
+    GleapCustomDataHelper *helper = [GleapCustomDataHelper sharedInstance];
+    @synchronized (helper) {
+        [helper.customData setObject: value forKey: key];
+    }
 }
 
 + (void)setTicketAttributeWithKey:(NSString *)key value:(id)value {
-    @try {
-        [[GleapCustomDataHelper sharedInstance].ticketAttributeData setObject: value forKey: key];
-    } @catch (id exp) {}
+    GleapCustomDataHelper *helper = [GleapCustomDataHelper sharedInstance];
+    @synchronized (helper) {
+        @try {
+            [helper.ticketAttributeData setObject: value forKey: key];
+        } @catch (id exp) {}
+    }
 }
 
 + (void)unsetTicketAttributeWithKey:(NSString *)key {
-    @try {
-        [[GleapCustomDataHelper sharedInstance].ticketAttributeData removeObjectForKey: key];
-    } @catch (id exp) {}
+    GleapCustomDataHelper *helper = [GleapCustomDataHelper sharedInstance];
+    @synchronized (helper) {
+        @try {
+            [helper.ticketAttributeData removeObjectForKey: key];
+        } @catch (id exp) {}
+    }
 }
 
 + (void)clearTicketAttributes {
-    @try {
-        [[GleapCustomDataHelper sharedInstance].ticketAttributeData removeAllObjects];
-    } @catch (NSException *exception) {}
+    GleapCustomDataHelper *helper = [GleapCustomDataHelper sharedInstance];
+    @synchronized (helper) {
+        @try {
+            [helper.ticketAttributeData removeAllObjects];
+        } @catch (NSException *exception) {}
+    }
 }
 
 /**
  * Removes one key from existing custom data.
  */
 + (void)removeCustomDataForKey: (NSString *)key {
-    [[GleapCustomDataHelper sharedInstance].customData removeObjectForKey: key];
+    GleapCustomDataHelper *helper = [GleapCustomDataHelper sharedInstance];
+    @synchronized (helper) {
+        [helper.customData removeObjectForKey: key];
+    }
 }
 
 + (NSDictionary *)getCustomData {
-    return [[[GleapCustomDataHelper sharedInstance] customData] copy];
+    GleapCustomDataHelper *helper = [GleapCustomDataHelper sharedInstance];
+    @synchronized (helper) {
+        return [helper.customData copy];
+    }
 }
 
 + (NSDictionary *)getTicketAttributes {
-    return [[[GleapCustomDataHelper sharedInstance] ticketAttributeData] copy];
+    GleapCustomDataHelper *helper = [GleapCustomDataHelper sharedInstance];
+    @synchronized (helper) {
+        return [helper.ticketAttributeData copy];
+    }
 }
 
 @end

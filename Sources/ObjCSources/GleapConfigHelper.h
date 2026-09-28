@@ -4,6 +4,10 @@
 //
 //  Created by Lukas Boehler on 25.05.22.
 //
+//  Internal to the Gleap SDK. This header is only public because every header in
+//  Sources/ObjCSources is; it is not part of the supported API and may change without
+//  notice. Use the Gleap class (GleapCore.h) instead.
+//
 
 #import <Foundation/Foundation.h>
 
@@ -17,8 +21,10 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * Fetches the widget config again for an already running SDK — used when the
  * language changes after initialization, since all copy in the config is
- * translated server-side at load time. Applies the config and pushes it to an
- * open widget, but skips the one-time initialized / configLoaded delegate calls.
+ * translated server-side at load time, and when a session is recovered. Applies
+ * the config and pushes it to an open widget. The initialized / configLoaded
+ * delegate calls happen once per initialize; a reload only makes them when the
+ * config has not loaded since (for example after an offline start).
  */
 - (void)reload;
 /**

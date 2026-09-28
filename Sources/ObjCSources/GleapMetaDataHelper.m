@@ -184,12 +184,10 @@
         totalSpace = [NSString stringWithFormat: @"%llu", ([fileSystemSizeInBytes unsignedLongLongValue]/1000ll/1000ll/1000ll)];
         totalFreeSpace = [NSString stringWithFormat: @"%llu", ([freeFileSystemSizeInBytes unsignedLongLongValue]/1000ll/1000ll/1000ll)];
         
-        if (@available(iOS 11.0, *)) {
-            NSURL *homePathURL = [[NSURL alloc] initFileURLWithPath: NSHomeDirectory()];
-            id resourceResults = [homePathURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:nil];
-            if (resourceResults[NSURLVolumeAvailableCapacityForImportantUsageKey] != nil) {
-                totalFreeSpace = [NSString stringWithFormat: @"%lld", ([resourceResults[NSURLVolumeAvailableCapacityForImportantUsageKey] longLongValue] / 1024ll / 1024ll / 1024ll)];
-            }
+        NSURL *homePathURL = [[NSURL alloc] initFileURLWithPath: NSHomeDirectory()];
+        id resourceResults = [homePathURL resourceValuesForKeys:@[NSURLVolumeAvailableCapacityForImportantUsageKey] error:nil];
+        if (resourceResults[NSURLVolumeAvailableCapacityForImportantUsageKey] != nil) {
+            totalFreeSpace = [NSString stringWithFormat: @"%lld", ([resourceResults[NSURLVolumeAvailableCapacityForImportantUsageKey] longLongValue] / 1024ll / 1024ll / 1024ll)];
         }
     }
     
