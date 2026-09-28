@@ -109,6 +109,30 @@ final class GleapIdentityTests: GleapNetworkTestCase {
         XCTAssertTrue(body["userHash"] is NSNull, "an unsecured identify sends the hash as null")
     }
 
+    func testIdentifyWithoutUserDataSendsTheUserId() throws {
+        installSession(gleapId: "gid-guest", gleapHash: "ghash-guest")
+        GleapStubURLProtocol.stub("POST", "/sessions/identify",
+                                  Self.sessionReply(gleapId: "gid-user", gleapHash: "ghash-user", extra: ["userId": "user-1"]))
+
+        Gleap.identifyContact("user-1", andData: nil)
+
+        let body = try XCTUnwrap(waitForRequest("/sessions/identify")?.json)
+        XCTAssertEqual(body["userId"] as? String, "user-1")
+        XCTAssertTrue(waitUntil { GleapSessionHelper.sharedInstance().currentSession?.userId == "user-1" })
+    }
+
+    func testUpdateContactWithoutDataSendsOnlyThePlatform() throws {
+        installSession(gleapId: "gid-user", gleapHash: "ghash-user", userId: "user-1")
+        GleapStubURLProtocol.stub("POST", "/sessions/partialupdate",
+                                  Self.sessionReply(gleapId: "gid-user", gleapHash: "ghash-user", extra: ["userId": "user-1"]))
+
+        Gleap.updateContact(nil)
+
+        let data = try XCTUnwrap(waitForRequest("/sessions/partialupdate")?.json?["data"] as? [String: Any])
+        XCTAssertEqual(data["platform"] as? String, "iOS")
+        XCTAssertEqual(data["deviceType"] as? String, "mobile")
+    }
+
     func testIdentifyingWithUnchangedDataSendsNothing() {
         installSession(userId: "user-1", name: "Ada Lovelace", email: "ada@example.com")
 

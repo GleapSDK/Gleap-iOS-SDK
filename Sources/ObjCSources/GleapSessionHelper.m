@@ -131,10 +131,15 @@
 }
 
 - (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString * _Nullable)userHash {
+    if (userId == nil) {
+        NSLog(@"[GLEAP_SDK] identify needs a user id.");
+        return;
+    }
+    // The user data is optional; without it only the user id is sent.
     self.openIdentityAction = @{
         @"userId": userId,
         @"userHash": GleapObjectOrNull(userHash),
-        @"data": data
+        @"data": data ?: [[GleapUserProperty alloc] init]
     };
     [self processOpenIdentityAction];
     [self processOpenPushAction];
@@ -142,7 +147,7 @@
 
 - (void)updateContact:(nullable GleapUserProperty *)data {
     self.openUpdateAction = @{
-        @"data": data,
+        @"data": data ?: [[GleapUserProperty alloc] init],
     };
     
     [self processOpenUpdateAction];
