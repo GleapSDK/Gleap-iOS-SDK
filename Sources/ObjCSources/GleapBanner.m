@@ -202,18 +202,6 @@
     return nil;
 }
 
-- (void)webView:(WKWebView *)webView didFailProvisionalNavigation:(WKNavigation *)navigation withError:(NSError *)error {
-    [self loadingFailed: error];
-}
-
-- (void)webView:(WKWebView *)webView didFailNavigation:(WKNavigation *)navigation withError:(NSError *)error {
-    [self loadingFailed: error];
-}
-
-- (void)loadingFailed:(NSError *)error {
-    //[self.uiOverlayViewController removeBanner];
-}
-
 - (void)openURLExternally:(NSURL *)url fromViewController:(UIViewController *)presentingViewController {
     if (url == nil) {
         return;

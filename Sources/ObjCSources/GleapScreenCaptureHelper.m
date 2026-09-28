@@ -58,11 +58,6 @@
         if (!capturedImage && retryCount > 0) {
             NSLog(@"Gleap: Primary capture failed, trying alternative method (retries left: %ld)", (long)retryCount);
             
-            // Small delay before retry
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                // This will be handled by the caller
-            });
-            
             // Try alternative capture method
             capturedImage = [self performAlternativeCaptureForWindow:keyWindow withSize:screenSize];
             
@@ -83,11 +78,8 @@
     } @catch (NSException *exception) {
         NSLog(@"Gleap: Exception in captureScreen: %@\n%@", exception.reason, exception.callStackSymbols);
         
-        // If we have retries left, try again after a delay
+        // If we have retries left, try again.
         if (retryCount > 0) {
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                // This will be handled by the caller
-            });
             return [self captureScreenWithRetryCount:retryCount - 1];
         }
         

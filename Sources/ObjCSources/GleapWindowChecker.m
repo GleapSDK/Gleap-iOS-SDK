@@ -77,10 +77,6 @@
     return [UIApplication sharedApplication].statusBarOrientation;
 }
 
-- (UIWindow *)getKeyWindowInstance {
-    return [GleapWindowChecker getKeyWindow];
-}
-
 - (void)checkKeyWindowWithCompletion:(GleapWindowReadyCompletion)completion {
     dispatch_async(dispatch_get_main_queue(), ^{
         UIWindow *keyWindow = [GleapWindowChecker getKeyWindow];

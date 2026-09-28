@@ -67,10 +67,6 @@
     }] resume];
 }
 
-- (void)configureGleapWithConfig: (NSDictionary *)data {
-    [self configureGleapWithConfig: data isReload: NO];
-}
-
 - (void)configureGleapWithConfig: (NSDictionary *)data isReload: (BOOL)isReload {
     NSDictionary *config = [data objectForKey: @"flowConfig"];
     NSDictionary *projectActions = [data objectForKey: @"projectActions"];

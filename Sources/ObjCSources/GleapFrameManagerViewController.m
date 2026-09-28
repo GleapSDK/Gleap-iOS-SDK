@@ -524,10 +524,6 @@ static id ObjectOrNull(id object)
     return layer;
 }
 
-- (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
-    return nil;
-}
-
 - (void)invalidateTimeout {
     if (self.timeoutTimer) {
         [self.timeoutTimer invalidate];
@@ -938,13 +934,6 @@ static id ObjectOrNull(id object)
     [self.webView loadRequest: request];
 }
 
-- (void)addFullConstraintsFrom:(UIView *)view toOtherView:(UIView *)otherView {
-    [otherView addConstraint:[NSLayoutConstraint constraintWithItem: view attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem: otherView attribute:NSLayoutAttributeCenterY multiplier:1.0 constant:0]];
-    [otherView addConstraint:[NSLayoutConstraint constraintWithItem: view attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:otherView attribute:NSLayoutAttributeCenterX multiplier:1.0 constant:0]];
-    [otherView addConstraint:[NSLayoutConstraint constraintWithItem: view attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem: otherView attribute:NSLayoutAttributeHeight multiplier:1.0 constant:0]];
-    [otherView addConstraint:[NSLayoutConstraint constraintWithItem: view attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem: otherView attribute:NSLayoutAttributeWidth multiplier:1.0 constant:0]];
-}
-
 - (void)sendScreenshotUpdate {
     UIImage *screenshot = [GleapScreenshotManager getScreenshot];
     if (screenshot == nil) {
@@ -961,16 +950,6 @@ static id ObjectOrNull(id object)
         }];
     }
     @catch(id exception) {}
-}
-
-- (void)showSuccessMessage {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        @try
-        {
-            [self.webView evaluateJavaScript: @"Gleap.getInstance().showSuccessAndClose()" completionHandler: nil];
-        }
-        @catch(id exception) {}
-    });
 }
 
 - (void)webView:(WKWebView *)webView didFailProvisionalNavigation:(WKNavigation *)navigation withError:(NSError *)error {
