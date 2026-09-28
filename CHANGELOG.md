@@ -37,6 +37,8 @@ Custom data, ticket attributes, tags, attachments, prefilled form data, the sess
 
 Touches and motion events (such as a shake) that reach the app's window are passed on along the responder chain again, to the application and its delegate. The SDK's `UIWindow` category handled them without passing them on.
 
+A feedback button that is created again (for example after the app switched its key window) no longer gets a layout constraint that ties the button to itself.
+
 ## 18.1.0
 Added control over the env data (device, OS, screen, locale and battery details shown under the Env data tab of a ticket) the SDK collects:
 `Gleap.setEnvDataPropsToIgnore(["deviceName", "batteryLevel"])` removes individual env data keys from every ticket and conversation before it is sent. Each call replaces the previous list; an empty array resets it.

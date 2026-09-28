@@ -60,13 +60,8 @@ static const float NOTIFICATION_BADGE_SIZE = 22.0;
         self.notificationBadgeLabel.textAlignment = NSTextAlignmentCenter;
         [self.notificationBadgeView addSubview: self.notificationBadgeLabel];
         
-        // Initialization code
-        UILayoutGuide *guide = self.safeAreaLayoutGuide;
-        _safeAreaConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:guide attribute:NSLayoutAttributeLeft multiplier:1 constant: -12];
-
-        _edgeConstraint = [NSLayoutConstraint constraintWithItem:self attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:self attribute:NSLayoutAttributeLeft multiplier:1 constant: -12];
-
-        [self updateConstraintsForOrientation];
+        // The edge and safe area constraints are built by setupClassicButton / setupModernButton
+        // once the button is in a window; until then there is nothing to switch on rotation.
 
         // Register for notification
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(orientationDidChange:) name:UIDeviceOrientationDidChangeNotification object:nil];
