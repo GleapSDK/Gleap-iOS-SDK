@@ -53,7 +53,7 @@
     GleapAttachmentHelper *helper = [GleapAttachmentHelper sharedInstance];
     @synchronized (helper) {
         if (helper.customAttachments.count > 6) {
-            NSLog(@"[GLEAP_SDK] Attachment limit of 6 files reached.");
+            NSLog(@"[GLEAP_SDK] Attachment limit of 7 files reached.");
             return false;
         }
 
