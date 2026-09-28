@@ -18,6 +18,11 @@ GLEAP_INTERNAL
 /// scheme in the app that handles it (closing the widget first, except for tel: and mailto:).
 + (void)handleURL:(nullable NSString *)url;
 
+/// The part of handleURL: for a URL that is not handed to the delegate: web links open in Safari
+/// (presented from `presentingViewController`), any other scheme in the app that handles it
+/// (closing the widget first, except for tel: and mailto:).
++ (void)openURLExternally:(nullable NSURL *)url fromViewController:(nullable UIViewController *)presentingViewController;
+
 @end
 
 NS_ASSUME_NONNULL_END

@@ -23,6 +23,8 @@ Restarting the session (for example on `identify`) no longer adds another page t
 
 Opening the widget before the app has a window to show it on no longer leaves the SDK thinking the widget is open, which blocked every later attempt to open it and kept the feedback button hidden.
 
+Links in modals that are not web links (`tel:`, `sms:`, links into other apps) no longer crash the app; they open in the app that handles them.
+
 ## 18.1.0
 Added control over the env data (device, OS, screen, locale and battery details shown under the Env data tab of a ticket) the SDK collects:
 `Gleap.setEnvDataPropsToIgnore(["deviceName", "batteryLevel"])` removes individual env data keys from every ticket and conversation before it is sent. Each call replaces the previous list; an empty array resets it.

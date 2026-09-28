@@ -8,7 +8,7 @@
 #import "Gleap.h"
 #import "GleapWebViewSupport.h"
 #import "GleapOutboundActions.h"
-#import <SafariServices/SafariServices.h>
+#import "GleapURLHandler.h"
 #import <WebKit/WebKit.h>
 
 @interface GleapModal ()
@@ -253,10 +253,9 @@ decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler
 }
 
 - (void)openURLExternally:(NSURL *)url {
-    UIViewController *vc = [GleapUIHelper getTopMostViewController];
-    SFSafariViewController *svc = [[SFSafariViewController alloc] initWithURL:url];
-    svc.modalPresentationStyle = UIModalPresentationFormSheet;
-    [vc presentViewController:svc animated:YES completion:nil];
+    // Like +[Gleap handleURL:]: SFSafariViewController only takes http(s) and threw for tel:,
+    // sms: or app links, which crashed the app; those now open in the app that handles them.
+    [GleapURLHandler openURLExternally: url fromViewController: [GleapUIHelper getTopMostViewController]];
 }
 
 // 5) Re-clamp on size/orientation changes
