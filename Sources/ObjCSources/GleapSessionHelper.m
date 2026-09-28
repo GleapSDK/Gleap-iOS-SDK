@@ -57,6 +57,40 @@
     [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
 }
 
+/*
+ The session in a server answer, or nil. Only a 2xx that names the session (gleapId and gleapHash)
+ may replace the stored identity: overload (503) and error answers arrive as JSON too, and taking
+ them for a session erased the stored identity.
+ */
++ (nullable NSDictionary *)sessionDataInResponse:(NSURLResponse *)response data:(NSData *)data {
+    if (![GleapAPIClient isSuccessResponse: response] || data == nil) {
+        return nil;
+    }
+    id json = [NSJSONSerialization JSONObjectWithData: data options: 0 error: nil];
+    if (![json isKindOfClass: [NSDictionary class]] || [json objectForKey: @"error"] != nil || [json objectForKey: @"errors"] != nil) {
+        return nil;
+    }
+    id gleapId = [json objectForKey: @"gleapId"];
+    id gleapHash = [json objectForKey: @"gleapHash"];
+    if (![gleapId isKindOfClass: [NSString class]] || [gleapId length] == 0 || ![gleapHash isKindOfClass: [NSString class]] || [gleapHash length] == 0) {
+        return nil;
+    }
+    return json;
+}
+
+/*
+ YES when the server answered with an explicit error (an `error` or `errors` body) that is not a
+ server failure (5xx), i.e. it refused the request itself rather than failing to handle it.
+ */
++ (BOOL)isErrorAnswerInResponse:(NSURLResponse *)response data:(NSData *)data {
+    NSInteger status = [GleapAPIClient statusCodeOfResponse: response];
+    if (status == 0 || status >= 500 || data == nil) {
+        return NO;
+    }
+    id json = [NSJSONSerialization JSONObjectWithData: data options: 0 error: nil];
+    return [json isKindOfClass: [NSDictionary class]] && ([json objectForKey: @"error"] != nil || [json objectForKey: @"errors"] != nil);
+}
+
 - (id)init {
     self = [super init];
     return self;
@@ -82,17 +116,9 @@
     [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
                                                       NSURLResponse * _Nullable response,
                                                       NSError * _Nullable error) {
-        if (error != nil) {
-            return completion(false);
-        }
-        
-        if (![response isKindOfClass:[NSHTTPURLResponse class]]) {
-            return completion(false);
-        }
-        
-        NSError *jsonError;
-        NSDictionary *jsonResponse = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-        if (jsonError) {
+        // A failed start leaves the stored identity for the next attempt.
+        NSDictionary *sessionData = error == nil ? [GleapSessionHelper sessionDataInResponse: response data: data] : nil;
+        if (sessionData == nil) {
             return completion(false);
         }
         
@@ -100,7 +126,7 @@
         [[GleapEventLogHelper sharedInstance] stop];
         [[GleapEventLogHelper sharedInstance] start];
     
-        return [self updateLocalSessionWith: jsonResponse andCompletion: completion];
+        return [self updateLocalSessionWith: sessionData andCompletion: completion];
     }];
 }
 
@@ -189,22 +215,10 @@
         [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
                                                           NSURLResponse * _Nullable response,
                                                           NSError * _Nullable error) {
-            if (error != nil) {
-                return;
-            }
-            
-            if (![response isKindOfClass:[NSHTTPURLResponse class]]) {
-                return;
-            }
-            
-            NSError *jsonError;
-            NSDictionary *jsonResponse = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-            if (jsonError) {
-                return;
-            }
-            
-            if (jsonResponse != nil && [jsonResponse objectForKey: @"errors"] == nil) {
-                [self updateLocalSessionWith: jsonResponse andCompletion:^(bool success) {}];
+            // A failed update leaves the session as it is.
+            NSDictionary *sessionData = error == nil ? [GleapSessionHelper sessionDataInResponse: response data: data] : nil;
+            if (sessionData != nil) {
+                [self updateLocalSessionWith: sessionData andCompletion:^(bool success) {}];
             }
         }];
     } @catch (id exp) {}
@@ -267,30 +281,22 @@
             return;
         }
         
-        if (![response isKindOfClass:[NSHTTPURLResponse class]]) {
-            return;
-        }
-        
-        NSError *jsonError;
-        NSDictionary *jsonResponse = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-        if (jsonError) {
-            return;
-        }
-        
-        if (jsonResponse != nil && [jsonResponse objectForKey: @"errors"] == nil && [jsonResponse objectForKey: @"error"] == nil) {
+        NSDictionary *sessionData = [GleapSessionHelper sessionDataInResponse: response data: data];
+        if (sessionData != nil) {
             // Send unregister of previous group.
             [self sendPushMessageUnregister];
             
-            [self updateLocalSessionWith: jsonResponse andCompletion:^(bool success) {}];
+            [self updateLocalSessionWith: sessionData andCompletion:^(bool success) {}];
             
             // Restart logger.
             [Gleap logEvent: @"sessionStarted"];
             [[GleapEventLogHelper sharedInstance] stop];
             [[GleapEventLogHelper sharedInstance] start];
-        } else {
-            // Clear session due to an error.
+        } else if ([GleapSessionHelper isErrorAnswerInResponse: response data: data]) {
+            // The server refused this identity (for example a wrong user hash): start over as a guest.
             [self clearSession];
         }
+        // Anything else (overloaded, a server failure, an answer without a session) keeps the identity.
     }];
 }
 

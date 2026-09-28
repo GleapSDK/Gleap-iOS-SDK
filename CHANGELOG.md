@@ -7,6 +7,8 @@ Console logs capture the app's stdout and stderr again, now on iOS 15+ and in de
 
 Reports only count as sent once the server accepted them. A report the server rejects (for example because it is too large) now calls `feedbackSendingFailed` and shows the error in the widget, where it used to call `feedbackSent` and `outboundSent` for a ticket that was never created. When the server is momentarily overloaded (503), a report and its uploads are sent once more after the delay the server asks for (at most 5 seconds). A rejected attachment upload no longer crashes the app; the report is sent without the attachments.
 
+A failed request no longer costs the user their identity. When starting a session, `identify` or `updateContact` failed (the server was overloaded, the request was too large, a server error), the SDK could delete the stored guest or user identity, so the user continued as a new guest without their conversations. Only an answer that contains a session replaces the stored identity now. An `identify` the server refuses (for example because of a wrong user hash) still starts a new guest session, as before.
+
 ## 18.1.0
 Added control over the env data (device, OS, screen, locale and battery details shown under the Env data tab of a ticket) the SDK collects:
 `Gleap.setEnvDataPropsToIgnore(["deviceName", "batteryLevel"])` removes individual env data keys from every ticket and conversation before it is sent. Each call replaces the previous list; an empty array resets it.
