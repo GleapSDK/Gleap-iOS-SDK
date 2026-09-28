@@ -1,5 +1,5 @@
 //
-//  GleapReplayHelper.h
+//  GleapEventLogHelper.h
 //  Gleap
 //
 //  Created by Lukas Boehler on 15.01.21.
@@ -14,10 +14,10 @@ NS_ASSUME_NONNULL_BEGIN
 @interface GleapEventLogHelper : NSObject
 
 /**
- * Returns a new shared instance of GleapReplayHelper.
+ * Returns the shared instance of GleapEventLogHelper.
  * @author Gleap
  *
- * @return A new shared instance of GleapReplayHelper.
+ * @return The shared instance of GleapEventLogHelper.
  */
 + (instancetype)sharedInstance;
 

@@ -15,10 +15,10 @@ NS_ASSUME_NONNULL_BEGIN
 @interface GleapSessionHelper : NSObject
 
 /**
- * Returns a new shared instance of GleapSessionHelper.
+ * Returns the shared instance of GleapSessionHelper.
  * @author Gleap
  *
- * @return A new shared instance of GleapSessionHelper.
+ * @return The shared instance of GleapSessionHelper.
  */
 + (instancetype)sharedInstance;
 + (NSString *)getDeviceType;

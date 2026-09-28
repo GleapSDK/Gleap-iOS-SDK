@@ -40,7 +40,7 @@
     
     [body appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
     
-    // Setting the body of the post to the reqeust
+    // Set the body of the POST request.
     [request setHTTPBody:body];
     
     // Set the content-length

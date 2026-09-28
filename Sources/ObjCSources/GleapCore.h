@@ -1,5 +1,5 @@
 //
-//  Gleap.h
+//  GleapCore.h
 //  Gleap
 //
 //  Created by Lukas on 13.01.19.
@@ -43,10 +43,10 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 @interface Gleap : NSObject
 
 /**
- * Returns a new shared instance of Gleap.
+ * Returns the shared instance of Gleap.
  * @author Gleap
  *
- * @return A new shared instance of Gleap.
+ * @return The shared instance of Gleap.
  */
 + (instancetype)sharedInstance;
 
@@ -54,7 +54,7 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
  * Auto-configures the Gleap SDK from the remote config.
  * @author Gleap
  *
- * @param token The SDK key, which can be found on dashboard.bugbattle.io
+ * @param token The SDK key of your project, which can be found in the Gleap dashboard.
  */
 + (void)initializeWithToken: (NSString *)token;
 
@@ -270,7 +270,7 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)log:(NSString *)msg;
 
 /**
- * Handels a push notification tap.
+ * Handles a push notification tap.
  * @author Gleap
  *
  * @param notificationData The push notification data.
@@ -496,7 +496,7 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)enableDebugConsoleLog;
 
 /**
- * Set's the current userinterface language.
+ * Sets the current user interface language.
  * @author Gleap
  *
  * @param language The 2 or 4 digit ISO code language to set

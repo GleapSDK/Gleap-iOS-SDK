@@ -93,7 +93,7 @@
             }
         }
         
-        // Recieve next message.
+        // Receive the next message.
         [self receiveMessage];
     }];
 }

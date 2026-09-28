@@ -1,5 +1,5 @@
 //
-//  GleapSession.h
+//  GleapAction.h
 //  Gleap
 //
 //  Created by Lukas Boehler on 23.09.21.

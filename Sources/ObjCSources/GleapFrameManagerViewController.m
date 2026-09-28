@@ -1,5 +1,5 @@
 //
-//  GleapWidgetViewController.m
+//  GleapFrameManagerViewController.m
 //  Gleap
 //
 //  Created by Lukas on 13.01.19.

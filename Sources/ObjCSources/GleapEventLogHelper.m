@@ -1,5 +1,5 @@
 //
-//  GleapReplayHelper.m
+//  GleapEventLogHelper.m
 //  Gleap
 //
 //  Created by Lukas Boehler on 15.01.21.
@@ -268,7 +268,7 @@
                         // BANNER
                         [GleapUIOverlayHelper showBanner: action];
                     } else if ([[action objectForKey: @"actionType"] isEqualToString: @"modal"]) {
-                        // BANNER
+                        // MODAL
                         [GleapUIOverlayHelper showModal: action];
                     } else {
                         // FEEDBACK FORMS

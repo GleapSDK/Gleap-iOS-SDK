@@ -1,6 +1,6 @@
 //
-//  Gleap.m
-//  GleapCore
+//  GleapCore.m
+//  Gleap
 //
 //  Created by Lukas on 13.01.19.
 //  Copyright © 2021 Gleap. All rights reserved.
@@ -754,7 +754,7 @@ static id ObjectOrNull(id object)
 }
 
 /*
- Invoked when a shake gesture is beeing performed.
+ Invoked when a shake gesture is being performed.
  */
 + (void)shakeInvocation {
     if ([GleapActivationMethodHelper isActivationMethodActive: SHAKE]) {

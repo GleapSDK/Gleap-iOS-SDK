@@ -1,5 +1,5 @@
 //
-//  GleapFeedbackButton.h
+//  GleapBanner.h
 //  
 //
 //  Created by Lukas Boehler on 09.09.22.

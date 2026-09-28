@@ -13,10 +13,10 @@ NS_ASSUME_NONNULL_BEGIN
 @interface GleapTouchHelper : NSObject
 
 /**
- * Returns a new shared instance of GleapTouchHelper.
+ * Returns the shared instance of GleapTouchHelper.
  * @author Gleap
  *
- * @return A new shared instance of GleapTouchHelper.
+ * @return The shared instance of GleapTouchHelper.
  */
 + (instancetype)sharedInstance;
 

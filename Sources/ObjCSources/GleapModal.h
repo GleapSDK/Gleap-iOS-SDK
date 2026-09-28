@@ -1,5 +1,5 @@
 //
-//  GleapFeedbackButton.h
+//  GleapModal.h
 //  
 //
 //  Created by Lukas Boehler on 29.04.25.

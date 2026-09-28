@@ -1,5 +1,5 @@
 //
-//  GleapNetworkLogger.h
+//  GleapHttpTrafficRecorder.h
 //  Gleap
 //
 //  Created by Lukas Boehler on 28.03.21.

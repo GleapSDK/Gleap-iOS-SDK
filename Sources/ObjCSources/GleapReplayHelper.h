@@ -13,10 +13,10 @@ NS_ASSUME_NONNULL_BEGIN
 @interface GleapReplayHelper : NSObject
 
 /**
- * Returns a new shared instance of GleapReplayHelper.
+ * Returns the shared instance of GleapReplayHelper.
  * @author Gleap
  *
- * @return A new shared instance of GleapReplayHelper.
+ * @return The shared instance of GleapReplayHelper.
  */
 + (instancetype)sharedInstance;
 

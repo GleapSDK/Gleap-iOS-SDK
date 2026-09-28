@@ -10,7 +10,7 @@
 #import <WebKit/WebKit.h>
 
 @interface GleapModal ()
-// Redeclare as readwrite to match the public readonly in the header
+// Layout state; not part of the public header.
 @property (nonatomic, strong, readwrite) NSLayoutConstraint *heightConstraint;
 @property (nonatomic, strong, readwrite) NSLayoutConstraint *maxWidthConstraint;
 // The web content scrolls its own body once it knows how much room it has (we
