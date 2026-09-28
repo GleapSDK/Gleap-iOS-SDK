@@ -13,6 +13,8 @@ Custom actions from banners reach the app again, the same way as those from moda
 
 A closed widget, banner or modal is released again, together with its web view and web content process. Each one used to stay in memory until the app quit, because its web view kept it alive.
 
+The realtime connection no longer reconnects every 5 seconds after the session changed (for example after `identify`), and all connections share one URL session instead of creating a new one per attempt. Realtime messages are now handled on the main queue, like the answers to the event stream.
+
 ## 18.1.0
 Added control over the env data (device, OS, screen, locale and battery details shown under the Env data tab of a ticket) the SDK collects:
 `Gleap.setEnvDataPropsToIgnore(["deviceName", "batteryLevel"])` removes individual env data keys from every ticket and conversation before it is sent. Each call replaces the previous list; an empty array resets it.
