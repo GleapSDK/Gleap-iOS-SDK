@@ -9,7 +9,7 @@
 #import "GleapUIOverlayHelper.h"
 #import <objc/runtime.h>
 
-void swizzleMethod(Class class, SEL originalSelector, SEL swizzledSelector) {
+static void GleapSwizzleInstanceMethod(Class class, SEL originalSelector, SEL swizzledSelector) {
     Method originalMethod = class_getInstanceMethod(class, originalSelector);
     Method swizzledMethod = class_getInstanceMethod(class, swizzledSelector);
 
@@ -28,24 +28,24 @@ void swizzleMethod(Class class, SEL originalSelector, SEL swizzledSelector) {
     }
 }
 
-@implementation UIViewController (Swizzled)
+@implementation UIViewController (GleapLifecycleSwizzle)
 
 + (void)load {
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        swizzleMethod([self class], @selector(viewDidAppear:), @selector(swizzled_viewDidAppear:));
-        swizzleMethod([self class], @selector(viewDidDisappear:), @selector(swizzled_viewDidDisappear:));
+        GleapSwizzleInstanceMethod([self class], @selector(viewDidAppear:), @selector(gleap_viewDidAppear:));
+        GleapSwizzleInstanceMethod([self class], @selector(viewDidDisappear:), @selector(gleap_viewDidDisappear:));
     });
 }
 
-- (void)swizzled_viewDidAppear:(BOOL)animated {
-    [self swizzled_viewDidAppear:animated];
+- (void)gleap_viewDidAppear:(BOOL)animated {
+    [self gleap_viewDidAppear:animated];
     
     [[GleapUIOverlayHelper sharedInstance].uiOverlayViewController updateUIPositions];
 }
 
-- (void)swizzled_viewDidDisappear:(BOOL)animated {
-    [self swizzled_viewDidDisappear:animated];
+- (void)gleap_viewDidDisappear:(BOOL)animated {
+    [self gleap_viewDidDisappear:animated];
     
     [[GleapUIOverlayHelper sharedInstance].uiOverlayViewController updateUIPositions];
 }

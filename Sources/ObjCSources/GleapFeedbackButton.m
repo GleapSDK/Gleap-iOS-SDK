@@ -12,8 +12,8 @@
 #import "GleapWindowChecker.h"
 #import "Gleap.h"
 
-const double BUTTON_SIZE = 56.0;
-const float NOTIFICATION_BADGE_SIZE = 22.0;
+static const double BUTTON_SIZE = 56.0;
+static const float NOTIFICATION_BADGE_SIZE = 22.0;
 
 @implementation GleapFeedbackButton
 
