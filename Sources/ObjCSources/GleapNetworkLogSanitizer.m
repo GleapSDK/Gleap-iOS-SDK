@@ -194,8 +194,8 @@ static NSInteger const kGleapMaxRedactionDepth = 64;
         NSData *data = [trimmed dataUsingEncoding: NSUTF8StringEncoding];
         id json = data ? [NSJSONSerialization JSONObjectWithData: data options: NSJSONReadingMutableContainers error: nil] : nil;
         if (json == nil) {
-            // Not JSON after all (e.g. truncated): leave it as it is.
-            return text;
+            // Cut at the size limit (or broken): the keys can't be removed, so mask their values.
+            return [self maskKeys: keys paths: paths inUnparsableJSON: text];
         }
         if (![self removeKeys: keys paths: paths fromJSONObject: json]) {
             return text;
@@ -271,6 +271,47 @@ static NSInteger const kGleapMaxRedactionDepth = 64;
         }
     }
     return changed;
+}
+
+/*
+ Replaces the values of ignored keys in JSON text that does not parse, e.g. a body cut at the
+ size limit: strings (also one cut at the end), numbers, booleans and null become "[REDACTED]".
+ Objects and arrays stay; their own keys are matched separately. A dotted prop also masks its
+ last segment, since the path can't be followed in broken JSON.
+ */
++ (NSString *)maskKeys:(NSSet<NSString *> *)keys paths:(NSArray<NSArray<NSString *> *> *)paths inUnparsableJSON:(NSString *)text {
+    NSMutableSet<NSString *> *names = [NSMutableSet setWithSet: keys];
+    for (NSArray<NSString *> *path in paths) {
+        if (path.lastObject.length > 0) {
+            [names addObject: path.lastObject];
+        }
+    }
+    NSMutableArray<NSString *> *alternatives = [NSMutableArray array];
+    for (NSString *name in names) {
+        [alternatives addObject: [NSRegularExpression escapedPatternForString: name]];
+    }
+    if (alternatives.count == 0) {
+        return text;
+    }
+    NSString *pattern = [NSString stringWithFormat: @"\"(%@)\"(\\s*:\\s*)(\"(?:[^\"\\\\]|\\\\.)*\"?|-?\\d[0-9.eE+-]*|true|false|null)", [alternatives componentsJoinedByString: @"|"]];
+    NSRegularExpression *expression = [NSRegularExpression regularExpressionWithPattern: pattern options: NSRegularExpressionCaseInsensitive error: nil];
+    if (expression == nil) {
+        return text;
+    }
+    // Keep the truncation marker out of reach: a string cut at the limit has no closing quote
+    // and would otherwise run into it.
+    NSString *head = text;
+    NSString *marker = @"";
+    NSRange markerRange = [text rangeOfString: @"\n… [truncated, " options: NSBackwardsSearch];
+    if (markerRange.location != NSNotFound && [text hasSuffix: @"]"]) {
+        head = [text substringToIndex: markerRange.location];
+        marker = [text substringFromIndex: markerRange.location];
+    }
+    NSString *masked = [expression stringByReplacingMatchesInString: head options: 0 range: NSMakeRange(0, head.length) withTemplate: @"\"$1\"$2\"[REDACTED]\""];
+    if (masked == nil || [masked isEqualToString: head]) {
+        return text;
+    }
+    return [masked stringByAppendingString: marker];
 }
 
 + (BOOL)looksLikeFormBody:(NSString *)text {

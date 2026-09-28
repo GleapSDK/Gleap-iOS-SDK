@@ -168,7 +168,7 @@
 
 - (NSArray *)mergeExternalConsoleLog:(NSArray *)logs {
     NSMutableArray *consoleLogs = [[NSMutableArray alloc] initWithArray: logs ?: @[]];
-    NSArray *existingConsoleLogs = [[GleapExternalDataHelper sharedInstance].data objectForKey: @"consoleLog"];
+    NSArray *existingConsoleLogs = [[GleapExternalDataHelper sharedInstance] objectForKey: @"consoleLog"];
     if ([existingConsoleLogs isKindOfClass: [NSArray class]] && existingConsoleLogs.count > 0) {
         [consoleLogs addObjectsFromArray: existingConsoleLogs];
     }
@@ -207,7 +207,7 @@
     // Attach and merge network logs: the SDK's own recording (while it runs) and the logs a
     // wrapper SDK (React Native, Flutter, Capacitor) attached, both sanitized.
     NSArray *recordedNetworkLogs = [GleapHttpTrafficRecorder sharedRecorder].isRecording ? [[GleapHttpTrafficRecorder sharedRecorder] networkLogs] : @[];
-    NSArray *existingNetworkLogs = [[GleapExternalDataHelper sharedInstance].data objectForKey: @"networkLogs"];
+    NSArray *existingNetworkLogs = [[GleapExternalDataHelper sharedInstance] objectForKey: @"networkLogs"];
     NSArray *networkLogs = [GleapHttpTrafficRecorder mergeNetworkLogs: recordedNetworkLogs withExternalNetworkLogs: existingNetworkLogs];
     if ([networkLogs count] > 0) {
         [self attachData: @{ @"networkLogs": [[GleapHttpTrafficRecorder sharedRecorder] filterNetworkLogs: networkLogs] }];

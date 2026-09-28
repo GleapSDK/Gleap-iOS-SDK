@@ -393,6 +393,13 @@ static BOOL GleapOSLogMirroredToStderr(void) {
         return;
     }
 
+    // Capacitor prints the WebView's console ("⚡️  [log] - ...") and its bridge diagnostics
+    // to stdout in debug builds. The Gleap Capacitor plugin records the WebView console
+    // itself, with levels and uncaught errors, so these copies would only duplicate it.
+    if ([Gleap sharedInstance].applicationType == CAPACITOR && [line hasPrefix: @"⚡️"]) {
+        return;
+    }
+
     NSDictionary *entry = [GleapConsoleLogHelper entryWithMessage: line priority: @"INFO" date: [NSDate date]];
     os_unfair_lock_lock(&gleapConsoleLock);
     [self.capturedLines addObject: entry];

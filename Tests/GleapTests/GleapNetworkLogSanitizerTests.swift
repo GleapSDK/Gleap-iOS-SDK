@@ -76,13 +76,24 @@ final class GleapNetworkLogSanitizerTests: XCTestCase {
 
     func testUnchangedAndNonJSONBodiesStayByteIdentical() {
         let untouchedJSON = #"{ "b": 1,  "a": 2 }"#
-        let truncatedJSON = #"{"password":"p","items":[1,2"#
+        let truncatedJSON = #"{"name":"n","items":[1,2"#
         let text = "plain text with password inside"
         let result = sanitize([entry(payload: untouchedJSON, responseText: truncatedJSON),
                                entry(payload: text, responseText: "")], props: ["password"])
         XCTAssertEqual((result[0]["request"] as! [String: Any])["payload"] as? String, untouchedJSON)
         XCTAssertEqual((result[0]["response"] as! [String: Any])["responseText"] as? String, truncatedJSON)
         XCTAssertEqual((result[1]["request"] as! [String: Any])["payload"] as? String, text)
+    }
+
+    func testIgnoredKeysAreMaskedInJSONCutAtTheSizeLimit() {
+        let truncated = "{\"user\":{\"password\":\"pw-0\",\"name\":\"n\"},\"token\":\"abc\",\"items\":[{\"Token\":\"x\"" + "\n… [truncated, 200000 bytes]"
+        let result = sanitize([entry(responseText: truncated)], props: ["password", "token"])
+        let text = (result[0]["response"] as! [String: Any])["responseText"] as! String
+        XCTAssertEqual(text, "{\"user\":{\"password\":\"[REDACTED]\",\"name\":\"n\"},\"token\":\"[REDACTED]\",\"items\":[{\"Token\":\"[REDACTED]\"" + "\n… [truncated, 200000 bytes]")
+
+        let cutInsideValue = "{\"session\":{\"secret\":\"abcdef" + "\n… [truncated, 200000 bytes]"
+        let dotted = sanitize([entry(responseText: cutInsideValue)], props: ["session.secret"])
+        XCTAssertEqual((dotted[0]["response"] as! [String: Any])["responseText"] as? String, "{\"session\":{\"secret\":\"[REDACTED]\"" + "\n… [truncated, 200000 bytes]")
     }
 
     func testFormBodiesAndQueryParametersAreRedacted() {
