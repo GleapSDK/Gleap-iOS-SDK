@@ -156,9 +156,20 @@
  off the main thread while the rest of the report is already assembled.
  */
 - (NSArray *)collectConsoleLog {
-    NSMutableArray *consoleLogs = [[NSMutableArray alloc] initWithArray: [[GleapConsoleLogHelper sharedInstance] getConsoleLogs]];
-    NSArray *existingConsoleLogs = [[GleapExternalDataHelper sharedInstance].data objectForKey: @"consoleLog"];
-    if (existingConsoleLogs != nil && existingConsoleLogs.count > 0) {
+    return [self mergeExternalConsoleLog: [[GleapConsoleLogHelper sharedInstance] getConsoleLogs]];
+}
+
+/*
+ The console log without the unified log (os_log): instant, for reports that cannot wait.
+ */
+- (NSArray *)collectBufferedConsoleLog {
+    return [self mergeExternalConsoleLog: [[GleapConsoleLogHelper sharedInstance] getBufferedConsoleLogs]];
+}
+
+- (NSArray *)mergeExternalConsoleLog:(NSArray *)logs {
+    NSMutableArray *consoleLogs = [[NSMutableArray alloc] initWithArray: logs ?: @[]];
+    NSArray *existingConsoleLogs = [[GleapExternalDataHelper sharedInstance] objectForKey: @"consoleLog"];
+    if ([existingConsoleLogs isKindOfClass: [NSArray class]] && existingConsoleLogs.count > 0) {
         [consoleLogs addObjectsFromArray: existingConsoleLogs];
     }
     return consoleLogs;
@@ -193,15 +204,12 @@
     // Attach custom event log.
     [self attachData: @{ @"customEventLog": [[GleapEventLogHelper sharedInstance] getLogs] }];
 
-    // Attach and merge network logs.
-    NSMutableArray *networkLogs = [[NSMutableArray alloc] initWithArray: [[GleapHttpTrafficRecorder sharedRecorder] networkLogs]];
-    if ([[GleapExternalDataHelper sharedInstance].data objectForKey: @"networkLogs"] != nil) {
-        NSArray *existingNetworkLogs = [[GleapExternalDataHelper sharedInstance].data objectForKey: @"networkLogs"];
-        if (existingNetworkLogs != nil && existingNetworkLogs.count > 0) {
-            [networkLogs addObjectsFromArray: existingNetworkLogs];
-        }
-    }
-    if ([networkLogs count] > 0 && [GleapHttpTrafficRecorder sharedRecorder].isRecording) {
+    // Attach and merge network logs: the SDK's own recording (while it runs) and the logs a
+    // wrapper SDK (React Native, Flutter, Capacitor) attached, both sanitized.
+    NSArray *recordedNetworkLogs = [GleapHttpTrafficRecorder sharedRecorder].isRecording ? [[GleapHttpTrafficRecorder sharedRecorder] networkLogs] : @[];
+    NSArray *existingNetworkLogs = [[GleapExternalDataHelper sharedInstance] objectForKey: @"networkLogs"];
+    NSArray *networkLogs = [GleapHttpTrafficRecorder mergeNetworkLogs: recordedNetworkLogs withExternalNetworkLogs: existingNetworkLogs];
+    if ([networkLogs count] > 0) {
         [self attachData: @{ @"networkLogs": [[GleapHttpTrafficRecorder sharedRecorder] filterNetworkLogs: networkLogs] }];
     }
 
@@ -232,10 +240,13 @@
 
 - (void)prepareDataWithDeadline:(NSTimeInterval)deadline completion:(void (^)(void))completion {
     // Must be called from the main thread — prepareMainThreadData reads UIKit.
-    // Everything but the console log is in-memory and returns right away, so the
-    // report is already complete except for the logs by the time we get here.
+    // Everything but the unified log (os_log) is in-memory and returns right away, so
+    // the report already carries the captured console output; the os_log entries are
+    // added when they arrive before the deadline.
     [self prepareMainThreadData];
     [self prepareInMemoryData];
+    [self attachData: @{ @"consoleLog": [self collectBufferedConsoleLog] }];
+    [self excludeExcludedData];
 
     __block BOOL finished = NO;
     // Only ever invoked on the main queue, so `finished` and self.data stay

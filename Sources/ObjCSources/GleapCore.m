@@ -160,7 +160,7 @@ static id ObjectOrNull(id object)
 
 + (void)attachExternalData:(NSDictionary *)data {
     if (data != nil) {
-        [[GleapExternalDataHelper sharedInstance].data addEntriesFromDictionary: data];
+        [[GleapExternalDataHelper sharedInstance] addEntries: data];
     }
 }
 

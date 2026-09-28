@@ -89,10 +89,23 @@
     return [self topViewControllerWith: presentedViewController];
 }
 
+/*
+ ISO 8601 in UTC with milliseconds (2026-09-27T10:00:00.123Z), independent of the
+ device's calendar, locale and 12/24-hour setting. A plain NSDateFormatter uses the
+ user's calendar (Buddhist or Japanese years) and can inject AM/PM, which the server
+ cannot parse and silently drops; without milliseconds, logs of the same second lose
+ their order on the ticket timeline. NSISO8601DateFormatter is thread-safe, so one
+ shared instance serves every log line.
+ */
 + (NSString *)getJSStringForNSDate:(NSDate *)date {
-    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-    dateFormatter.dateFormat = @"yyyy-MM-dd'T'HH:mm:ssZZZZZ";
-    return [dateFormatter stringFromDate: date];
+    static NSISO8601DateFormatter *formatter = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        formatter = [[NSISO8601DateFormatter alloc] init];
+        formatter.formatOptions = NSISO8601DateFormatWithInternetDateTime | NSISO8601DateFormatWithFractionalSeconds;
+        formatter.timeZone = [NSTimeZone timeZoneWithAbbreviation: @"UTC"];
+    });
+    return [formatter stringFromDate: date ?: [NSDate date]];
 }
 
 @end
