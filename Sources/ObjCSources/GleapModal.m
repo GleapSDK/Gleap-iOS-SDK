@@ -169,6 +169,7 @@
 - (void)userContentController:(WKUserContentController *)uC didReceiveScriptMessage:(WKScriptMessage *)message {
     @try {
         if (![message.name isEqualToString:@"gleapModalCallback"]) return;
+        if (![GleapWebViewSupport isTrustedMessage: message forPageURL: Gleap.sharedInstance.modalUrl]) return;
         NSDictionary *body = message.body;
         NSString *name = body[@"name"];
         NSDictionary *data = body[@"data"];

@@ -45,6 +45,24 @@ GLEAP_INTERNAL
     [webView.configuration.userContentController removeScriptMessageHandlerForName: name];
 }
 
++ (BOOL)isTrustedMessage:(WKScriptMessage *)message forPageURL:(NSString *)pageURL {
+    WKFrameInfo *frame = message.frameInfo;
+    if ([self acceptsMessageFromMainFrame: frame.isMainFrame host: frame.securityOrigin.host forPageURL: pageURL]) {
+        return YES;
+    }
+    NSLog(@"[GLEAP_SDK] Ignored the message %@ from %@ (%@).", message.name, frame.securityOrigin.host, frame.isMainFrame ? @"main frame" : @"subframe");
+    return NO;
+}
+
++ (BOOL)acceptsMessageFromMainFrame:(BOOL)isMainFrame host:(NSString *)host forPageURL:(NSString *)pageURL {
+    return isMainFrame && [self isHost: host ofPageURL: pageURL];
+}
+
++ (BOOL)isHost:(NSString *)host ofPageURL:(NSString *)pageURL {
+    NSString *pageHost = pageURL != nil ? [NSURL URLWithString: pageURL].host : nil;
+    return host.length > 0 && pageHost.length > 0 && [host caseInsensitiveCompare: pageHost] == NSOrderedSame;
+}
+
 + (void)disableScrollingInWebView:(WKWebView *)webView {
     webView.scrollView.scrollEnabled = NO;
     webView.scrollView.bounces = NO;

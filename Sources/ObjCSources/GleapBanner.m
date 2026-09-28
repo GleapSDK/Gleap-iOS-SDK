@@ -88,7 +88,7 @@
 
 - (void)userContentController:(WKUserContentController*)userContentController didReceiveScriptMessage:(WKScriptMessage*)message
 {
-    if ([message.name isEqualToString: @"gleapBannerCallback"]) {
+    if ([message.name isEqualToString: @"gleapBannerCallback"] && [GleapWebViewSupport isTrustedMessage: message forPageURL: Gleap.sharedInstance.bannerUrl]) {
         NSString *name = [message.body objectForKey: @"name"];
         NSDictionary *messageData = [message.body objectForKey: @"data"];
         

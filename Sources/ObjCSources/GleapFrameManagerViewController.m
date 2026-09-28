@@ -259,7 +259,7 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 
 - (void)userContentController:(WKUserContentController*)userContentController didReceiveScriptMessage:(WKScriptMessage*)message
 {
-    if (![message.name isEqualToString: @"gleapCallback"]) {
+    if (![message.name isEqualToString: @"gleapCallback"] || ![GleapWebViewSupport isTrustedMessage: message forPageURL: Gleap.sharedInstance.frameUrl]) {
         return;
     }
     NSString *name = [message.body objectForKey: @"name"];

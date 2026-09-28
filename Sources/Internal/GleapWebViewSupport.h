@@ -25,6 +25,17 @@ GLEAP_INTERNAL
 /// Unregisters the message handler `name` of `webView`; call it when the web view's owner goes away.
 + (void)removeMessageHandlerNamed:(NSString *)name fromWebView:(nullable WKWebView *)webView;
 
+/// YES when `message` may drive the native bridge: it was posted by the main frame of a page on
+/// the host of `pageURL` (the configured frame, banner or modal URL). Other frames, such as
+/// third-party content embedded in help articles, news or banners, are ignored.
++ (BOOL)isTrustedMessage:(WKScriptMessage *)message forPageURL:(nullable NSString *)pageURL;
+
+/// The rule behind isTrustedMessage:forPageURL:.
++ (BOOL)acceptsMessageFromMainFrame:(BOOL)isMainFrame host:(nullable NSString *)host forPageURL:(nullable NSString *)pageURL;
+
+/// YES when `host` is the host of `pageURL` (case-insensitive).
++ (BOOL)isHost:(nullable NSString *)host ofPageURL:(nullable NSString *)pageURL;
+
 /// The page lays itself out: no scrolling, bouncing or automatic content insets.
 + (void)disableScrollingInWebView:(WKWebView *)webView;
 
