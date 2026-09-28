@@ -50,7 +50,7 @@
 + (void)uploadStepImages: (NSArray *)steps andCompletion: (void (^)(bool success, NSArray *fileUrls))completion {
     // Prepare images for upload.
     NSMutableArray * files = [[NSMutableArray alloc] init];
-    for (int i = 0; i < steps.count; i++) {
+    for (NSUInteger i = 0; i < steps.count; i++) {
         NSDictionary *currentStep = [steps objectAtIndex: i];
         UIImage *currentImage = [currentStep objectForKey: @"image"];
         
@@ -62,7 +62,7 @@
         UIGraphicsEndImageContext();
         
         NSData *imageData = UIImageJPEGRepresentation(destImage, 0.9);
-        NSString *filename = [NSString stringWithFormat: @"step_%i", i];
+        NSString *filename = [NSString stringWithFormat: @"step_%lu", (unsigned long)i];
         
         if (imageData != nil) {
             [files addObject: @{
@@ -77,7 +77,7 @@
         if (success) {
             NSMutableArray *replayArray = [[NSMutableArray alloc] init];
             
-            for (int i = 0; i < fileUrls.count; i++) {
+            for (NSUInteger i = 0; i < fileUrls.count; i++) {
                 NSMutableDictionary *currentStep = [[steps objectAtIndex: i] mutableCopy];
                 NSString *currentImageUrl = [fileUrls objectAtIndex: i];
                 [currentStep setObject: currentImageUrl forKey: @"url"];

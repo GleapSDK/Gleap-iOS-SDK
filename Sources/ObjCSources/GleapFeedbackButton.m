@@ -310,7 +310,7 @@ static const float NOTIFICATION_BADGE_SIZE = 22.0;
     
     @try {
         // Always pin iPad to edge.
-        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+        if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad) {
             shouldActivateSafeAreaConstraint = NO;
             shouldActivateEdgeConstraint = YES;
         } else {

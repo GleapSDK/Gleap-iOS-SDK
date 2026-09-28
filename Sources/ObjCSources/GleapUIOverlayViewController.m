@@ -37,7 +37,7 @@
     }
 
     long tag = sender.view.tag;
-    if (tag < 0 || tag >= self.internalNotifications.count) {
+    if (tag < 0 || tag >= (long)self.internalNotifications.count) {
         return;
     }
 

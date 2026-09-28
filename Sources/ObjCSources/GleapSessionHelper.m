@@ -237,7 +237,7 @@
     @try {
         if (data != nil && data.customData != nil) {
             NSArray *keys = data.customData.allKeys;
-            for (int i = 0; i < keys.count; i++) {
+            for (NSUInteger i = 0; i < keys.count; i++) {
                 NSString *key = [keys objectAtIndex: i];
                 [sessionRequestData setValue: [data.customData objectForKey: key] forKey: key];
             }

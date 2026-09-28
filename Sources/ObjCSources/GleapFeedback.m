@@ -81,7 +81,7 @@
                     // Attach attachments
                     NSMutableArray *attachmentsArray = [[NSMutableArray alloc] init];
                     
-                    for (int i = 0; i < customAttachments.count; i++) {
+                    for (NSUInteger i = 0; i < customAttachments.count; i++) {
                         NSMutableDictionary *currentAttachment = [[customAttachments objectAtIndex: i] mutableCopy];
                         NSString *currentAttachmentURL = [fileUrls objectAtIndex: i];
                         [currentAttachment setObject: currentAttachmentURL forKey: @"url"];
@@ -290,7 +290,7 @@
         return;
     }
     
-    for (int i = 0; i < self.excludeData.allKeys.count; i++) {
+    for (NSUInteger i = 0; i < self.excludeData.allKeys.count; i++) {
         NSString *key = [self.excludeData.allKeys objectAtIndex: i];
         if ([[self.excludeData objectForKey: key] boolValue] == YES) {
             [self.data removeObjectForKey: key];

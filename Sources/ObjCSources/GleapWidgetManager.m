@@ -99,7 +99,7 @@
         return;
     }
     
-    for (int i = 0; i < self.messageQueue.count; i++) {
+    for (NSUInteger i = 0; i < self.messageQueue.count; i++) {
         [self.gleapWidget sendMessageWithData: [self.messageQueue objectAtIndex: i]];
     }
     [self.messageQueue removeAllObjects];
@@ -146,7 +146,7 @@
         navController.navigationBar.hidden = YES;
         [navController setModalInPresentation: YES];
         
-        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
+        if ([UIDevice currentDevice].userInterfaceIdiom == UIUserInterfaceIdiomPad)
         {
             [navController setModalPresentationStyle: UIModalPresentationCustom];
         }

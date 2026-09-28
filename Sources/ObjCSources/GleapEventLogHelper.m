@@ -241,7 +241,7 @@
         if (![Gleap isOpened]) {
             NSArray *actions = [actionData objectForKey: @"a"];
             if (actions != nil) {
-                for (int i = 0; i < actions.count; i++) {
+                for (NSUInteger i = 0; i < actions.count; i++) {
                     NSDictionary *action = [actions objectAtIndex: i];
                     if ([[action objectForKey: @"actionType"] isEqualToString: @"notification"]) {
                         NSDictionary *data = action[@"data"];

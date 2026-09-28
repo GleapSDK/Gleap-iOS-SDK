@@ -35,7 +35,11 @@
     }
 
     if (!keyWindow) {
+        // Only reached without any window scene; the deprecated API is the right fallback there.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         keyWindow = [UIApplication sharedApplication].keyWindow;
+#pragma clang diagnostic pop
     }
 
     return keyWindow;
@@ -55,7 +59,11 @@
             return ((UIWindowScene *)scene).interfaceOrientation;
         }
     }
+    // Only reached without any window scene.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     return [UIApplication sharedApplication].statusBarOrientation;
+#pragma clang diagnostic pop
 }
 
 - (void)checkKeyWindowWithCompletion:(GleapWindowReadyCompletion)completion {
