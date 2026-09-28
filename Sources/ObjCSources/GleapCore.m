@@ -15,6 +15,7 @@
 #import "GleapUserProperty.h"
 #import "GleapEventLogHelper.h"
 #import "GleapConfigHelper.h"
+#import "GleapConfigHelper+Internal.h"
 #import "GleapMetaDataHelper.h"
 #import "GleapScreenCaptureHelper.h"
 #import "GleapConsoleLogHelper.h"
@@ -212,10 +213,12 @@
  */
 + (void)initializeWithToken: (NSString *)token {
     if ([Gleap sharedInstance].initialized) {
-        // Again with the same key (the React Native bridge does this on every JS reload) it would
-        // start another session and tell the app a second time that the SDK initialized.
+        // Again with the same key: a reloaded JavaScript context (React Native reload or OTA update,
+        // Capacitor WebView reload). The session and config stay; the new context's delegate is
+        // told again that the config loaded and the SDK initialized, as it waits for that.
         if (token != nil && [token isEqualToString: [Gleap sharedInstance].token]) {
             NSLog(@"[GLEAP_SDK] Gleap has already been initialized with this API key.");
+            [[GleapConfigHelper sharedInstance] repeatInitializeCallbacks];
             return;
         }
         NSLog(@"[GLEAP_SDK] Gleap has already been initialized.");

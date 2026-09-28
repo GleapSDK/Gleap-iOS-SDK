@@ -153,7 +153,11 @@ final class GleapRemoteConfigTests: GleapNetworkTestCase {
         XCTAssertEqual(spy.calls("initialized").count, 1)
     }
 
-    func testInitializingAgainWithTheSameKeyDoesNothing() {
+    private func initializeCallbacks(_ spy: GleapDelegateSpy) -> [String] {
+        spy.calls.map(\.name).filter { $0 == "configLoaded" || $0 == "initialized" }
+    }
+
+    func testInitializingAgainWithTheSameKeyTellsTheNewDelegateWithoutLoadingAgain() {
         Gleap.sharedInstance().initialized = 0
         GleapConsoleLogHelper.sharedInstance().consoleLogDisabled = true
         GleapStubURLProtocol.stub("POST", "/sessions", Self.sessionReply(gleapId: "gid-1", gleapHash: "ghash-1"))
@@ -161,13 +165,54 @@ final class GleapRemoteConfigTests: GleapNetworkTestCase {
 
         Gleap.initialize(withToken: Self.sdkKey)
         XCTAssertTrue(waitUntil { self.spy.calls("initialized").count == 1 })
+
+        // A reloaded JavaScript context sets its own delegate and initializes again.
+        let reloaded = GleapDelegateSpy()
+        Gleap.sharedInstance().delegate = reloaded
         Gleap.initialize(withToken: Self.sdkKey)
 
+        XCTAssertTrue(waitUntil { reloaded.calls("initialized").count == 1 })
         spin(0.5)
+        XCTAssertEqual(GleapStubURLProtocol.requests(path: "/sessions").count, 1, "no new session")
+        XCTAssertEqual(GleapStubURLProtocol.requests(path: "/config/\(Self.sdkKey)").count, 1, "no new config load")
+        XCTAssertEqual(initializeCallbacks(reloaded), ["configLoaded", "initialized"])
+        XCTAssertEqual(reloaded.calls.filter { $0.name == "configLoaded" || $0.name == "initialized" }.map(\.onMainThread), [true, true])
+        XCTAssertEqual((reloaded.calls("configLoaded").first?.payload as? [String: Any])?["enableReplays"] as? Bool, false,
+                       "the loaded config")
+        XCTAssertEqual(initializeCallbacks(spy), ["configLoaded", "initialized"], "the earlier delegate is not told again")
+
+        // Every further initialize with the key tells the delegate once more.
+        Gleap.initialize(withToken: Self.sdkKey)
+        XCTAssertTrue(waitUntil { reloaded.calls("initialized").count == 2 })
+        XCTAssertEqual(initializeCallbacks(reloaded), ["configLoaded", "initialized", "configLoaded", "initialized"])
         XCTAssertEqual(GleapStubURLProtocol.requests(path: "/sessions").count, 1)
         XCTAssertEqual(GleapStubURLProtocol.requests(path: "/config/\(Self.sdkKey)").count, 1)
-        XCTAssertEqual(spy.calls("configLoaded").count, 1)
-        XCTAssertEqual(spy.calls("initialized").count, 1)
+    }
+
+    func testInitializingAgainBeforeTheConfigLoadedLeavesTheCallbacksToThatLoad() {
+        Gleap.sharedInstance().initialized = 0
+        GleapConsoleLogHelper.sharedInstance().consoleLogDisabled = true
+        GleapStubURLProtocol.stub("POST", "/sessions", Self.sessionReply(gleapId: "gid-1", gleapHash: "ghash-1"))
+        GleapStubURLProtocol.stub("GET", "/config/\(Self.sdkKey)", .failure(.notConnectedToInternet))
+
+        // The first config load fails, as in an offline start.
+        Gleap.initialize(withToken: Self.sdkKey)
+        XCTAssertNotNil(waitForRequest("/config/\(Self.sdkKey)"))
+        spin(0.3)
+
+        let reloaded = GleapDelegateSpy()
+        Gleap.sharedInstance().delegate = reloaded
+        Gleap.initialize(withToken: Self.sdkKey)
+        spin(0.5)
+        XCTAssertTrue(initializeCallbacks(reloaded).isEmpty, "there is no config to report yet")
+
+        // When the config loads (the session recovery reloads it), the delegate set now hears about it once.
+        load(["enableReplays": false], reload: true)
+        XCTAssertTrue(waitUntil { reloaded.calls("initialized").count == 1 })
+        spin(0.3)
+        XCTAssertEqual(initializeCallbacks(reloaded), ["configLoaded", "initialized"])
+        XCTAssertTrue(initializeCallbacks(spy).isEmpty)
+        XCTAssertEqual(GleapStubURLProtocol.requests(path: "/sessions").count, 1)
     }
 
     func testInitializingWithAnotherKeyStartsOver() {

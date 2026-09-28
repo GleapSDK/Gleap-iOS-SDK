@@ -6,6 +6,7 @@
 //
 
 #import "GleapConfigHelper.h"
+#import "GleapConfigHelper+Internal.h"
 #import "GleapCore.h"
 #import "GleapActivationMethodHelper.h"
 #import "GleapHttpTrafficRecorder.h"
@@ -50,6 +51,16 @@
 
 - (void)reload {
     [self loadConfig];
+}
+
+- (void)repeatInitializeCallbacks {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        // Not loaded yet: the pending first delivery reaches whichever delegate is set by then.
+        if (self.initializeCallbacksPending || self.config == nil) {
+            return;
+        }
+        [self notifyInitializeCallbacksWithConfig: self.config];
+    });
 }
 
 - (void)loadConfig {
@@ -147,7 +158,10 @@
         return;
     }
     self.initializeCallbacksPending = NO;
+    [self notifyInitializeCallbacksWithConfig: config];
+}
 
+- (void)notifyInitializeCallbacksWithConfig:(NSDictionary *)config {
     // Config loaded delegate
     if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(configLoaded:)]) {
         [Gleap.sharedInstance.delegate configLoaded: config];
