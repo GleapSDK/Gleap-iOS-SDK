@@ -131,6 +131,7 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
+    [super viewWillDisappear: animated];
     [self invalidateTimeout];
 }
 
