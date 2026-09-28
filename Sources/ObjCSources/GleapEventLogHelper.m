@@ -112,15 +112,11 @@
     }
     
     dispatch_async(dispatch_get_main_queue(), ^{
-        if (@available(iOS 13.0, *)) {
-            GleapSession *session = GleapSessionHelper.sharedInstance.currentSession;
-            if (session != nil && session.gleapId != nil && session.gleapHash != nil) {
-                self.webSocketEnabled = YES;
-                NSString *urlToConnectTo = [NSString stringWithFormat: @"%@?gleapId=%@&gleapHash=%@&apiKey=%@&sdkVersion=%@", [Gleap sharedInstance].wsApiUrl, session.gleapId, session.gleapHash, [Gleap sharedInstance].token, SDK_VERSION];
-                [[GleapWebSocketHelper sharedInstance] connectToURL: [NSURL URLWithString: urlToConnectTo]];
-            }
-        } else {
-            self.webSocketEnabled = NO;
+        GleapSession *session = GleapSessionHelper.sharedInstance.currentSession;
+        if (session != nil && session.gleapId != nil && session.gleapHash != nil) {
+            self.webSocketEnabled = YES;
+            NSString *urlToConnectTo = [NSString stringWithFormat: @"%@?gleapId=%@&gleapHash=%@&apiKey=%@&sdkVersion=%@", [Gleap sharedInstance].wsApiUrl, session.gleapId, session.gleapHash, [Gleap sharedInstance].token, SDK_VERSION];
+            [[GleapWebSocketHelper sharedInstance] connectToURL: [NSURL URLWithString: urlToConnectTo]];
         }
         
         [self lastPageNameUpdate];

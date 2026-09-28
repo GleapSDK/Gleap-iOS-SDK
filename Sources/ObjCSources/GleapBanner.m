@@ -71,9 +71,7 @@
     self.webView.scrollView.alwaysBounceVertical = NO;
     self.webView.scrollView.alwaysBounceHorizontal = NO;
     self.webView.allowsBackForwardNavigationGestures = NO;
-    if (@available(iOS 11.0, *)) {
-        [self.webView.scrollView setContentInsetAdjustmentBehavior: UIScrollViewContentInsetAdjustmentNever];
-    }
+    [self.webView.scrollView setContentInsetAdjustmentBehavior: UIScrollViewContentInsetAdjustmentNever];
 
     [self addSubview: self.webView];
     self.webView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -87,7 +85,6 @@
      requestMediaCapturePermissionForOrigin:(WKSecurityOrigin *)origin
      initiatedByFrame:(WKFrameInfo *)frame type:(WKMediaCaptureType)type
      decisionHandler:(void (^)(WKPermissionDecision decision))decisionHandler
-     API_AVAILABLE(ios(15.0))
 {
     decisionHandler(WKPermissionDecisionGrant);
 }
@@ -208,18 +205,10 @@
     }
     
     @try {
-        if ([SFSafariViewController class]) {
-            SFSafariViewController *viewController = [[SFSafariViewController alloc] initWithURL: url];
-            viewController.modalPresentationStyle = UIModalPresentationFormSheet;
-            viewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
-            [presentingViewController presentViewController:viewController animated:YES completion:nil];
-        } else {
-            if ([[UIApplication sharedApplication] canOpenURL: url]) {
-                if (@available(iOS 10.0, *)) {
-                    [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
-                }
-            }
-        }
+        SFSafariViewController *viewController = [[SFSafariViewController alloc] initWithURL: url];
+        viewController.modalPresentationStyle = UIModalPresentationFormSheet;
+        viewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
+        [presentingViewController presentViewController:viewController animated:YES completion:nil];
     } @catch(NSException *exception) {
         NSLog(@"Exception while opening URL: %@", exception);
     }
@@ -230,9 +219,7 @@
         NSURL *url = navigationAction.request.URL;
         if ([url.absoluteString hasPrefix: @"mailto:"]) {
             if ([[UIApplication sharedApplication] canOpenURL: url]) {
-                if (@available(iOS 10.0, *)) {
-                    [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
-                }
+                [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
             }
         } else {
             [self openURLExternally: url fromViewController: [GleapUIHelper getTopMostViewController]];
@@ -247,45 +234,22 @@
     NSString *format = [self.bannerData valueForKeyPath: @"format"];
     CGFloat padding = [format isEqualToString: @"floating"] ? 10.0f : 0.f;
     
-    if (@available(iOS 11.0, *)) {
-        UILayoutGuide *guide = parent.safeAreaLayoutGuide;
-        [NSLayoutConstraint constraintWithItem:subView
-                                     attribute:NSLayoutAttributeLeading
-                                     relatedBy:NSLayoutRelationEqual
-                                        toItem:guide
-                                     attribute:NSLayoutAttributeLeading
-                                    multiplier:1.0
-                                      constant:padding].active = YES;
-        
-        [NSLayoutConstraint constraintWithItem:subView
-                                     attribute:NSLayoutAttributeTrailing
-                                     relatedBy:NSLayoutRelationEqual
-                                        toItem:guide
-                                     attribute:NSLayoutAttributeTrailing
-                                    multiplier:1.0
-                                      constant:-padding].active = YES;
-    } else {
-        NSLayoutConstraint *leading = [NSLayoutConstraint
-                                       constraintWithItem: subView
-                                       attribute: NSLayoutAttributeLeading
-                                       relatedBy: NSLayoutRelationEqual
-                                       toItem: parent
-                                       attribute: NSLayoutAttributeLeading
-                                       multiplier: 1.0f
-                                       constant: padding];
-        
-        NSLayoutConstraint *trailing = [NSLayoutConstraint
-                                        constraintWithItem: subView
-                                        attribute: NSLayoutAttributeTrailing
-                                        relatedBy: NSLayoutRelationEqual
-                                        toItem: parent
-                                        attribute: NSLayoutAttributeTrailing
-                                        multiplier: 1.0f
-                                        constant: -padding];
-        
-        [parent addConstraint: leading];
-        [parent addConstraint: trailing];
-    }
+    UILayoutGuide *guide = parent.safeAreaLayoutGuide;
+    [NSLayoutConstraint constraintWithItem:subView
+                                 attribute:NSLayoutAttributeLeading
+                                 relatedBy:NSLayoutRelationEqual
+                                    toItem:guide
+                                 attribute:NSLayoutAttributeLeading
+                                multiplier:1.0
+                                  constant:padding].active = YES;
+    
+    [NSLayoutConstraint constraintWithItem:subView
+                                 attribute:NSLayoutAttributeTrailing
+                                 relatedBy:NSLayoutRelationEqual
+                                    toItem:guide
+                                 attribute:NSLayoutAttributeTrailing
+                                multiplier:1.0
+                                  constant:-padding].active = YES;
     
     NSLayoutConstraint *bottom =[NSLayoutConstraint
                                  constraintWithItem: subView
@@ -297,20 +261,8 @@
                                  constant: 0.f];
     [parent addConstraint: bottom];
     
-    if (@available(iOS 11.0, *)) {
-        UILayoutGuide *guide = self.superview.safeAreaLayoutGuide;
-        [subView.topAnchor constraintEqualToAnchor:guide.topAnchor constant:padding].active = YES;
-    } else {
-        NSLayoutConstraint *topPadding = [NSLayoutConstraint
-                                       constraintWithItem: subView
-                                       attribute: NSLayoutAttributeTop
-                                       relatedBy: NSLayoutRelationEqual
-                                       toItem: self
-                                       attribute: NSLayoutAttributeTop
-                                       multiplier: 1.0f
-                                       constant: padding];
-        [self addConstraint: topPadding];
-    }
+    UILayoutGuide *superviewGuide = self.superview.safeAreaLayoutGuide;
+    [subView.topAnchor constraintEqualToAnchor:superviewGuide.topAnchor constant:padding].active = YES;
     
     NSLayoutConstraint *height = [NSLayoutConstraint
                                       constraintWithItem: subView

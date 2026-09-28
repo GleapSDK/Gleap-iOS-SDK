@@ -78,11 +78,7 @@ static id ObjectOrNull(id object)
                if (backgroundColor != nil && backgroundColor.length > 0) {
                    self.view.backgroundColor = [GleapUIHelper colorFromHexString: backgroundColor];
                } else {
-                   if (@available(iOS 13.0, *)) {
-                       self.view.backgroundColor = [UIColor systemBackgroundColor];
-                   } else {
-                       self.view.backgroundColor = [UIColor whiteColor];
-                   }
+                   self.view.backgroundColor = [UIColor systemBackgroundColor];
                }
            }
        }
@@ -112,12 +108,7 @@ static id ObjectOrNull(id object)
 
     if (self.isCardSurvey) {
         // Card surveys keep the centered spinner over a dimmed backdrop.
-        UIActivityIndicatorView *loadingActivityView;
-        if (@available(iOS 13.0, *)) {
-            loadingActivityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
-        } else {
-            loadingActivityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
-        }
+        UIActivityIndicatorView *loadingActivityView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
         [loadingActivityView startAnimating];
         loadingView.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.5];
         loadingActivityView.color = UIColor.whiteColor;
@@ -158,10 +149,8 @@ static id ObjectOrNull(id object)
     NSString *backgroundColorHex = [config objectForKey: @"backgroundColor"];
     if (backgroundColorHex != nil && [backgroundColorHex isKindOfClass: [NSString class]] && backgroundColorHex.length > 0) {
         backgroundColor = [GleapUIHelper colorFromHexString: backgroundColorHex];
-    } else if (@available(iOS 13.0, *)) {
-        backgroundColor = UIColor.systemBackgroundColor;
     } else {
-        backgroundColor = UIColor.whiteColor;
+        backgroundColor = UIColor.systemBackgroundColor;
     }
     self.loadingBackgroundColor = backgroundColor;
     self.loadingView.backgroundColor = backgroundColor;
@@ -592,10 +581,7 @@ static id ObjectOrNull(id object)
 // messenger pads its headers with the top inset (--safe-area-top). Sent on
 // connect and whenever UIKit reports a change (rotation, multitasking).
 - (void)sendSafeAreaInsets {
-    UIEdgeInsets insets = UIEdgeInsetsZero;
-    if (@available(iOS 11.0, *)) {
-        insets = self.view.safeAreaInsets;
-    }
+    UIEdgeInsets insets = self.view.safeAreaInsets;
     [self sendMessageWithData: @{
         @"name": @"safe-area-update",
         @"data": @{
@@ -917,9 +903,7 @@ static id ObjectOrNull(id object)
     self.webView.scrollView.scrollEnabled = NO;
     self.webView.allowsBackForwardNavigationGestures = NO;
     
-    if (@available(iOS 11.0, *)) {
-        [self.webView.scrollView setContentInsetAdjustmentBehavior: UIScrollViewContentInsetAdjustmentNever];
-    }
+    [self.webView.scrollView setContentInsetAdjustmentBehavior: UIScrollViewContentInsetAdjustmentNever];
     
     [self.view addSubview: self.webView];
     self.webView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -982,18 +966,10 @@ static id ObjectOrNull(id object)
 
 - (void)openURLExternally:(NSURL *)url fromViewController:(UIViewController *)presentingViewController {
     @try {
-        if ([SFSafariViewController class]) {
-            SFSafariViewController *viewController = [[SFSafariViewController alloc] initWithURL: url];
-            viewController.modalPresentationStyle = UIModalPresentationFormSheet;
-            viewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
-            [presentingViewController presentViewController:viewController animated:YES completion:nil];
-        } else {
-            if ([[UIApplication sharedApplication] canOpenURL: url]) {
-                if (@available(iOS 10.0, *)) {
-                    [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
-                }
-            }
-        }
+        SFSafariViewController *viewController = [[SFSafariViewController alloc] initWithURL: url];
+        viewController.modalPresentationStyle = UIModalPresentationFormSheet;
+        viewController.modalTransitionStyle = UIModalTransitionStyleCoverVertical;
+        [presentingViewController presentViewController:viewController animated:YES completion:nil];
     } @catch (id exp) {
         
     }
@@ -1004,9 +980,7 @@ static id ObjectOrNull(id object)
         NSURL *url = navigationAction.request.URL;
         if ([url.absoluteString hasPrefix: @"mailto:"]) {
             if ([[UIApplication sharedApplication] canOpenURL: url]) {
-                if (@available(iOS 10.0, *)) {
-                    [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
-                }
+                [[UIApplication sharedApplication] openURL: url options:@{} completionHandler:nil];
             }
         } else {
             [self openURLExternally: url fromViewController: self];

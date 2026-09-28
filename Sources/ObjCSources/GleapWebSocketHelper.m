@@ -46,19 +46,15 @@
 }
 
 - (BOOL)connectToURL:(NSURL *)url {
-    if (@available(iOS 13.0, *)) {
-        [self disconnect];
-        
-        NSURLSession *urlSession = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.defaultSessionConfiguration];
-        self.webSocketTask = [urlSession webSocketTaskWithURL:url];
-        self.reconnectURL = url;
-        [self.webSocketTask resume];
-        [self sendPingPong];
-        [self receiveMessage];
-        return YES;
-    } else {
-        return NO;
-    }
+    [self disconnect];
+    
+    NSURLSession *urlSession = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.defaultSessionConfiguration];
+    self.webSocketTask = [urlSession webSocketTaskWithURL:url];
+    self.reconnectURL = url;
+    [self.webSocketTask resume];
+    [self sendPingPong];
+    [self receiveMessage];
+    return YES;
 }
 
 - (void)disconnect {
@@ -70,7 +66,7 @@
     self.connected = NO;
 }
 
-- (void)receiveMessage API_AVAILABLE(ios(13.0)) {
+- (void)receiveMessage {
     [self.webSocketTask receiveMessageWithCompletionHandler:^(NSURLSessionWebSocketMessage * _Nullable message, NSError * _Nullable error) {
         if (error) {
             [self handleReconnect: error];
@@ -102,7 +98,7 @@
     }];
 }
 
-- (void)handleReconnect:(NSError *)error API_AVAILABLE(ios(13.0)) {
+- (void)handleReconnect:(NSError *)error {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [self connectToURL: self.reconnectURL];
     });

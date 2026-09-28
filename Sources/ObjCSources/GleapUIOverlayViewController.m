@@ -150,12 +150,10 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
                                                  selector: @selector(keyWindowMayHaveChanged:)
                                                      name: UIApplicationDidBecomeActiveNotification
                                                    object: nil];
-        if (@available(iOS 13.0, *)) {
-            [[NSNotificationCenter defaultCenter] addObserver: self
-                                                     selector: @selector(keyWindowMayHaveChanged:)
-                                                         name: UISceneDidActivateNotification
-                                                       object: nil];
-        }
+        [[NSNotificationCenter defaultCenter] addObserver: self
+                                                 selector: @selector(keyWindowMayHaveChanged:)
+                                                     name: UISceneDidActivateNotification
+                                                   object: nil];
     });
 }
 
@@ -524,48 +522,46 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
  */
 + (NSString *)relativeTimeLabelForNotification:(NSDictionary *)notification {
     @try {
-        if (@available(iOS 13.0, *)) {
-            id timestamp = [notification objectForKey: @"sendAt"];
-            if (timestamp == nil || ![timestamp isKindOfClass: [NSString class]] || [timestamp length] == 0) {
-                timestamp = [notification objectForKey: @"createdAt"];
-            }
-            if (timestamp == nil || ![timestamp isKindOfClass: [NSString class]] || [timestamp length] == 0) {
-                return nil;
-            }
-
-            NSISO8601DateFormatter *isoFormatter = [[NSISO8601DateFormatter alloc] init];
-            isoFormatter.formatOptions = NSISO8601DateFormatWithInternetDateTime | NSISO8601DateFormatWithFractionalSeconds;
-            NSDate *date = [isoFormatter dateFromString: timestamp];
-            if (date == nil) {
-                isoFormatter.formatOptions = NSISO8601DateFormatWithInternetDateTime;
-                date = [isoFormatter dateFromString: timestamp];
-            }
-            if (date == nil) {
-                return nil;
-            }
-
-            NSRelativeDateTimeFormatter *formatter = [[NSRelativeDateTimeFormatter alloc] init];
-            formatter.dateTimeStyle = NSRelativeDateTimeFormatterStyleNamed;
-
-            // The widget's language override, falling back to the device locale.
-            NSString *language = GleapTranslationHelper.sharedInstance.language;
-            if (language != nil && language.length > 0) {
-                NSLocale *locale = [NSLocale localeWithLocaleIdentifier: language];
-                if (locale != nil) {
-                    formatter.locale = locale;
-                }
-            }
-
-            // Clamped at 0: a notification scheduled a few seconds ahead (or a
-            // client clock running behind the server's) must never read as
-            // "in 1 minute". Under a minute collapses to "now" rather than
-            // ticking "9 seconds ago".
-            NSTimeInterval seconds = MIN(0.0, [date timeIntervalSinceNow]);
-            if (seconds > -60.0) {
-                seconds = 0.0;
-            }
-            return [formatter localizedStringFromTimeInterval: seconds];
+        id timestamp = [notification objectForKey: @"sendAt"];
+        if (timestamp == nil || ![timestamp isKindOfClass: [NSString class]] || [timestamp length] == 0) {
+            timestamp = [notification objectForKey: @"createdAt"];
         }
+        if (timestamp == nil || ![timestamp isKindOfClass: [NSString class]] || [timestamp length] == 0) {
+            return nil;
+        }
+
+        NSISO8601DateFormatter *isoFormatter = [[NSISO8601DateFormatter alloc] init];
+        isoFormatter.formatOptions = NSISO8601DateFormatWithInternetDateTime | NSISO8601DateFormatWithFractionalSeconds;
+        NSDate *date = [isoFormatter dateFromString: timestamp];
+        if (date == nil) {
+            isoFormatter.formatOptions = NSISO8601DateFormatWithInternetDateTime;
+            date = [isoFormatter dateFromString: timestamp];
+        }
+        if (date == nil) {
+            return nil;
+        }
+
+        NSRelativeDateTimeFormatter *formatter = [[NSRelativeDateTimeFormatter alloc] init];
+        formatter.dateTimeStyle = NSRelativeDateTimeFormatterStyleNamed;
+
+        // The widget's language override, falling back to the device locale.
+        NSString *language = GleapTranslationHelper.sharedInstance.language;
+        if (language != nil && language.length > 0) {
+            NSLocale *locale = [NSLocale localeWithLocaleIdentifier: language];
+            if (locale != nil) {
+                formatter.locale = locale;
+            }
+        }
+
+        // Clamped at 0: a notification scheduled a few seconds ahead (or a
+        // client clock running behind the server's) must never read as
+        // "in 1 minute". Under a minute collapses to "now" rather than
+        // ticking "9 seconds ago".
+        NSTimeInterval seconds = MIN(0.0, [date timeIntervalSinceNow]);
+        if (seconds > -60.0) {
+            seconds = 0.0;
+        }
+        return [formatter localizedStringFromTimeInterval: seconds];
     } @catch (id exp) {}
 
     return nil;
@@ -1106,9 +1102,7 @@ static const CGFloat kGleapNotificationStackHeadroom = 17.0;
         UIImageView * newsImageView = [[UIImageView alloc] initWithFrame: CGRectMake(0.0, 0.0, width, 155.0)];
         newsImageView.backgroundColor = [[GleapUIOverlayViewController notificationSubTextColor] colorWithAlphaComponent: 0.2];
         newsImageView.layer.cornerRadius = containerRadius;
-        if (@available(iOS 11.0, *)) {
-            newsImageView.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner;
-        }
+        newsImageView.layer.maskedCorners = kCALayerMaxXMinYCorner | kCALayerMinXMinYCorner;
         newsImageView.contentMode = UIViewContentModeScaleAspectFill;
         newsImageView.clipsToBounds = YES;
         [cardView addSubview: newsImageView];

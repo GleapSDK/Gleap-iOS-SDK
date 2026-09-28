@@ -112,9 +112,7 @@
     self.webView.scrollView.scrollEnabled = NO;
     self.webView.scrollView.alwaysBounceHorizontal = NO;
     self.webView.scrollView.alwaysBounceVertical = NO;
-    if (@available(iOS 11.0, *)) {
-        self.webView.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
-    }
+    self.webView.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
 
     // 4) Scroll view + web view
     self.scrollView = [[UIScrollView alloc] init];
@@ -122,9 +120,7 @@
     self.scrollView.showsVerticalScrollIndicator = YES;
     self.scrollView.showsHorizontalScrollIndicator = NO;
     self.scrollView.bounces = NO;
-    if (@available(iOS 11.0, *)) {
-        self.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
-    }
+    self.scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
     [container addSubview:self.scrollView];
     [self.scrollView addSubview:self.webView];
 
@@ -304,15 +300,9 @@ decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler
 
 - (void)openURLExternally:(NSURL *)url {
     UIViewController *vc = [GleapUIHelper getTopMostViewController];
-    if ([SFSafariViewController class]) {
-        SFSafariViewController *svc = [[SFSafariViewController alloc] initWithURL:url];
-        svc.modalPresentationStyle = UIModalPresentationFormSheet;
-        [vc presentViewController:svc animated:YES completion:nil];
-    } else {
-        if ([[UIApplication sharedApplication] canOpenURL:url]) {
-            [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
-        }
-    }
+    SFSafariViewController *svc = [[SFSafariViewController alloc] initWithURL:url];
+    svc.modalPresentationStyle = UIModalPresentationFormSheet;
+    [vc presentViewController:svc animated:YES completion:nil];
 }
 
 // 5) Re-clamp on size/orientation changes

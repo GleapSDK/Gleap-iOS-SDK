@@ -30,10 +30,8 @@ static id ObjectOrNull(id object)
     if (idiom == UIUserInterfaceIdiomPad) {
         return @"tablet";
     }
-    if (@available(iOS 14.0, *)) {
-        if (idiom == UIUserInterfaceIdiomMac) {
-            return @"desktop";
-        }
+    if (idiom == UIUserInterfaceIdiomMac) {
+        return @"desktop";
     }
     return @"mobile";
 }

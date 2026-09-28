@@ -16,37 +16,20 @@
 + (UIWindow *)getKeyWindow {
     UIWindow *keyWindow = nil;
 
-    if (@available(iOS 15.0, *)) {
-        for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
-            if ([scene isKindOfClass:[UIWindowScene class]]) {
-                UIWindowScene *windowScene = (UIWindowScene *)scene;
-                if (windowScene.activationState == UISceneActivationStateForegroundActive) {
-                    keyWindow = windowScene.keyWindow;
-                    if (keyWindow) break;
-                }
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if ([scene isKindOfClass:[UIWindowScene class]]) {
+            UIWindowScene *windowScene = (UIWindowScene *)scene;
+            if (windowScene.activationState == UISceneActivationStateForegroundActive) {
+                keyWindow = windowScene.keyWindow;
+                if (keyWindow) break;
             }
         }
-        if (!keyWindow) {
-            for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
-                if ([scene isKindOfClass:[UIWindowScene class]]) {
-                    keyWindow = ((UIWindowScene *)scene).keyWindow;
-                    if (keyWindow) break;
-                }
-            }
-        }
-    } else if (@available(iOS 13.0, *)) {
+    }
+    if (!keyWindow) {
         for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
             if ([scene isKindOfClass:[UIWindowScene class]]) {
-                UIWindowScene *windowScene = (UIWindowScene *)scene;
-                if (windowScene.activationState == UISceneActivationStateForegroundActive) {
-                    for (UIWindow *window in windowScene.windows) {
-                        if (window.isKeyWindow) {
-                            keyWindow = window;
-                            break;
-                        }
-                    }
-                    if (keyWindow) break;
-                }
+                keyWindow = ((UIWindowScene *)scene).keyWindow;
+                if (keyWindow) break;
             }
         }
     }
@@ -59,19 +42,17 @@
 }
 
 + (UIInterfaceOrientation)reliableInterfaceOrientation {
-    if (@available(iOS 13.0, *)) {
-        for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
-            if ([scene isKindOfClass:[UIWindowScene class]]) {
-                UIWindowScene *windowScene = (UIWindowScene *)scene;
-                if (windowScene.activationState == UISceneActivationStateForegroundActive) {
-                    return windowScene.interfaceOrientation;
-                }
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if ([scene isKindOfClass:[UIWindowScene class]]) {
+            UIWindowScene *windowScene = (UIWindowScene *)scene;
+            if (windowScene.activationState == UISceneActivationStateForegroundActive) {
+                return windowScene.interfaceOrientation;
             }
         }
-        for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
-            if ([scene isKindOfClass:[UIWindowScene class]]) {
-                return ((UIWindowScene *)scene).interfaceOrientation;
-            }
+    }
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if ([scene isKindOfClass:[UIWindowScene class]]) {
+            return ((UIWindowScene *)scene).interfaceOrientation;
         }
     }
     return [UIApplication sharedApplication].statusBarOrientation;
