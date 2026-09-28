@@ -72,8 +72,9 @@
         self.notificationViews = [[NSMutableArray alloc] init];
         self.lastNotificationCount = 0;
 
-        // Render the feedback button on the current key window.
-        [self attachFeedbackButtonToKeyWindow];
+        // Render the feedback button on the current key window, unless an updateUI that ran
+        // after this controller was created (the config arriving) already attached one.
+        [self ensureOverlayAttachedToKeyWindow];
 
         // The feedback button (and the notification overlay) lives as a subview of
         // the app's key window. Some hosts swap their key window at runtime – this is
