@@ -41,8 +41,19 @@ GLEAP_INTERNAL
 /// Sends a request on the shared API session. The completion runs on the main queue.
 + (void)sendRequest:(NSURLRequest *)request completion:(GleapAPICompletion)completion;
 
-/// Sends an upload on the shared upload session. The completion runs on the main queue.
+/// Sends a report on the shared API session. A 503 (server overloaded) is retried once after
+/// its Retry-After delay, capped at 5 seconds. The completion runs on the main queue.
++ (void)sendReportRequest:(NSURLRequest *)request completion:(GleapAPICompletion)completion;
+
+/// Sends an upload on the shared upload session, retrying a 503 once like reports. The
+/// completion runs on the main queue.
 + (void)sendUploadRequest:(NSURLRequest *)request completion:(GleapAPICompletion)completion;
+
+/// YES for an HTTP response with a 2xx status.
++ (BOOL)isSuccessResponse:(nullable NSURLResponse *)response;
+
+/// The HTTP status code, or 0 without an HTTP response.
++ (NSInteger)statusCodeOfResponse:(nullable NSURLResponse *)response;
 
 @end
 

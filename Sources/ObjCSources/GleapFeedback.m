@@ -323,11 +323,18 @@
         NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/bugs/v2" identity: GleapRequestIdentityCurrentSession];
         [request setHTTPBody: jsonBodyData];
         
-        [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
-                                                          NSURLResponse * _Nullable response,
-                                                          NSError * _Nullable error) {
+        [GleapAPIClient sendReportRequest: request completion:^(NSData * _Nullable data,
+                                                                NSURLResponse * _Nullable response,
+                                                                NSError * _Nullable error) {
             if (error != nil) {
                 NSDictionary *errorInfo = @{ @"error": @"Network error", @"details": error.localizedDescription };
+                return completion(false, errorInfo);
+            }
+            
+            // Only a 2xx creates the ticket; the server also answers errors with a JSON body.
+            if (![GleapAPIClient isSuccessResponse: response]) {
+                NSInteger statusCode = [GleapAPIClient statusCodeOfResponse: response];
+                NSDictionary *errorInfo = @{ @"error": @"Server error", @"statusCode": @(statusCode) };
                 return completion(false, errorInfo);
             }
             

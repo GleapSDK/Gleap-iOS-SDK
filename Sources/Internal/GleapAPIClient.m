@@ -8,6 +8,8 @@
 #import "GleapSessionHelper.h"
 
 static NSString * const kGleapMultipartBoundary = @"BBBOUNDARY";
+static NSTimeInterval const kGleapDefaultRetryDelay = 2.0;
+static NSTimeInterval const kGleapMaxRetryDelay = 5.0;
 
 @implementation GleapAPIClient
 
@@ -111,8 +113,51 @@ static NSString * const kGleapMultipartBoundary = @"BBBOUNDARY";
     [[[self apiSession] dataTaskWithRequest: request completionHandler: completion] resume];
 }
 
++ (void)sendReportRequest:(NSURLRequest *)request completion:(GleapAPICompletion)completion {
+    [self sendRequest: request onSession: [self apiSession] retryOnOverload: YES completion: completion];
+}
+
 + (void)sendUploadRequest:(NSURLRequest *)request completion:(GleapAPICompletion)completion {
-    [[[self uploadSession] dataTaskWithRequest: request completionHandler: completion] resume];
+    [self sendRequest: request onSession: [self uploadSession] retryOnOverload: YES completion: completion];
+}
+
+// The server answers 503 when it is momentarily overloaded and says when to come back
+// (Retry-After). Reports and uploads are worth one more try; the second answer is final.
++ (void)sendRequest:(NSURLRequest *)request onSession:(NSURLSession *)session retryOnOverload:(BOOL)retryOnOverload completion:(GleapAPICompletion)completion {
+    [[session dataTaskWithRequest: request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+        if (retryOnOverload && error == nil && [self statusCodeOfResponse: response] == 503) {
+            NSTimeInterval delay = [self retryDelayForResponse: (NSHTTPURLResponse *)response];
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [self sendRequest: request onSession: session retryOnOverload: NO completion: completion];
+            });
+            return;
+        }
+        completion(data, response, error);
+    }] resume];
+}
+
++ (NSTimeInterval)retryDelayForResponse:(NSHTTPURLResponse *)response {
+    NSString *retryAfter = nil;
+    for (id key in response.allHeaderFields) {
+        if ([key isKindOfClass: [NSString class]] && [(NSString *)key caseInsensitiveCompare: @"Retry-After"] == NSOrderedSame) {
+            retryAfter = [[response.allHeaderFields objectForKey: key] description];
+        }
+    }
+    NSScanner *scanner = retryAfter != nil ? [NSScanner scannerWithString: retryAfter] : nil;
+    double seconds = 0;
+    if (scanner == nil || ![scanner scanDouble: &seconds] || !scanner.isAtEnd || seconds < 0) {
+        seconds = kGleapDefaultRetryDelay;
+    }
+    return MIN(seconds, kGleapMaxRetryDelay);
+}
+
++ (NSInteger)statusCodeOfResponse:(NSURLResponse *)response {
+    return [response isKindOfClass: [NSHTTPURLResponse class]] ? ((NSHTTPURLResponse *)response).statusCode : 0;
+}
+
++ (BOOL)isSuccessResponse:(NSURLResponse *)response {
+    NSInteger status = [self statusCodeOfResponse: response];
+    return status >= 200 && status < 300;
 }
 
 @end

@@ -20,7 +20,7 @@
     NSArray *files = fileData != nil ? @[@{ @"data": fileData, @"name": filename ?: @"(null)", @"type": contentType ?: @"(null)" }] : @[];
     NSMutableURLRequest *request = [GleapAPIClient uploadRequestWithPath: @"/uploads/sdk" files: files];
     [GleapAPIClient sendUploadRequest: request completion:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
-        if (error != NULL) {
+        if (error != NULL || ![GleapAPIClient isSuccessResponse: response]) {
             return completion(false, nil);
         }
         
@@ -99,7 +99,7 @@
     dispatch_async(dispatch_get_main_queue(), ^{
         NSMutableURLRequest *request = [GleapAPIClient uploadRequestWithPath: [NSString stringWithFormat: @"/uploads/%@", endpoint] files: files];
         [GleapAPIClient sendUploadRequest: request completion:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
-            if (error != NULL) {
+            if (error != NULL || ![GleapAPIClient isSuccessResponse: response]) {
                 return completion(false, nil);
             }
             
