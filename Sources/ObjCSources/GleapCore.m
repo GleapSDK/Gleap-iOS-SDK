@@ -200,7 +200,11 @@
 }
 
 + (void)preFillForm: (NSDictionary *)data {
-    [[GleapPreFillHelper sharedInstance].preFillData addEntriesFromDictionary: data];
+    // Under the helper's lock: the widget serializes the prefill data on another thread.
+    GleapPreFillHelper *helper = [GleapPreFillHelper sharedInstance];
+    @synchronized (helper) {
+        [helper.preFillData addEntriesFromDictionary: data];
+    }
 }
 
 /*

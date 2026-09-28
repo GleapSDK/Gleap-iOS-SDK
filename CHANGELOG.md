@@ -29,6 +29,8 @@ The widget, banners and modals only accept messages from their own page: the mai
 
 Banners only grant camera and microphone access without asking to their own page; any other origin gets the system prompt. They used to grant it to any origin, including embedded third-party content.
 
+Custom data, ticket attributes, tags, attachments, prefilled form data, the session and the commands waiting for the widget are now read and written under a lock, so they can be changed from any thread (as the wrappers do) while a report is built or the widget opens; this could crash with "Collection was mutated while being enumerated".
+
 ## 18.1.0
 Added control over the env data (device, OS, screen, locale and battery details shown under the Env data tab of a ticket) the SDK collects:
 `Gleap.setEnvDataPropsToIgnore(["deviceName", "batteryLevel"])` removes individual env data keys from every ticket and conversation before it is sent. Each call replaces the previous list; an empty array resets it.

@@ -18,6 +18,23 @@
 
 @implementation GleapSessionHelper
 
+// The session and the pending identify, update and push actions are set from whatever thread
+// the app (or a wrapper) calls on and read from the main queue; every access holds this
+// object's lock, and an action is taken and cleared in one step, so it runs once.
+@synthesize currentSession = _currentSession;
+
+- (GleapSession *)currentSession {
+    @synchronized (self) {
+        return _currentSession;
+    }
+}
+
+- (void)setCurrentSession:(GleapSession *)currentSession {
+    @synchronized (self) {
+        _currentSession = currentSession;
+    }
+}
+
 /*
  Returns the current device type based on the device idiom.
  */
@@ -136,36 +153,47 @@
         return;
     }
     // The user data is optional; without it only the user id is sent.
-    self.openIdentityAction = @{
-        @"userId": userId,
-        @"userHash": GleapObjectOrNull(userHash),
-        @"data": data ?: [[GleapUserProperty alloc] init]
-    };
+    @synchronized (self) {
+        self.openIdentityAction = @{
+            @"userId": userId,
+            @"userHash": GleapObjectOrNull(userHash),
+            @"data": data ?: [[GleapUserProperty alloc] init]
+        };
+    }
     [self processOpenIdentityAction];
     [self processOpenPushAction];
 }
 
 - (void)updateContact:(nullable GleapUserProperty *)data {
-    self.openUpdateAction = @{
-        @"data": data ?: [[GleapUserProperty alloc] init],
-    };
+    @synchronized (self) {
+        self.openUpdateAction = @{
+            @"data": data ?: [[GleapUserProperty alloc] init],
+        };
+    }
     
     [self processOpenUpdateAction];
 }
 
 + (void)handlePushNotification:(NSDictionary *)notificationData {
-    [GleapSessionHelper sharedInstance].openPushAction = notificationData;
-    [[GleapSessionHelper sharedInstance] processOpenPushAction];
+    GleapSessionHelper *helper = [GleapSessionHelper sharedInstance];
+    @synchronized (helper) {
+        helper.openPushAction = notificationData;
+    }
+    [helper processOpenPushAction];
 }
 
 - (void)processOpenPushAction {
-    if (self.openPushAction == nil || self.currentSession == nil) {
-        return;
+    NSDictionary *pushAction;
+    @synchronized (self) {
+        if (self.openPushAction == nil || self.currentSession == nil) {
+            return;
+        }
+        pushAction = self.openPushAction;
+        self.openPushAction = nil;
     }
     
-    NSString *type = [self.openPushAction objectForKey: @"type"];
-    NSString *itemId = [self.openPushAction objectForKey: @"id"];
-    self.openPushAction = nil;
+    NSString *type = [pushAction objectForKey: @"type"];
+    NSString *itemId = [pushAction objectForKey: @"id"];
     
     if (itemId != nil && itemId.length > 0) {
         if ([type isEqualToString: @"news"]) {
@@ -180,17 +208,20 @@
 }
 
 - (void)processOpenUpdateAction {
-    if (self.openUpdateAction == nil || self.currentSession == nil || self.openIdentityAction != nil) {
-        return;
+    GleapUserProperty *data;
+    @synchronized (self) {
+        if (self.openUpdateAction == nil || self.currentSession == nil || self.openIdentityAction != nil) {
+            return;
+        }
+        
+        NSString *gleapId = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapId"];
+        NSString *gleapHash = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapHash"];
+        if (gleapId == nil || gleapHash == nil || gleapId.length == 0 || gleapHash.length == 0) {
+            return;
+        }
+        data = [self.openUpdateAction objectForKey: @"data"];
+        self.openUpdateAction = nil;
     }
-    
-    NSString *gleapId = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapId"];
-    NSString *gleapHash = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapHash"];
-    if (gleapId == nil || gleapHash == nil || gleapId.length == 0 || gleapHash.length == 0) {
-        return;
-    }
-    GleapUserProperty *data = [self.openUpdateAction objectForKey: @"data"];
-    self.openUpdateAction = nil;
     
     NSMutableDictionary *dataToSend = [[data dataDictToSendWith: nil and: nil] mutableCopy];
     
@@ -230,14 +261,18 @@
 }
 
 - (void)processOpenIdentityAction {
-    if (self.openIdentityAction == nil || self.currentSession == nil) {
-        return;
+    NSDictionary *identityAction;
+    @synchronized (self) {
+        if (self.openIdentityAction == nil || self.currentSession == nil) {
+            return;
+        }
+        identityAction = self.openIdentityAction;
+        self.openIdentityAction = nil;
     }
     
-    NSString *userId = [self.openIdentityAction objectForKey: @"userId"];
-    NSString *userHash = [self.openIdentityAction objectForKey: @"userHash"];
-    GleapUserProperty *data = [self.openIdentityAction objectForKey: @"data"];
-    self.openIdentityAction = nil;
+    NSString *userId = [identityAction objectForKey: @"userId"];
+    NSString *userHash = [identityAction objectForKey: @"userHash"];
+    GleapUserProperty *data = [identityAction objectForKey: @"data"];
     
     NSDictionary *sessionRequestData = [data dataDictToSendWith: userId and: userHash];
     
@@ -443,8 +478,10 @@
 - (void)clearSession {
     [self sendPushMessageUnregister];
     
-    self.currentSession = nil;
-    self.openIdentityAction = nil;
+    @synchronized (self) {
+        self.currentSession = nil;
+        self.openIdentityAction = nil;
+    }
     [[NSUserDefaults standardUserDefaults] removeObjectForKey: @"gleapId"];
     [[NSUserDefaults standardUserDefaults] removeObjectForKey: @"gleapHash"];
     

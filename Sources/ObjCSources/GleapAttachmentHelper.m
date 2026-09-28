@@ -48,43 +48,48 @@
 }
 
 + (bool)addAttachmentWithData:(NSData *)data andName:(NSString *)name {
-    if ([GleapAttachmentHelper sharedInstance].customAttachments.count > 6) {
-        NSLog(@"[GLEAP_SDK] Attachment limit of 6 files reached.");
-        return false;
-    }
+    // Checked and added under the lock, so concurrent calls can't pass the limit together, and a
+    // report never copies the list while it changes.
+    GleapAttachmentHelper *helper = [GleapAttachmentHelper sharedInstance];
+    @synchronized (helper) {
+        if (helper.customAttachments.count > 6) {
+            NSLog(@"[GLEAP_SDK] Attachment limit of 6 files reached.");
+            return false;
+        }
 
-    if (data.length > 10 * 1024 * 1024) {
-        NSLog(@"[GLEAP_SDK] Attachment is too big. The maximum attachment size is 10 MB.");
-        return false;
+        if (data.length > 10 * 1024 * 1024) {
+            NSLog(@"[GLEAP_SDK] Attachment is too big. The maximum attachment size is 10 MB.");
+            return false;
+        }
+        
+        NSString * mimeType = @"text/plain";
+        NSString *pathExtension = [name pathExtension];
+        
+        if ([pathExtension isEqualToString: @"json"]) {
+            mimeType = @"application/json";
+        }
+        if ([pathExtension isEqualToString: @"xml"]) {
+            mimeType = @"application/xml";
+        }
+        if ([pathExtension isEqualToString: @"svg"]) {
+            mimeType = @"image/svg+xml";
+        }
+        if ([pathExtension isEqualToString: @"jpg"] || [pathExtension isEqualToString: @"jpeg"]) {
+            mimeType = @"image/jpeg";
+        }
+        if ([pathExtension isEqualToString: @"png"]) {
+            mimeType = @"image/png";
+        }
+        if ([pathExtension isEqualToString: @"mp4"]) {
+            mimeType = @"video/mp4";
+        }
+        
+        [helper.customAttachments addObject: @{
+            @"name": [name lastPathComponent],
+            @"data": data,
+            @"type": mimeType,
+        }];
     }
-    
-    NSString * mimeType = @"text/plain";
-    NSString *pathExtension = [name pathExtension];
-    
-    if ([pathExtension isEqualToString: @"json"]) {
-        mimeType = @"application/json";
-    }
-    if ([pathExtension isEqualToString: @"xml"]) {
-        mimeType = @"application/xml";
-    }
-    if ([pathExtension isEqualToString: @"svg"]) {
-        mimeType = @"image/svg+xml";
-    }
-    if ([pathExtension isEqualToString: @"jpg"] || [pathExtension isEqualToString: @"jpeg"]) {
-        mimeType = @"image/jpeg";
-    }
-    if ([pathExtension isEqualToString: @"png"]) {
-        mimeType = @"image/png";
-    }
-    if ([pathExtension isEqualToString: @"mp4"]) {
-        mimeType = @"video/mp4";
-    }
-    
-    [[GleapAttachmentHelper sharedInstance].customAttachments addObject: @{
-        @"name": [name lastPathComponent],
-        @"data": data,
-        @"type": mimeType,
-    }];
     
     return true;
 }
@@ -93,7 +98,10 @@
  * Removes all attachments
  */
 + (void)removeAllAttachments {
-    [[GleapAttachmentHelper sharedInstance].customAttachments removeAllObjects];
+    GleapAttachmentHelper *helper = [GleapAttachmentHelper sharedInstance];
+    @synchronized (helper) {
+        [helper.customAttachments removeAllObjects];
+    }
 }
 
 @end

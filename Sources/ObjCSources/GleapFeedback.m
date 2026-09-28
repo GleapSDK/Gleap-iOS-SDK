@@ -74,7 +74,12 @@
     if ([self.excludeData objectForKey: @"attachments"] != nil && [[self.excludeData objectForKey: @"attachments"] boolValue] == YES) {
         completion(YES);
     } else {
-        NSArray * customAttachments = [GleapAttachmentHelper sharedInstance].customAttachments;
+        // A copy: the app may add or remove attachments while they upload.
+        NSArray *customAttachments;
+        GleapAttachmentHelper *attachmentHelper = [GleapAttachmentHelper sharedInstance];
+        @synchronized (attachmentHelper) {
+            customAttachments = [attachmentHelper.customAttachments copy];
+        }
         if (customAttachments.count > 0) {
             [GleapUploadManager uploadFiles: customAttachments forEndpoint: @"attachments" andCompletion:^(bool success, NSArray *fileUrls) {
                 if (success) {

@@ -211,9 +211,14 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 }
 
 - (void)sendPreFillData {
+    NSDictionary *preFillData;
+    GleapPreFillHelper *helper = [GleapPreFillHelper sharedInstance];
+    @synchronized (helper) {
+        preFillData = [helper.preFillData copy];
+    }
     [self sendMessageWithData: @{
         @"name": @"prefill-form-data",
-        @"data": [GleapPreFillHelper sharedInstance].preFillData
+        @"data": preFillData ?: @{}
     }];
 }
 
