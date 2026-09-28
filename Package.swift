@@ -18,9 +18,10 @@ let package = Package(
         .target(
            name: "Gleap",
            dependencies: [],
-           path: "Sources/ObjCSources/",
-           resources: [.copy("../PrivacyInfo.xcprivacy")],
-           publicHeadersPath: ".",
+           path: "Sources/",
+           resources: [.copy("PrivacyInfo.xcprivacy")],
+           // Only Sources/ObjCSources is public; Sources/Internal stays inside the SDK.
+           publicHeadersPath: "ObjCSources",
            cSettings: [
               .headerSearchPath("Internal"),
            ]

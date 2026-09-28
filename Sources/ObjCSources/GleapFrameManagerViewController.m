@@ -7,6 +7,7 @@
 //
 
 #import "GleapFrameManagerViewController.h"
+#import "GleapInternal.h"
 #import "GleapCore.h"
 #import "GleapReplayHelper.h"
 #import "GleapSessionHelper.h"
@@ -52,11 +53,6 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 @property (retain, nonatomic) UIColor *loadingHeaderColor3;
 
 @end
-
-static id ObjectOrNull(id object)
-{
-  return object ?: [NSNull null];
-}
 
 @implementation GleapFrameManagerViewController
 
@@ -717,13 +713,13 @@ static id ObjectOrNull(id object)
                 [weakSelf sendMessageWithData: @{
                     @"name": @"collect-ticket-data",
                     @"data": @{
-                        @"customData": ObjectOrNull([feedback.data objectForKey: @"customData"]),
-                        @"formData": ObjectOrNull([feedback.data objectForKey: @"formData"]),
-                        @"metaData": ObjectOrNull([feedback.data objectForKey: @"metaData"]),
-                        @"consoleLog": ObjectOrNull([feedback.data objectForKey: @"consoleLog"]),
-                        @"networkLogs": ObjectOrNull([feedback.data objectForKey: @"networkLogs"]),
-                        @"customEventLog": ObjectOrNull([feedback.data objectForKey: @"customEventLog"]),
-                        @"tags": ObjectOrNull([feedback.data objectForKey: @"tags"])
+                        @"customData": GleapObjectOrNull([feedback.data objectForKey: @"customData"]),
+                        @"formData": GleapObjectOrNull([feedback.data objectForKey: @"formData"]),
+                        @"metaData": GleapObjectOrNull([feedback.data objectForKey: @"metaData"]),
+                        @"consoleLog": GleapObjectOrNull([feedback.data objectForKey: @"consoleLog"]),
+                        @"networkLogs": GleapObjectOrNull([feedback.data objectForKey: @"networkLogs"]),
+                        @"customEventLog": GleapObjectOrNull([feedback.data objectForKey: @"customEventLog"]),
+                        @"tags": GleapObjectOrNull([feedback.data objectForKey: @"tags"])
                     }
                 }];
             }];
@@ -836,9 +832,9 @@ static id ObjectOrNull(id object)
                             // Notify about outbound sent event.
                             if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(outboundSent:)]) {
                                 [Gleap.sharedInstance.delegate outboundSent: @{
-                                    @"outboundId": ObjectOrNull(outboundId),
-                                    @"outbound": ObjectOrNull(action),
-                                    @"formData": ObjectOrNull(formData),
+                                    @"outboundId": GleapObjectOrNull(outboundId),
+                                    @"outbound": GleapObjectOrNull(action),
+                                    @"formData": GleapObjectOrNull(formData),
                                 }];
                             }
                         }

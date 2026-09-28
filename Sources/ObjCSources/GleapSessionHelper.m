@@ -6,6 +6,7 @@
 //
 
 #import "GleapSessionHelper.h"
+#import "GleapInternal.h"
 #import "GleapCore.h"
 #import "GleapWidgetManager.h"
 #import "GleapUIOverlayHelper.h"
@@ -15,11 +16,6 @@
 #import "GleapMetaDataHelper.h"
 
 @implementation GleapSessionHelper
-
-static id ObjectOrNull(id object)
-{
-  return object ?: [NSNull null];
-}
 
 /*
  Returns the current device type based on the device idiom.
@@ -128,7 +124,7 @@ static id ObjectOrNull(id object)
 - (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString * _Nullable)userHash {
     self.openIdentityAction = @{
         @"userId": userId,
-        @"userHash": ObjectOrNull(userHash),
+        @"userHash": GleapObjectOrNull(userHash),
         @"data": data
     };
     [self processOpenIdentityAction];

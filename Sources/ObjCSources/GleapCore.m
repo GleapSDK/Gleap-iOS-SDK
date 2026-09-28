@@ -7,6 +7,7 @@
 //
 
 #import "GleapCore.h"
+#import "GleapInternal.h"
 #import "GleapFrameManagerViewController.h"
 #import "GleapReplayHelper.h"
 #import "GleapHttpTrafficRecorder.h"
@@ -34,11 +35,6 @@
 @interface Gleap ()
 
 @end
-
-static id ObjectOrNull(id object)
-{
-  return object ?: [NSNull null];
-}
 
 @implementation Gleap
 
@@ -351,7 +347,7 @@ static id ObjectOrNull(id object)
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
             @"name": @"open-news-article",
             @"data": @{
-              @"id": ObjectOrNull(articleId),
+              @"id": GleapObjectOrNull(articleId),
               @"hideBackButton": @(!showBackButton)
             }
         }];
@@ -363,7 +359,7 @@ static id ObjectOrNull(id object)
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
             @"name": @"start-bot",
             @"data": @{
-              @"botId": ObjectOrNull(botId),
+              @"botId": GleapObjectOrNull(botId),
               @"hideBackButton": @(!showBackButton)
             }
         }];
@@ -394,7 +390,7 @@ static id ObjectOrNull(id object)
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
             @"name": @"open-conversation",
             @"data": @{
-                @"shareToken": ObjectOrNull(shareToken)
+                @"shareToken": GleapObjectOrNull(shareToken)
             },
         }];
     }
@@ -486,7 +482,7 @@ static id ObjectOrNull(id object)
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
             @"name": @"open-help-collection",
             @"data": @{
-                @"collectionId": ObjectOrNull(collectionId),
+                @"collectionId": GleapObjectOrNull(collectionId),
                 @"hideBackButton": @(!showBackButton)
             }
         }];
@@ -502,7 +498,7 @@ static id ObjectOrNull(id object)
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
             @"name": @"ask-ai",
             @"data": @{
-                @"question": ObjectOrNull(question),
+                @"question": GleapObjectOrNull(question),
                 @"hideBackButton": @(!showBackButton)
             }
         }];
@@ -518,7 +514,7 @@ static id ObjectOrNull(id object)
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
             @"name": @"open-help-article",
             @"data": @{
-                @"articleId": ObjectOrNull(articleId),
+                @"articleId": GleapObjectOrNull(articleId),
                 @"hideBackButton": @(!showBackButton)
             }
         }];
@@ -549,7 +545,7 @@ static id ObjectOrNull(id object)
         [[GleapWidgetManager sharedInstance] sendMessageWithData: @{
             @"name": @"open-helpcenter-search",
             @"data": @{
-                @"term": ObjectOrNull(searchTerm),
+                @"term": GleapObjectOrNull(searchTerm),
                 @"hideBackButton": @(!showBackButton)
             }
         }];
@@ -646,7 +642,7 @@ static id ObjectOrNull(id object)
     // Start a feedback flow.
     if (feedbackFlow != nil) {
         NSMutableDictionary *startFeedbackFlowData = [[NSMutableDictionary alloc] initWithDictionary: @{
-            @"flow": ObjectOrNull(feedbackFlow)
+            @"flow": GleapObjectOrNull(feedbackFlow)
         }];
         if (options != nil) {
             [startFeedbackFlowData addEntriesFromDictionary: options];
