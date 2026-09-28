@@ -15,6 +15,8 @@ A closed widget, banner or modal is released again, together with its web view a
 
 The realtime connection no longer reconnects every 5 seconds after the session changed (for example after `identify`), and all connections share one URL session instead of creating a new one per attempt. Realtime messages are now handled on the main queue, like the answers to the event stream.
 
+Replays keep recording after the app returns from the background or the config is loaded again; until now they stopped for good the first time either happened.
+
 ## 18.1.0
 Added control over the env data (device, OS, screen, locale and battery details shown under the Env data tab of a ticket) the SDK collects:
 `Gleap.setEnvDataPropsToIgnore(["deviceName", "batteryLevel"])` removes individual env data keys from every ticket and conversation before it is sent. Each call replaces the previous list; an empty array resets it.

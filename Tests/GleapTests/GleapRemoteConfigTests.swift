@@ -66,6 +66,22 @@ final class GleapRemoteConfigTests: GleapNetworkTestCase {
         XCTAssertFalse(replays.running)
     }
 
+    func testReplaysKeepRecordingWhenStartedAgain() {
+        let replays = GleapReplayHelper.sharedInstance()
+        let recording = { (replays.replayTimer as Timer?)?.isValid == true }
+
+        replays.start()
+        XCTAssertTrue(waitUntil(recording))
+
+        // Going to the background stops the timer; coming back (or a new config) starts again.
+        NotificationCenter.default.post(name: UIApplication.willResignActiveNotification, object: nil)
+        XCTAssertFalse(recording())
+        replays.start()
+
+        XCTAssertTrue(waitUntil(recording), "the replays record again")
+        XCTAssertTrue(replays.running)
+    }
+
     func testActivationMethodsComeFromTheConfigUnlessTheAppSetsThem() {
         load(["activationMethodShake": true, "activationMethodScreenshotGesture": false])
         XCTAssertTrue(Gleap.isActivationMethodActive(SHAKE))
