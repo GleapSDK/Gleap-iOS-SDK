@@ -76,6 +76,27 @@ final class GleapReportDeliveryTests: GleapNetworkTestCase {
         XCTAssertNotNil(body["formData"])
     }
 
+    func testUploadAnswerThatDoesNotListEveryFileLeavesTheAttachmentsOut() throws {
+        XCTAssertTrue(Gleap.addAttachment(with: Data("app log".utf8), andName: "log.txt"))
+        XCTAssertTrue(Gleap.addAttachment(with: Data("{}".utf8), andName: "trace.json"))
+        let answers: [(String, GleapStubReply)] = [
+            ("no fileUrls", .json(["status": "ok"])),
+            ("one URL for two files", .json(["fileUrls": ["https://files.gleap.test/log.txt"]])),
+            ("not a list", .json(["fileUrls": "https://files.gleap.test/log.txt"])),
+            ("not URLs", .json(["fileUrls": [1, 2]])),
+        ]
+        for (name, reply) in answers {
+            GleapStubURLProtocol.reset()
+            GleapStubURLProtocol.stub("POST", "/uploads/attachments", reply)
+            GleapStubURLProtocol.stub("POST", "/bugs/v2", .json(["id": "ticket-1"]))
+
+            XCTAssertEqual(send(report())?.success, true, name)
+
+            let body = try XCTUnwrap(GleapStubURLProtocol.requests(path: "/bugs/v2").first?.json, name)
+            XCTAssertNil(body["attachments"], name)
+        }
+    }
+
     func testOverloadedUploadIsAskedAgainOnce() throws {
         stubSequence("/uploads/sdk", [overloaded, .json(["fileUrl": "https://files.gleap.test/retried.jpeg"])])
         GleapStubURLProtocol.stub("POST", "/bugs/v2", .json(["id": "ticket-1"]))

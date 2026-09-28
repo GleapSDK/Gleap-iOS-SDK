@@ -20,18 +20,17 @@
     NSArray *files = fileData != nil ? @[@{ @"data": fileData, @"name": filename ?: @"(null)", @"type": contentType ?: @"(null)" }] : @[];
     NSMutableURLRequest *request = [GleapAPIClient uploadRequestWithPath: @"/uploads/sdk" files: files];
     [GleapAPIClient sendUploadRequest: request completion:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
-        if (error != NULL || ![GleapAPIClient isSuccessResponse: response]) {
+        if (error != NULL || data == nil || ![GleapAPIClient isSuccessResponse: response]) {
             return completion(false, nil);
         }
         
-        NSError *parseError = nil;
-        NSDictionary *responseDict = [NSJSONSerialization JSONObjectWithData: data options: 0 error:&parseError];
-        if (!parseError) {
-            NSString* fileUrl = [responseDict objectForKey: @"fileUrl"];
-            return completion(true, fileUrl);
-        } else {
+        // The answer has to name the uploaded file.
+        id responseDict = [NSJSONSerialization JSONObjectWithData: data options: 0 error: nil];
+        id fileUrl = [responseDict isKindOfClass: [NSDictionary class]] ? [responseDict objectForKey: @"fileUrl"] : nil;
+        if (![fileUrl isKindOfClass: [NSString class]] || [fileUrl length] == 0) {
             return completion(false, nil);
         }
+        return completion(true, fileUrl);
     }];
 }
 
@@ -77,7 +76,7 @@
         if (success) {
             NSMutableArray *replayArray = [[NSMutableArray alloc] init];
             
-            for (NSUInteger i = 0; i < fileUrls.count; i++) {
+            for (NSUInteger i = 0; i < fileUrls.count && i < steps.count; i++) {
                 NSMutableDictionary *currentStep = [[steps objectAtIndex: i] mutableCopy];
                 NSString *currentImageUrl = [fileUrls objectAtIndex: i];
                 [currentStep setObject: currentImageUrl forKey: @"url"];
@@ -99,20 +98,32 @@
     dispatch_async(dispatch_get_main_queue(), ^{
         NSMutableURLRequest *request = [GleapAPIClient uploadRequestWithPath: [NSString stringWithFormat: @"/uploads/%@", endpoint] files: files];
         [GleapAPIClient sendUploadRequest: request completion:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
-            if (error != NULL || ![GleapAPIClient isSuccessResponse: response]) {
+            if (error != NULL || data == nil || ![GleapAPIClient isSuccessResponse: response]) {
                 return completion(false, nil);
             }
             
-            NSError *parseError = nil;
-            NSDictionary *responseDict = [NSJSONSerialization JSONObjectWithData: data options: 0 error:&parseError];
-            if (!parseError) {
-                NSArray* fileUrls = [responseDict objectForKey: @"fileUrls"];
-                return completion(true, fileUrls);
-            } else {
+            // The answer has to name every uploaded file, in the order they were sent: callers
+            // match the URLs to their files by position.
+            id responseDict = [NSJSONSerialization JSONObjectWithData: data options: 0 error: nil];
+            id fileUrls = [responseDict isKindOfClass: [NSDictionary class]] ? [responseDict objectForKey: @"fileUrls"] : nil;
+            if (![GleapUploadManager isFileUrlList: fileUrls forFiles: files]) {
                 return completion(false, nil);
             }
+            return completion(true, fileUrls);
         }];
     });
+}
+
++ (BOOL)isFileUrlList:(id)fileUrls forFiles:(NSArray *)files {
+    if (![fileUrls isKindOfClass: [NSArray class]] || [fileUrls count] != files.count) {
+        return NO;
+    }
+    for (id fileUrl in fileUrls) {
+        if (![fileUrl isKindOfClass: [NSString class]]) {
+            return NO;
+        }
+    }
+    return YES;
 }
 
 @end
