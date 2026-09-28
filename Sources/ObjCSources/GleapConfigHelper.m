@@ -13,6 +13,7 @@
 #import "GleapWidgetManager.h"
 #import "GleapUIOverlayHelper.h"
 #import "GleapTranslationHelper.h"
+#import "GleapAPIClient.h"
 
 @implementation GleapConfigHelper
 
@@ -44,10 +45,8 @@
 }
 
 - (void)loadConfigAsReload: (BOOL)isReload {
-    NSString *widgetConfigURL = [NSString stringWithFormat: @"%@/config/%@?lang=%@", Gleap.sharedInstance.apiUrl, Gleap.sharedInstance.token, GleapTranslationHelper.sharedInstance.language];
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
-    [request setHTTPMethod:@"GET"];
-    [request setURL: [NSURL URLWithString: widgetConfigURL]];
+    NSString *path = [NSString stringWithFormat: @"/config/%@?lang=%@", Gleap.sharedInstance.token, GleapTranslationHelper.sharedInstance.language];
+    NSMutableURLRequest *request = [GleapAPIClient requestWithMethod: @"GET" path: path identity: GleapRequestIdentityNone];
     [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:
       ^(NSData * _Nullable data,
         NSURLResponse * _Nullable response,

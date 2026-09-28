@@ -18,6 +18,7 @@
 #import "GleapSessionHelper.h"
 #import "GleapExternalDataHelper.h"
 #import "GleapTagHelper.h"
+#import "GleapAPIClient.h"
 
 @implementation GleapFeedback
 
@@ -319,22 +320,12 @@
             return completion(false, errorInfo);
         }
         
-        NSMutableURLRequest *request = [NSMutableURLRequest new];
-        request.HTTPMethod = @"POST";
-        [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/bugs/v2", Gleap.sharedInstance.apiUrl]]];
-        [GleapSessionHelper injectSessionInRequest: request];
-        [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
-        [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
+        NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/bugs/v2" identity: GleapRequestIdentityCurrentSession];
         [request setHTTPBody: jsonBodyData];
         
-        NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-        NSURLSession *session = [NSURLSession sessionWithConfiguration:config
-                                                              delegate:nil
-                                                         delegateQueue:[NSOperationQueue mainQueue]];
-        NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                                completionHandler:^(NSData * _Nullable data,
-                                                                    NSURLResponse * _Nullable response,
-                                                                    NSError * _Nullable error) {
+        [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
+                                                          NSURLResponse * _Nullable response,
+                                                          NSError * _Nullable error) {
             if (error != nil) {
                 NSDictionary *errorInfo = @{ @"error": @"Network error", @"details": error.localizedDescription };
                 return completion(false, errorInfo);
@@ -349,7 +340,6 @@
                 return completion(false, errorInfo);
             }
         }];
-        [task resume];
     } @catch (NSException *exp) {
         NSLog(@"[GLEAP] Failed sending feedback: %@", NSThread.callStackSymbols);
         NSDictionary *errorInfo = @{ @"error": @"Exception occurred", @"details": exp.reason };

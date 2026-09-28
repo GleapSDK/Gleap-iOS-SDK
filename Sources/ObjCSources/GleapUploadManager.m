@@ -8,6 +8,7 @@
 #import "GleapUploadManager.h"
 #import "GleapSessionHelper.h"
 #import "GleapCore.h"
+#import "GleapAPIClient.h"
 
 @implementation GleapUploadManager
 
@@ -15,41 +16,10 @@
  Upload file
  */
 + (void)uploadFile: (NSData *)fileData andFileName: (NSString*)filename andContentType: (NSString*)contentType andCompletion: (void (^)(bool success, NSString *fileUrl))completion {
-    NSMutableURLRequest *request = [NSMutableURLRequest new];
-    [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/uploads/sdk", [Gleap sharedInstance].apiUrl]]];
-    [GleapSessionHelper injectSessionInRequest: request];
-    [request setCachePolicy:NSURLRequestReloadIgnoringLocalCacheData];
-    [request setHTTPShouldHandleCookies:NO];
-    [request setTimeoutInterval:60];
-    [request setHTTPMethod:@"POST"];
-    
-    // Build multipart/form-data
-    NSString *boundary = @"BBBOUNDARY";
-    NSString *headerContentType = [NSString stringWithFormat:@"multipart/form-data; boundary=%@", boundary];
-    [request setValue: headerContentType forHTTPHeaderField: @"Content-Type"];
-    NSMutableData *body = [NSMutableData data];
-    
-    // Add file data
-    if (fileData) {
-        [body appendData:[[NSString stringWithFormat:@"--%@\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
-        [body appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=%@; filename=%@\r\n", @"file", filename] dataUsingEncoding:NSUTF8StringEncoding]];
-        [body appendData:[[NSString stringWithFormat: @"Content-Type: %@\r\n\r\n", contentType] dataUsingEncoding:NSUTF8StringEncoding]];
-        [body appendData: fileData];
-        [body appendData:[[NSString stringWithFormat:@"\r\n"] dataUsingEncoding:NSUTF8StringEncoding]];
-    }
-    
-    [body appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
-    
-    // Set the body of the POST request.
-    [request setHTTPBody:body];
-    
-    // Set the content-length
-    NSString *postLength = [NSString stringWithFormat:@"%lu", (unsigned long)[body length]];
-    [request setValue:postLength forHTTPHeaderField:@"Content-Length"];
-    
-    NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:config delegate:nil delegateQueue:[NSOperationQueue mainQueue]];
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+    // A missing name or type is written as "(null)", as the multipart format string always did.
+    NSArray *files = fileData != nil ? @[@{ @"data": fileData, @"name": filename ?: @"(null)", @"type": contentType ?: @"(null)" }] : @[];
+    NSMutableURLRequest *request = [GleapAPIClient uploadRequestWithPath: @"/uploads/sdk" files: files];
+    [GleapAPIClient sendUploadRequest: request completion:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
         if (error != NULL) {
             return completion(false, nil);
         }
@@ -63,7 +33,6 @@
             return completion(false, nil);
         }
     }];
-    [task resume];
 }
 
 /*
@@ -128,43 +97,8 @@
  */
 + (void)uploadFiles: (NSArray *)files forEndpoint:(NSString *)endpoint andCompletion: (void (^)(bool success, NSArray *fileUrls))completion {
     dispatch_async(dispatch_get_main_queue(), ^{
-        NSMutableURLRequest *request = [NSMutableURLRequest new];
-        [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/uploads/%@", [Gleap sharedInstance].apiUrl, endpoint]]];
-        [GleapSessionHelper injectSessionInRequest: request];
-        [request setCachePolicy:NSURLRequestReloadIgnoringLocalCacheData];
-        [request setHTTPShouldHandleCookies:NO];
-        [request setTimeoutInterval:60];
-        [request setHTTPMethod:@"POST"];
-        
-        // Build multipart/form-data
-        NSString *boundary = @"BBBOUNDARY";
-        NSString *headerContentType = [NSString stringWithFormat:@"multipart/form-data; boundary=%@", boundary];
-        [request setValue: headerContentType forHTTPHeaderField: @"Content-Type"];
-        NSMutableData *body = [NSMutableData data];
-        
-        for (int i = 0; i < files.count; i++) {
-            NSDictionary *currentFile = [files objectAtIndex: i];
-            NSData *fileData = [currentFile objectForKey: @"data"];
-            NSData *fileName = [currentFile objectForKey: @"name"];
-            NSData *fileContentType = [currentFile objectForKey: @"type"];
-            
-            if (fileData != nil && fileName != nil) {
-                [body appendData:[[NSString stringWithFormat:@"--%@\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
-                [body appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=%@; filename=%@\r\n", @"file", fileName] dataUsingEncoding:NSUTF8StringEncoding]];
-                [body appendData:[[NSString stringWithFormat: @"Content-Type: %@\r\n\r\n", fileContentType] dataUsingEncoding:NSUTF8StringEncoding]];
-                [body appendData: fileData];
-                [body appendData:[[NSString stringWithFormat:@"\r\n"] dataUsingEncoding:NSUTF8StringEncoding]];
-            }
-        }
-        
-        [body appendData:[[NSString stringWithFormat:@"--%@--\r\n", boundary] dataUsingEncoding:NSUTF8StringEncoding]];
-        [request setHTTPBody:body];
-        NSString *postLength = [NSString stringWithFormat:@"%lu", (unsigned long)[body length]];
-        [request setValue:postLength forHTTPHeaderField:@"Content-Length"];
-        
-        NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-        NSURLSession *session = [NSURLSession sessionWithConfiguration:config delegate:nil delegateQueue:[NSOperationQueue mainQueue]];
-        NSURLSessionDataTask *task = [session dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+        NSMutableURLRequest *request = [GleapAPIClient uploadRequestWithPath: [NSString stringWithFormat: @"/uploads/%@", endpoint] files: files];
+        [GleapAPIClient sendUploadRequest: request completion:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
             if (error != NULL) {
                 return completion(false, nil);
             }
@@ -178,7 +112,6 @@
                 return completion(false, nil);
             }
         }];
-        [task resume];
     });
 }
 

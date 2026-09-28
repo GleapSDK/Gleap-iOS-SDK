@@ -7,6 +7,7 @@
 
 #import "GleapSessionHelper.h"
 #import "GleapInternal.h"
+#import "GleapAPIClient.h"
 #import "GleapCore.h"
 #import "GleapWidgetManager.h"
 #import "GleapUIOverlayHelper.h"
@@ -62,20 +63,8 @@
 }
 
 - (void)startSessionWith:(void (^)(bool success))completion {
-    NSMutableURLRequest *request = [NSMutableURLRequest new];
-    request.HTTPMethod = @"POST";
-    [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/sessions", Gleap.sharedInstance.apiUrl]]];
-    [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
-    [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
-    [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
-    
-    // Merge guest session.
-    NSString *gleapId = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapId"];
-    NSString *gleapHash = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapHash"];
-    if (gleapId != nil && gleapId.length > 0 && gleapHash != nil && gleapHash.length > 0) {
-        [request setValue: gleapId forHTTPHeaderField: @"Gleap-Id"];
-        [request setValue: gleapHash forHTTPHeaderField: @"Gleap-Hash"];
-    }
+    // A stored guest identity is merged into the new session.
+    NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions" identity: GleapRequestIdentityStoredIfComplete];
     
     NSString *lang = [GleapTranslationHelper sharedInstance].language;
     if (lang != nil) {
@@ -90,14 +79,9 @@
         }
     }
     
-    NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:config
-                                                          delegate:nil
-                                                     delegateQueue:[NSOperationQueue mainQueue]];
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                            completionHandler:^(NSData * _Nullable data,
-                                                                NSURLResponse * _Nullable response,
-                                                                NSError * _Nullable error) {
+    [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
+                                                      NSURLResponse * _Nullable response,
+                                                      NSError * _Nullable error) {
         if (error != nil) {
             return completion(false);
         }
@@ -118,7 +102,6 @@
     
         return [self updateLocalSessionWith: jsonResponse andCompletion: completion];
     }];
-    [task resume];
 }
 
 - (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString * _Nullable)userHash {
@@ -200,26 +183,12 @@
             return;
         }
         
-        NSMutableURLRequest *request = [NSMutableURLRequest new];
-        request.HTTPMethod = @"POST";
-        [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/sessions/partialupdate", Gleap.sharedInstance.apiUrl]]];
-        [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
-        [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
-        [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
-        
-        [request setValue: gleapId forHTTPHeaderField: @"Gleap-Id"];
-        [request setValue: gleapHash forHTTPHeaderField: @"Gleap-Hash"];
-
+        NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions/partialupdate" identity: GleapRequestIdentityStored];
         [request setHTTPBody: jsonBodyData];
         
-        NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-        NSURLSession *session = [NSURLSession sessionWithConfiguration:config
-                                                              delegate:nil
-                                                         delegateQueue:[NSOperationQueue mainQueue]];
-        NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                                completionHandler:^(NSData * _Nullable data,
-                                                                    NSURLResponse * _Nullable response,
-                                                                    NSError * _Nullable error) {
+        [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
+                                                          NSURLResponse * _Nullable response,
+                                                          NSError * _Nullable error) {
             if (error != nil) {
                 return;
             }
@@ -238,7 +207,6 @@
                 [self updateLocalSessionWith: jsonResponse andCompletion:^(bool success) {}];
             }
         }];
-        [task resume];
     } @catch (id exp) {}
 }
 
@@ -288,29 +256,13 @@
         return;
     }
     
-    NSMutableURLRequest *request = [NSMutableURLRequest new];
-    request.HTTPMethod = @"POST";
-    [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/sessions/identify", Gleap.sharedInstance.apiUrl]]];
-    [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
-    [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
-    [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
-    
-    // Merge guest session.
-    NSString *gleapId = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapId"];
-    NSString *gleapHash = [[NSUserDefaults standardUserDefaults] stringForKey:@"gleapHash"];
-    [request setValue: gleapId forHTTPHeaderField: @"Gleap-Id"];
-    [request setValue: gleapHash forHTTPHeaderField: @"Gleap-Hash"];
-
+    // The stored guest identity is merged into the identified session.
+    NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions/identify" identity: GleapRequestIdentityStored];
     [request setHTTPBody: jsonBodyData];
     
-    NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:config
-                                                          delegate:nil
-                                                     delegateQueue:[NSOperationQueue mainQueue]];
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                            completionHandler:^(NSData * _Nullable data,
-                                                                NSURLResponse * _Nullable response,
-                                                                NSError * _Nullable error) {
+    [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
+                                                      NSURLResponse * _Nullable response,
+                                                      NSError * _Nullable error) {
         if (error != nil) {
             return;
         }
@@ -340,7 +292,6 @@
             [self clearSession];
         }
     }];
-    [task resume];
 }
 
 - (BOOL)isCustomData:(NSDictionary *)customDataSubset aSubsetOf:(NSDictionary *)customData {

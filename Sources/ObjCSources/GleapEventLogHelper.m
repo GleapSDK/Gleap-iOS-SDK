@@ -13,6 +13,7 @@
 #import "GleapMetaDataHelper.h"
 #import "GleapUIOverlayHelper.h"
 #import "GleapWebSocketHelper.h"
+#import "GleapAPIClient.h"
 
 @implementation GleapEventLogHelper
 
@@ -198,19 +199,9 @@
             return;
         }
         
-        NSMutableURLRequest *request = [NSMutableURLRequest new];
-        request.HTTPMethod = @"POST";
-        [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/sessions/ping", [Gleap sharedInstance].apiUrl]]];
-        [GleapSessionHelper injectSessionInRequest: request];
-        [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
-        [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
+        NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions/ping" identity: GleapRequestIdentityCurrentSession];
         [request setHTTPBody: jsonBodyData];
-        NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-        NSURLSession *session = [NSURLSession sessionWithConfiguration:config
-                                                              delegate:nil
-                                                         delegateQueue:[NSOperationQueue mainQueue]];
-        NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                                completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+        [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
             if (error != nil) {
                 return;
             }
@@ -229,7 +220,6 @@
                 [self parseUpdate: actionData];
             }
         }];
-        [task resume];
     } @catch(id exception) {
         
     }
