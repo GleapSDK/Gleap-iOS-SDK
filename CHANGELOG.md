@@ -7,9 +7,9 @@ Console logs capture the app's stdout and stderr again, now on iOS 15+ and in de
 
 Reports only count as sent once the server accepted them. A report the server rejects (for example because it is too large) now calls `feedbackSendingFailed` and shows the error in the widget, where it used to call `feedbackSent` and `outboundSent` for a ticket that was never created. When the server is momentarily overloaded (503), a report and its uploads are sent once more after the delay the server asks for (at most 5 seconds). An attachment upload that was rejected, or whose answer does not list every uploaded file, no longer crashes the app; the report is sent without the attachments.
 
-A failed request no longer costs the user their identity. When starting a session, `identify` or `updateContact` failed (the server was overloaded, the request was too large, a server error), the SDK could delete the stored guest or user identity, so the user continued as a new guest without their conversations. Only an answer that contains a session replaces the stored identity now. An `identify` the server refuses (for example because of a wrong user hash) still starts a new guest session, as before.
+A failed request no longer costs the user their identity. When a session start, `identify` or `updateContact` met an overloaded server or a server error, or `updateContact` was refused (for example because the request was too large), the SDK could delete the stored guest or user identity, so the user continued as a new guest without their conversations. Only an answer that contains a session replaces the stored identity now. An `identify` the server refuses with an error (for example because of a wrong user hash) still starts a new guest session, as before.
 
-Custom actions from banners reach the app again, the same way as those from modals: `customActionCalled(_:withShareToken:)` when the delegate implements it, otherwise `customActionCalled(_:)`. A banner action used to crash apps whose delegate implements `customActionCalled(_:)` (the Flutter plugin) and never reached apps that only implement the two-argument version (React Native, Capacitor).
+Custom actions from banners now reach the app the same way as those from modals: `customActionCalled(_:withShareToken:)` when the delegate implements it, otherwise `customActionCalled(_:)`. A banner action used to crash apps whose delegate implements `customActionCalled(_:)` (the Flutter plugin) and never reached apps that only implement the two-argument version (React Native, Capacitor).
 
 A closed widget, banner or modal is released again, together with its web view and web content process. Each one used to stay in memory until the app quit, because its web view kept it alive.
 
@@ -35,7 +35,7 @@ Custom data, ticket attributes, tags, attachments, prefilled form data, the sess
 
 `openChecklist`, `startChecklist` and `sendSilentCrashReport` no longer crash when an Objective-C caller passes nil for the checklist id, the description or the completion block.
 
-Touches and motion events (such as a shake) that reach the app's window are passed on along the responder chain again, to the application and its delegate. The SDK's `UIWindow` category handled them without passing them on.
+Touches and motion events (such as a shake) that reach the app's window are now passed on along the responder chain, to the application and its delegate. The SDK's `UIWindow` category used to handle them without passing them on.
 
 A feedback button that is created again (for example after the app switched its key window) no longer gets a layout constraint that ties the button to itself.
 
