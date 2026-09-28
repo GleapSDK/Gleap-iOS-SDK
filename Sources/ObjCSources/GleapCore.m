@@ -212,6 +212,12 @@
  */
 + (void)initializeWithToken: (NSString *)token {
     if ([Gleap sharedInstance].initialized) {
+        // Again with the same key (the React Native bridge does this on every JS reload) it would
+        // start another session and tell the app a second time that the SDK initialized.
+        if (token != nil && [token isEqualToString: [Gleap sharedInstance].token]) {
+            NSLog(@"[GLEAP_SDK] Gleap has already been initialized with this API key.");
+            return;
+        }
         NSLog(@"[GLEAP_SDK] Gleap has already been initialized.");
     }
     
@@ -582,7 +588,9 @@
         dispatch_async(dispatch_get_main_queue(), ^{
             sessionRecoveryInProgress = NO;
             if (success) {
-                [[GleapConfigHelper sharedInstance] run];
+                // A reload: the app hears configLoaded: and initialized only once per initialize
+                // (still from here, if the config never loaded before).
+                [[GleapConfigHelper sharedInstance] reload];
                 [self startFeedbackFlow: feedbackFlow withOptions: options];
             } else {
                 NSError *offlineError = [NSError errorWithDomain: NSURLErrorDomain code: NSURLErrorNotConnectedToInternet userInfo: nil];

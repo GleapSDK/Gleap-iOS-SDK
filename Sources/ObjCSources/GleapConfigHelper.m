@@ -15,6 +15,13 @@
 #import "GleapTranslationHelper.h"
 #import "GleapAPIClient.h"
 
+@interface GleapConfigHelper ()
+// Set by run (once per initialize) and cleared when the app has been told: configLoaded: and
+// initialized are delivered once per initialize, by the first config load that succeeds, also
+// when that is a reload (a session recovery after an offline start).
+@property (nonatomic, assign) BOOL initializeCallbacksPending;
+@end
+
 @implementation GleapConfigHelper
 
 /*
@@ -37,36 +44,38 @@
 }
 
 - (void)run {
-    [self loadConfigAsReload: NO];
+    self.initializeCallbacksPending = YES;
+    [self loadConfig];
 }
 
 - (void)reload {
-    [self loadConfigAsReload: YES];
+    [self loadConfig];
 }
 
-- (void)loadConfigAsReload: (BOOL)isReload {
+- (void)loadConfig {
     NSString *path = [NSString stringWithFormat: @"/config/%@?lang=%@", Gleap.sharedInstance.token, GleapTranslationHelper.sharedInstance.language];
     NSMutableURLRequest *request = [GleapAPIClient requestWithMethod: @"GET" path: path identity: GleapRequestIdentityNone];
-    [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:
-      ^(NSData * _Nullable data,
-        NSURLResponse * _Nullable response,
-        NSError * _Nullable error) {
+    // The shared API session answers on the main queue, so the config is applied and the app's
+    // callbacks run there.
+    [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
+                                                      NSURLResponse * _Nullable response,
+                                                      NSError * _Nullable error) {
         if (error == nil) {
             NSString *responseString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
             NSError *e = nil;
             NSData *jsonData = [responseString dataUsingEncoding:NSUTF8StringEncoding];
             NSDictionary *configData = [NSJSONSerialization JSONObjectWithData:jsonData options: NSJSONReadingMutableContainers error: &e];
             if (e == nil && configData != nil) {
-                [self configureGleapWithConfig: configData isReload: isReload];
+                [self configureGleapWithConfig: configData];
                 return;
             }
         }
         
         NSLog(@"[GLEAP_SDK] Gleap auto-configuration failed. Please check your API key and internet connection.");
-    }] resume];
+    }];
 }
 
-- (void)configureGleapWithConfig: (NSDictionary *)data isReload: (BOOL)isReload {
+- (void)configureGleapWithConfig: (NSDictionary *)data {
     NSDictionary *config = [data objectForKey: @"flowConfig"];
     NSDictionary *projectActions = [data objectForKey: @"projectActions"];
     
@@ -132,12 +141,12 @@
     // Update notification UI components.
     [GleapUIOverlayHelper updateUI];
     
-    // A reload (e.g. after a language change) only swaps the config content — the
-    // app has already been told the SDK loaded its config and initialized, so
-    // firing those callbacks again would be a lie.
-    if (isReload) {
+    // A reload (e.g. after a language change or a session recovery) only swaps the config
+    // content once the app has been told the SDK loaded its config and initialized.
+    if (!self.initializeCallbacksPending) {
         return;
     }
+    self.initializeCallbacksPending = NO;
 
     // Config loaded delegate
     if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(configLoaded:)]) {

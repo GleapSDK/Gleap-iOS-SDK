@@ -4,6 +4,7 @@ import XCTest
 /// Feature switches the dashboard controls through the remote config.
 final class GleapRemoteConfigTests: GleapNetworkTestCase {
     override func tearDown() {
+        GleapConsoleLogHelper.sharedInstance().consoleLogDisabled = false
         Gleap.stopNetworkRecording()
         GleapReplayHelper.sharedInstance().stop()
         GleapUIOverlayHelper.sharedInstance().showButtonExternalOverwrite = false
@@ -124,5 +125,65 @@ final class GleapRemoteConfigTests: GleapNetworkTestCase {
         spin(0.3)
         XCTAssertEqual(spy.calls("configLoaded").count, 1, "a reload does not report the config again")
         XCTAssertEqual(spy.calls("initialized").count, 1)
+    }
+
+    func testTheAppIsToldOnTheMainThread() {
+        load(["enableReplays": false])
+
+        XCTAssertTrue(waitUntil { self.spy.calls("initialized").count == 1 })
+        XCTAssertEqual(spy.calls("configLoaded").map(\.onMainThread), [true])
+        XCTAssertEqual(spy.calls("initialized").map(\.onMainThread), [true])
+    }
+
+    func testAReloadTellsTheAppWhenTheFirstLoadFailed() {
+        // An offline start: the config never loads, the app is not told.
+        GleapStubURLProtocol.stub("GET", "/config/\(Self.sdkKey)", .failure(.notConnectedToInternet))
+        GleapConfigHelper.sharedInstance().run()
+        XCTAssertNotNil(waitForRequest("/config/\(Self.sdkKey)"))
+        spin(0.3)
+        XCTAssertTrue(spy.calls("configLoaded").isEmpty)
+
+        // The session recovery reloads the config: now the app hears about it, once.
+        load(["enableReplays": false], reload: true)
+        XCTAssertTrue(waitUntil { self.spy.calls("initialized").count == 1 })
+        load(["enableReplays": false], reload: true)
+
+        spin(0.3)
+        XCTAssertEqual(spy.calls("configLoaded").count, 1)
+        XCTAssertEqual(spy.calls("initialized").count, 1)
+    }
+
+    func testInitializingAgainWithTheSameKeyDoesNothing() {
+        Gleap.sharedInstance().initialized = 0
+        GleapConsoleLogHelper.sharedInstance().consoleLogDisabled = true
+        GleapStubURLProtocol.stub("POST", "/sessions", Self.sessionReply(gleapId: "gid-1", gleapHash: "ghash-1"))
+        stubConfig(["enableReplays": false])
+
+        Gleap.initialize(withToken: Self.sdkKey)
+        XCTAssertTrue(waitUntil { self.spy.calls("initialized").count == 1 })
+        Gleap.initialize(withToken: Self.sdkKey)
+
+        spin(0.5)
+        XCTAssertEqual(GleapStubURLProtocol.requests(path: "/sessions").count, 1)
+        XCTAssertEqual(GleapStubURLProtocol.requests(path: "/config/\(Self.sdkKey)").count, 1)
+        XCTAssertEqual(spy.calls("configLoaded").count, 1)
+        XCTAssertEqual(spy.calls("initialized").count, 1)
+    }
+
+    func testInitializingWithAnotherKeyStartsOver() {
+        Gleap.sharedInstance().initialized = 0
+        GleapConsoleLogHelper.sharedInstance().consoleLogDisabled = true
+        GleapStubURLProtocol.stub("POST", "/sessions", Self.sessionReply(gleapId: "gid-1", gleapHash: "ghash-1"))
+        stubConfig(["enableReplays": false])
+        GleapStubURLProtocol.stub("GET", "/config/other-key", .json(["flowConfig": ["enableReplays": false], "projectActions": [String: Any]()]))
+
+        Gleap.initialize(withToken: Self.sdkKey)
+        XCTAssertTrue(waitUntil { self.spy.calls("initialized").count == 1 })
+        Gleap.initialize(withToken: "other-key")
+
+        XCTAssertTrue(waitUntil { self.spy.calls("initialized").count == 2 })
+        XCTAssertEqual(GleapStubURLProtocol.requests(path: "/sessions").count, 2)
+        XCTAssertEqual(GleapStubURLProtocol.requests(path: "/config/other-key").count, 1)
+        XCTAssertEqual(spy.calls("configLoaded").count, 2)
     }
 }

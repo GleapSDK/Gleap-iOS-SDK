@@ -31,6 +31,8 @@ Banners only grant camera and microphone access without asking to their own page
 
 Custom data, ticket attributes, tags, attachments, prefilled form data, the session and the commands waiting for the widget are now read and written under a lock, so they can be changed from any thread (as the wrappers do) while a report is built or the widget opens; this could crash with "Collection was mutated while being enumerated".
 
+`configLoaded` and `initialized` now arrive on the main thread, once per `initialize`. A session recovery (opening the widget after an offline start) no longer reports them a second time; if the config had not loaded before, the recovery reports them instead. Calling `initialize` again with the same API key (the React Native SDK does this on every JavaScript reload) no longer starts another session or repeats the callbacks; with a different key the SDK starts over as before.
+
 ## 18.1.0
 Added control over the env data (device, OS, screen, locale and battery details shown under the Env data tab of a ticket) the SDK collects:
 `Gleap.setEnvDataPropsToIgnore(["deviceName", "batteryLevel"])` removes individual env data keys from every ticket and conversation before it is sent. Each call replaces the previous list; an empty array resets it.
