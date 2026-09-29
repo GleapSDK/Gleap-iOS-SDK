@@ -26,7 +26,7 @@ final class GleapEventStreamAndRoutingTests: GleapNetworkTestCase {
         XCTAssertNotNil(body["time"] as? Double)
         XCTAssertEqual(body["opened"] as? Bool, false)
         XCTAssertNotNil(body["ws"] as? Bool)
-        XCTAssertEqual(events.streamedLog.count, 0, "sent events leave the queue")
+        XCTAssertTrue(waitUntil { events.streamedLog.count == 0 }, "delivered events leave the queue")
     }
 
     func testRequestsFollowTheSelectedRegion() throws {

@@ -14,6 +14,21 @@
 #import "GleapUIOverlayHelper.h"
 #import "GleapWebSocketHelper.h"
 #import "GleapAPIClient.h"
+#import "GleapPingBackoff.h"
+
+// At most this many events wait for a ping; the oldest ones (other than a session start) make room.
+static NSUInteger const kGleapMaxQueuedEvents = 500;
+// One ping carries the oldest events up to these limits; the rest follows once it was delivered.
+static NSUInteger const kGleapMaxEventsPerPing = 100;
+static NSUInteger const kGleapMaxPingBytes = 256 * 1024;
+
+@interface GleapEventLogHelper ()
+// When pings may go out again after failed ones.
+@property (nonatomic, strong) GleapPingBackoff *pingBackoff;
+// The ping waiting for its answer, 0 when none is: never more than one at a time.
+@property (nonatomic, assign) NSUInteger pingInFlight;
+@property (nonatomic, assign) NSUInteger lastPingId;
+@end
 
 @implementation GleapEventLogHelper
 
@@ -43,6 +58,7 @@
     self.disableInAppNotifications = NO;
     self.log = [[NSMutableArray alloc] init];
     self.streamedLog = [[NSMutableArray alloc] init];
+    self.pingBackoff = [[GleapPingBackoff alloc] init];
 }
 
 - (NSMutableArray *)mutableArrayFromArray:(NSArray *)array {
@@ -64,6 +80,17 @@
     }
 }
 
+// Call with the lock held. Keeps the events waiting for a ping at the limit: the oldest one that
+// is not a session start makes room, or the oldest one when all are.
+- (void)trimStreamedLog {
+    while (self.streamedLog.count > kGleapMaxQueuedEvents) {
+        NSUInteger index = [self.streamedLog indexOfObjectPassingTest:^BOOL(id event, NSUInteger idx, BOOL *stop) {
+            return !([event isKindOfClass: [NSDictionary class]] && [[(NSDictionary *)event objectForKey: @"name"] isEqual: @"sessionStarted"]);
+        }];
+        [self.streamedLog removeObjectAtIndex: index != NSNotFound ? index : 0];
+    }
+}
+
 - (void)logEvent: (NSString *)name {
     @synchronized (self) {
         self.streamedLog = [self mutableArrayFromArray:self.streamedLog];
@@ -76,6 +103,7 @@
             @"name": name,
             @"date": [self getCurrentJSDate]
         }];
+        [self trimStreamedLog];
     }
 }
 
@@ -94,6 +122,7 @@
                 @"data": data,
                 @"date": [self getCurrentJSDate]
             }];
+            [self trimStreamedLog];
         }
     } @catch (id exp) {
         NSLog(@"[GLEAP]: Invalid data passed to Gleap.trackEvent() for event %@", name);
@@ -160,32 +189,48 @@
 }
 
 /*
- Stream logs to backend.
+ Streams the queued events to the backend (POST /sessions/ping): only with a session, one ping at a
+ time, the oldest events first and at most 100 events or about 256 KB per ping. Events leave the
+ queue once a 2xx answer delivered them, and the rest of a longer queue follows right away. After a
+ 429, a 5xx, any other error answer or a network error the events stay queued and the pings back
+ off (see GleapPingBackoff); the timer ticks in between do nothing.
  */
 - (void)sendEventStreamToServer {
+    // The ping state lives on the main queue, where the timers and the answers arrive.
+    if (![NSThread isMainThread]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self sendEventStreamToServer];
+        });
+        return;
+    }
+    
+    GleapSession *session = GleapSessionHelper.sharedInstance.currentSession;
     if (
         [Gleap sharedInstance].token == NULL
         || [[Gleap sharedInstance].token isEqualToString: @""]
         || [Gleap sharedInstance].apiUrl == NULL
         || [[Gleap sharedInstance].apiUrl isEqualToString: @""]
-        || GleapSessionHelper.sharedInstance.currentSession == nil
+        || session == nil
+        || session.gleapId.length == 0
+        || session.gleapHash.length == 0
         || self.streamedLog == nil
     ) {
         return;
     }
     
-    NSArray *eventsToSend;
-    @synchronized (self) {
-        self.streamedLog = [self mutableArrayFromArray:self.streamedLog];
-        eventsToSend = [self.streamedLog copy];
+    if (self.pingInFlight != 0 || [self.pingBackoff remainingAt: NSProcessInfo.processInfo.systemUptime] > 0) {
+        return;
     }
+    
+    BOOL hasMore = NO;
+    NSArray *eventsToSend = [self nextPingBatchHasMore: &hasMore];
     
     // When websocket mode is enabled, don't send empty events.
     if (self.webSocketEnabled && eventsToSend.count == 0) {
         return;
     }
     
-    NSDictionary *data = @{
+    NSDictionary *body = @{
         @"time": [NSNumber numberWithDouble: [[GleapMetaDataHelper sharedInstance] sessionDuration]],
         @"events": eventsToSend,
         @"opened": @([Gleap isOpened]),
@@ -194,48 +239,108 @@
         @"sdkVersion": SDK_VERSION,
     };
     
+    NSData *jsonBodyData = nil;
     @try {
-        NSError *error;
-        NSData *jsonBodyData = [NSJSONSerialization dataWithJSONObject: data options:kNilOptions error: &error];
+        jsonBodyData = [NSJSONSerialization dataWithJSONObject: body options: kNilOptions error: nil];
+    } @catch(id exception) {}
+    if (jsonBodyData == nil) {
+        return;
+    }
+    
+    NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions/ping" identity: GleapRequestIdentityCurrentSession];
+    [request setHTTPBody: jsonBodyData];
+    self.lastPingId += 1;
+    NSUInteger pingId = self.lastPingId;
+    self.pingInFlight = pingId;
+    [GleapAPIClient sendPingRequest: request completion:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+        [self pingDidFinish: pingId sentEvents: eventsToSend hasMore: hasMore data: data response: response error: error];
+    }];
+}
+
+- (void)pingDidFinish:(NSUInteger)pingId sentEvents:(NSArray *)sentEvents hasMore:(BOOL)hasMore data:(NSData *)data response:(NSURLResponse *)response error:(NSError *)error {
+    // The queue was cleared in between: nobody waits for this answer any more.
+    if (self.pingInFlight != pingId) {
+        return;
+    }
+    self.pingInFlight = 0;
+    
+    if (error == nil && [GleapAPIClient isSuccessResponse: response]) {
+        [self.pingBackoff reset];
+        [self removeSentEvents: sentEvents];
         
-        // Check for parsing error.
-        if (error != nil) {
-            return;
-        }
-        
-        NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions/ping" identity: GleapRequestIdentityCurrentSession];
-        [request setHTTPBody: jsonBodyData];
-        [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
-            if (error != nil) {
-                return;
-            }
-            
-            if (!self.webSocketEnabled) {
-                if (![response isKindOfClass:[NSHTTPURLResponse class]]) {
-                    return;
-                }
-                
-                NSError *jsonError;
-                NSDictionary *actionData = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jsonError];
-                if (jsonError) {
-                    return;
-                }
-                
+        // Only a delivered ping carries actions and the unread count; an error answer would reset the badge.
+        if (!self.webSocketEnabled && data != nil) {
+            id actionData = [NSJSONSerialization JSONObjectWithData: data options: 0 error: nil];
+            if ([actionData isKindOfClass: [NSDictionary class]]) {
                 [self parseUpdate: actionData];
             }
-        }];
-    } @catch(id exception) {
-        
-    }
-
-    @synchronized (self) {
-        self.streamedLog = [self mutableArrayFromArray:self.streamedLog];
-        NSUInteger removableEventsCount = 0;
-        while (removableEventsCount < eventsToSend.count && removableEventsCount < self.streamedLog.count && [eventsToSend objectAtIndex: removableEventsCount] == [self.streamedLog objectAtIndex: removableEventsCount]) {
-            removableEventsCount++;
         }
-        if (removableEventsCount > 0) {
-            [self.streamedLog removeObjectsInRange: NSMakeRange(0, removableEventsCount)];
+        
+        if (hasMore) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self sendEventStreamToServer];
+            });
+        }
+        return;
+    }
+    
+    NSTimeInterval retryAfter = -1;
+    if (error == nil && [response isKindOfClass: [NSHTTPURLResponse class]]) {
+        NSString *value = [(NSHTTPURLResponse *)response valueForHTTPHeaderField: @"Retry-After"];
+        retryAfter = [GleapPingBackoff retryAfterFromValue: value now: [NSDate date]];
+    }
+    double random = (double)arc4random() / ((double)UINT32_MAX + 1.0);
+    [self.pingBackoff failureAt: NSProcessInfo.processInfo.systemUptime retryAfter: retryAfter random: random];
+}
+
+// The oldest queued events for one ping: at most 100, and no more than about 256 KB of JSON (a
+// single larger event goes alone). An event that cannot be sent as JSON is dropped, so it does not
+// hold back the others.
+- (NSArray *)nextPingBatchHasMore:(BOOL *)hasMore {
+    NSMutableArray *batch = [NSMutableArray array];
+    NSMutableArray *broken = [NSMutableArray array];
+    @synchronized (self) {
+        self.streamedLog = [self mutableArrayFromArray: self.streamedLog];
+        // The brackets of the array, and a comma per event.
+        NSUInteger bytes = 2;
+        for (id event in self.streamedLog) {
+            if (batch.count >= kGleapMaxEventsPerPing) {
+                break;
+            }
+            NSData *json = nil;
+            @try {
+                if ([NSJSONSerialization isValidJSONObject: event]) {
+                    json = [NSJSONSerialization dataWithJSONObject: event options: kNilOptions error: nil];
+                }
+            } @catch(id exception) {}
+            if (json == nil) {
+                [broken addObject: event];
+                continue;
+            }
+            NSUInteger size = json.length + 1;
+            if (batch.count > 0 && bytes + size > kGleapMaxPingBytes) {
+                break;
+            }
+            [batch addObject: event];
+            bytes += size;
+        }
+        for (id event in broken) {
+            [self.streamedLog removeObjectIdenticalTo: event];
+        }
+        *hasMore = batch.count < self.streamedLog.count;
+    }
+    for (id event in broken) {
+        NSLog(@"[GLEAP]: Dropped the event %@, its data cannot be sent as JSON.", [event isKindOfClass: [NSDictionary class]] ? [(NSDictionary *)event objectForKey: @"name"] : event);
+    }
+    return batch;
+}
+
+// Removes exactly the delivered events; events tracked while the ping was in flight wait for the next one.
+- (void)removeSentEvents:(NSArray *)sentEvents {
+    @synchronized (self) {
+        self.streamedLog = [self mutableArrayFromArray: self.streamedLog];
+        for (id event in sentEvents) {
+            [self.streamedLog removeObjectIdenticalTo: event];
         }
     }
 }
@@ -295,6 +400,17 @@
     @synchronized (self) {
         self.log = [[NSMutableArray alloc] init];
         self.streamedLog = [[NSMutableArray alloc] init];
+    }
+    
+    // Also forget where the pings stand: no backoff, and the answer to a ping in flight is ignored.
+    void (^resetPings)(void) = ^{
+        self.pingInFlight = 0;
+        [self.pingBackoff reset];
+    };
+    if ([NSThread isMainThread]) {
+        resetPings();
+    } else {
+        dispatch_async(dispatch_get_main_queue(), resetPings);
     }
 }
 

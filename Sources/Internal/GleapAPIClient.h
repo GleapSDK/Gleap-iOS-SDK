@@ -41,6 +41,11 @@ GLEAP_INTERNAL
 /// Sends a request on the shared API session. The completion runs on the main queue.
 + (void)sendRequest:(NSURLRequest *)request completion:(GleapAPICompletion)completion;
 
+/// Sends an event ping on its own session. An answer that stalls for 15 seconds (connecting
+/// included) or takes 30 seconds in total ends with a timeout error. The completion runs on the
+/// main queue.
++ (void)sendPingRequest:(NSURLRequest *)request completion:(GleapAPICompletion)completion;
+
 /// Sends a report on the shared API session. A 503 (server overloaded) is retried once after
 /// its Retry-After delay, capped at 5 seconds. The completion runs on the main queue.
 + (void)sendReportRequest:(NSURLRequest *)request completion:(GleapAPICompletion)completion;

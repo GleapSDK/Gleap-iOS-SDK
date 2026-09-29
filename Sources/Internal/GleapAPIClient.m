@@ -10,6 +10,8 @@
 static NSString * const kGleapMultipartBoundary = @"BBBOUNDARY";
 static NSTimeInterval const kGleapDefaultRetryDelay = 2.0;
 static NSTimeInterval const kGleapMaxRetryDelay = 5.0;
+static NSTimeInterval const kGleapPingIdleTimeout = 15.0;
+static NSTimeInterval const kGleapPingTotalTimeout = 30.0;
 
 @implementation GleapAPIClient
 
@@ -34,6 +36,22 @@ static NSTimeInterval const kGleapMaxRetryDelay = 5.0;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         session = [NSURLSession sessionWithConfiguration: [NSURLSessionConfiguration defaultSessionConfiguration]
+                                                delegate: nil
+                                           delegateQueue: [NSOperationQueue mainQueue]];
+    });
+    return session;
+}
+
+// Pings give up sooner than the default 60 s, so a slow server does not hold back the next one
+// for long.
++ (NSURLSession *)pingSession {
+    static NSURLSession *session = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+        configuration.timeoutIntervalForRequest = kGleapPingIdleTimeout;
+        configuration.timeoutIntervalForResource = kGleapPingTotalTimeout;
+        session = [NSURLSession sessionWithConfiguration: configuration
                                                 delegate: nil
                                            delegateQueue: [NSOperationQueue mainQueue]];
     });
@@ -111,6 +129,13 @@ static NSTimeInterval const kGleapMaxRetryDelay = 5.0;
 
 + (void)sendRequest:(NSURLRequest *)request completion:(GleapAPICompletion)completion {
     [[[self apiSession] dataTaskWithRequest: request completionHandler: completion] resume];
+}
+
++ (void)sendPingRequest:(NSURLRequest *)request completion:(GleapAPICompletion)completion {
+    // A request's own timeout (60 s unless set) would override the session's idle timeout.
+    NSMutableURLRequest *pingRequest = [request mutableCopy];
+    pingRequest.timeoutInterval = kGleapPingIdleTimeout;
+    [[[self pingSession] dataTaskWithRequest: pingRequest completionHandler: completion] resume];
 }
 
 + (void)sendReportRequest:(NSURLRequest *)request completion:(GleapAPICompletion)completion {
