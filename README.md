@@ -128,7 +128,7 @@ Both can be called at any time and apply to the next ticket. Each `setEnvDataPro
 
 ## Dark mode
 
-The widget colors follow the color scheme set in the dashboard. To set it from the app, use `setColorScheme`. It only takes effect when "Adapt to dark / light mode" is enabled in the dashboard; otherwise the widget keeps its normal colors. `auto` follows the app's interface style (including `overrideUserInterfaceStyle`) and switches live, `light` / `dark` force a scheme, `default` falls back to the dashboard setting:
+The widget colors follow the color scheme set in the dashboard. To set it from the app, use `setColorScheme`. It only takes effect when "Adapt to dark / light mode" is enabled in the dashboard; otherwise the widget keeps its normal colors. `auto` follows the app's interface style (including `overrideUserInterfaceStyle`) and switches live, `light` / `dark` force a scheme; any other value is treated as `auto`. Until `setColorScheme` is called, the dashboard setting applies:
 
 **Swift**
 

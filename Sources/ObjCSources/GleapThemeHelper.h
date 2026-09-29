@@ -45,9 +45,11 @@ extern NSString * const GleapColorSchemeDark;
 - (void)start;
 
 /**
- * Sets the runtime color scheme. "default" (or nil / unknown) removes the
- * override, so the dashboard setting applies again. Only takes effect while the
- * dashboard enables dark / light mode. Invalid colors are ignored.
+ * Sets the runtime color scheme: "auto", "light" or "dark"; any other value
+ * (including "default" and nil) is treated as "auto". Before the first call
+ * there is no runtime override and the dashboard setting applies. Only takes
+ * effect while the dashboard enables dark / light mode. Invalid colors are
+ * ignored.
  */
 - (void)setColorScheme:(nullable NSString *)colorScheme lightBackgroundColor:(nullable NSString *)lightBackgroundColor darkBackgroundColor:(nullable NSString *)darkBackgroundColor;
 

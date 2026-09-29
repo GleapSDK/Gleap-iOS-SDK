@@ -619,7 +619,8 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 
 /**
  * Sets the widget color scheme. "auto" follows the app's interface style (incl. overrideUserInterfaceStyle) and switches live,
- * "light" / "dark" force a scheme and "default" keeps the dashboard setting. Overrides the color scheme set in the dashboard.
+ * "light" / "dark" force a scheme; any other value is treated as "auto". Until it is called, the color scheme set in the
+ * dashboard applies; afterwards this one overrides it.
  * Only takes effect when "Adapt to dark / light mode" is enabled in the dashboard; otherwise the widget keeps its normal colors.
  * Light mode uses the dashboard colors, dark mode the dark colors set in the dashboard (header, UI color, background);
  * a dark color that is not set keeps the normal one. Dark mode also uses the dark logo, header background image and composer
@@ -628,16 +629,17 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
  * Can be called before or after initialize.
  * @author Gleap
  *
- * @param colorScheme "default", "auto", "light" or "dark".
+ * @param colorScheme "auto", "light" or "dark" (anything else means "auto").
  */
 + (void)setColorScheme:(NSString *)colorScheme;
 
 /**
  * Sets the widget color scheme with custom light / dark backgrounds (#rrggbb). nil keeps the dashboard's color.
+ * Like setColorScheme:, any value other than "auto", "light" or "dark" is treated as "auto".
  * Only takes effect when "Adapt to dark / light mode" is enabled in the dashboard.
  * @author Gleap
  *
- * @param colorScheme "default", "auto", "light" or "dark".
+ * @param colorScheme "auto", "light" or "dark" (anything else means "auto").
  * @param lightBackgroundColor The background used in light mode.
  * @param darkBackgroundColor The background used in dark mode (instead of the dashboard's dark background).
  */

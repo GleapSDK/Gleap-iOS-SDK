@@ -117,7 +117,9 @@ NSString * const GleapColorSchemeDark = @"dark";
 }
 
 - (void)setColorScheme:(nullable NSString *)colorScheme lightBackgroundColor:(nullable NSString *)lightBackgroundColor darkBackgroundColor:(nullable NSString *)darkBackgroundColor {
-    self.colorScheme = [GleapThemeHelper validColorScheme: colorScheme];
+    // Anything but "light" or "dark" (including the former "default") follows the app.
+    NSString *validColorScheme = [GleapThemeHelper validColorScheme: colorScheme];
+    self.colorScheme = validColorScheme != nil ? validColorScheme : GleapColorSchemeAuto;
     self.lightBackgroundColor = [GleapThemeHelper normalizeHexColor: lightBackgroundColor];
     self.darkBackgroundColor = [GleapThemeHelper normalizeHexColor: darkBackgroundColor];
 

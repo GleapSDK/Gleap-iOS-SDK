@@ -19,14 +19,20 @@ final class GleapColorSchemeTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        Gleap.setColorScheme("default")
-        theme.detectedColorScheme = "light"
+        removeRuntimeColorScheme()
     }
 
     override func tearDown() {
-        Gleap.setColorScheme("default")
-        theme.detectedColorScheme = "light"
+        removeRuntimeColorScheme()
         super.tearDown()
+    }
+
+    /// Back to the state before any setColorScheme call: the dashboard setting applies.
+    private func removeRuntimeColorScheme() {
+        theme.colorScheme = nil
+        theme.lightBackgroundColor = nil
+        theme.darkBackgroundColor = nil
+        theme.detectedColorScheme = "light"
     }
 
     private func dark(_ config: [AnyHashable: Any], darkBackgroundColor: String? = nil) -> [AnyHashable: Any] {
@@ -343,11 +349,21 @@ final class GleapColorSchemeTests: XCTestCase {
 
         // A runtime light scheme overrides a dashboard dark scheme.
         XCTAssertEqual(background(merged(fullPalette, ["colorScheme": "dark"])), "#fafafa")
+    }
 
-        // "default" removes the override.
-        Gleap.setColorScheme("default")
-        XCTAssertEqual(background(config), "#ffffff")
-        XCTAssertEqual(background(merged(fullPalette, ["colorScheme": "dark"])), "#101010")
+    func testAnyOtherRuntimeValueMeansAuto() throws {
+        // Before any call the dashboard setting applies.
+        let config = merged(fullPalette, ["colorScheme": "dark"])
+        XCTAssertEqual(theme.activeColorScheme(forConfig: config), "dark")
+
+        for value in ["default", "unknown", ""] {
+            Gleap.setColorScheme(value)
+            XCTAssertEqual(theme.colorScheme, "auto", value)
+            theme.detectedColorScheme = "light"
+            XCTAssertEqual(theme.activeColorScheme(forConfig: config), "light", "follows the app, not the dashboard: \(value)")
+            theme.detectedColorScheme = "dark"
+            XCTAssertEqual(theme.activeColorScheme(forConfig: config), "dark", value)
+        }
     }
 
     func testRuntimeColorSchemeIsIgnoredWhileTheDashboardDisablesIt() throws {
