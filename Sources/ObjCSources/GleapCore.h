@@ -1,5 +1,5 @@
 //
-//  Gleap.h
+//  GleapCore.h
 //  Gleap
 //
 //  Created by Lukas on 13.01.19.
@@ -43,10 +43,10 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 @interface Gleap : NSObject
 
 /**
- * Returns a new shared instance of Gleap.
+ * Returns the shared instance of Gleap.
  * @author Gleap
  *
- * @return A new shared instance of Gleap.
+ * @return The shared instance of Gleap.
  */
 + (instancetype)sharedInstance;
 
@@ -54,7 +54,7 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
  * Auto-configures the Gleap SDK from the remote config.
  * @author Gleap
  *
- * @param token The SDK key, which can be found on dashboard.bugbattle.io
+ * @param token The SDK key of your project, which can be found in the Gleap dashboard.
  */
 + (void)initializeWithToken: (NSString *)token;
 
@@ -270,7 +270,7 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)log:(NSString *)msg;
 
 /**
- * Handels a push notification tap.
+ * Handles a push notification tap.
  * @author Gleap
  *
  * @param notificationData The push notification data.
@@ -481,21 +481,22 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)setModalUrl: (NSString *)modalUrl;
 
 /**
- * Disables the console logging. This must be called BEFORE initializing the SDK.
+ * Disables the console logging (stdout, stderr and the unified log). Logs added with Gleap.log are still sent.
+ * This must be called BEFORE initializing the SDK.
  * @author Gleap
  *
  */
 + (void)disableConsoleLog;
 
 /**
- * Enables the debug console logging. This must be called BEFORE initializing the SDK.
+ * Deprecated: console output is now captured in debug and release builds alike. Kept for compatibility, has no effect.
  * @author Gleap
  *
  */
 + (void)enableDebugConsoleLog;
 
 /**
- * Set's the current userinterface language.
+ * Sets the current user interface language.
  * @author Gleap
  *
  * @param language The 2 or 4 digit ISO code language to set
@@ -578,17 +579,19 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (BOOL)isOpened;
 
 /**
- * Starts network recording.
+ * Starts network recording. Logs every NSURLSession request of the app: completion handler,
+ * delegate-based (Alamofire, Apollo, Moya, AFNetworking, ...) and Swift async/await APIs.
+ * Also started automatically when network logs are enabled in the dashboard.
  * @author Gleap
  *
  */
 + (void)startNetworkRecording;
 
 /**
- * Starts network recording with a session configuration.
+ * Deprecated: every NSURLSession is logged once recording runs. Same as startNetworkRecording.
  * @author Gleap
  *
- * @param configuration the NSURLSessionConfiguration which should be logged
+ * @param configuration ignored
  *
  */
 + (void)startNetworkRecordingForSessionConfiguration:(NSURLSessionConfiguration *)configuration;
@@ -614,10 +617,39 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
  */
 + (void)setDisableEnvData:(Boolean)disableEnvData;
 
+/**
+ * Sets the widget color scheme. "auto" follows the app's interface style (incl. overrideUserInterfaceStyle) and switches live,
+ * "light" / "dark" force a scheme; any other value is treated as "auto". Until it is called, the color scheme set in the
+ * dashboard applies; afterwards this one overrides it.
+ * Only takes effect when "Adapt to dark / light mode" is enabled in the dashboard; otherwise the widget keeps its normal colors.
+ * Light mode uses the dashboard colors, dark mode the dark colors set in the dashboard (header, UI color, background);
+ * a dark color that is not set keeps the normal one. Dark mode also uses the dark logo, header background image and composer
+ * glow set in the dashboard. Without dark colors the widget keeps its normal colors, also in dark mode. Button colors are
+ * unchanged.
+ * Can be called before or after initialize.
+ * @author Gleap
+ *
+ * @param colorScheme "auto", "light" or "dark" (anything else means "auto").
+ */
++ (void)setColorScheme:(NSString *)colorScheme;
+
+/**
+ * Sets the widget color scheme with custom light / dark backgrounds (#rrggbb). nil keeps the dashboard's color.
+ * Like setColorScheme:, any value other than "auto", "light" or "dark" is treated as "auto".
+ * Only takes effect when "Adapt to dark / light mode" is enabled in the dashboard.
+ * @author Gleap
+ *
+ * @param colorScheme "auto", "light" or "dark" (anything else means "auto").
+ * @param lightBackgroundColor The background used in light mode.
+ * @param darkBackgroundColor The background used in dark mode (instead of the dashboard's dark background).
+ */
++ (void)setColorScheme:(NSString *)colorScheme lightBackgroundColor:(nullable NSString *)lightBackgroundColor darkBackgroundColor:(nullable NSString *)darkBackgroundColor;
+
 + (void)handleURL: (NSString *)url;
 
 /**
- * Stops network recording.
+ * Stops network recording. Wins over the dashboard setting (also when the config is loaded again)
+ * until startNetworkRecording is called.
  * @author Gleap
  *
  */

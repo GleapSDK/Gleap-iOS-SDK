@@ -4,15 +4,79 @@
 //
 //  Created by Lukas Boehler on 25.05.22.
 //
+//  Console logs come from three places:
+//  - stdout and stderr, redirected through pipes that a background queue drains. This
+//    catches print(), NSLog (which writes its message to stderr) and anything else written
+//    to the standard streams. Every byte is forwarded to the original descriptor, so the
+//    Xcode console and other readers keep working.
+//  - the unified log (os_log / Logger, e.g. React Native's JavaScript console), read from
+//    OSLogStore when a report is built. Its NSLog entries only hold "<private>", so they
+//    are skipped; stderr already has them in clear text.
+//  - Gleap.log(...) calls.
+//
 
 #import "GleapConsoleLogHelper.h"
 #import "GleapUIHelper.h"
 #import "GleapWidgetManager.h"
 #import <OSLog/OSLog.h>
+#import <os/lock.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/sysctl.h>
+#include <unistd.h>
 
-static NSUInteger const kGleapOSLogMaxEntries = 300;
-static NSTimeInterval const kGleapOSLogMaxWallClock = 0.2;
-static NSUInteger const kGleapLogMaxMessageLength = 10000;
+static NSUInteger const kGleapMaxConsoleEntries = 500;
+static NSUInteger const kGleapMaxOSLogEntries = 300;
+static NSTimeInterval const kGleapOSLogLookback = 180;
+static NSTimeInterval const kGleapOSLogMaxWallClock = 0.3;
+static NSUInteger const kGleapMaxLogLength = 1000;
+static NSUInteger const kGleapMaxErrorLogLength = 5000;
+static NSUInteger const kGleapMaxPendingLineBytes = 16384;
+
+static os_unfair_lock gleapConsoleLock = OS_UNFAIR_LOCK_INIT;
+
+@interface GleapConsoleLogHelper ()
+@property (nonatomic, strong) NSMutableArray<NSDictionary *> *capturedLines;
+@property (nonatomic, strong) dispatch_queue_t captureQueue;
+@property (nonatomic, strong) NSMutableArray *captureSources;
+@property (atomic, assign) BOOL streamCaptureActive;
+@property (nonatomic, strong) id osLogStore;
+@end
+
+static void GleapWriteAll(int fd, const char *buffer, size_t length) {
+    while (length > 0) {
+        ssize_t written = write(fd, buffer, length);
+        if (written < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            return;
+        }
+        buffer += written;
+        length -= (size_t)written;
+    }
+}
+
+// Set by Xcode when it launches the app: os_log then also writes every message to stderr
+// (whatever the variable's value).
+static BOOL GleapOSLogMirroredToStderr(void) {
+    return getenv("OS_ACTIVITY_DT_MODE") != NULL;
+}
+
+// A debugger (Xcode) reads the original stdout / stderr. Without one they usually lead to
+// /dev/null, so nothing is lost when a full pipe drops output.
+static BOOL GleapDebuggerAttached(void) {
+    struct kinfo_proc info;
+    size_t size = sizeof(info);
+    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
+    info.kp_proc.p_flag = 0;
+    if (sysctl(mib, 4, &info, &size, NULL, 0) != 0) {
+        return NO;
+    }
+    return (info.kp_proc.p_flag & P_TRACED) != 0;
+}
 
 @implementation GleapConsoleLogHelper
 
@@ -35,173 +99,358 @@ static NSUInteger const kGleapLogMaxMessageLength = 10000;
         self.debugConsoleLogDisabled = YES;
         self.consoleLogDisabled = NO;
         self.consoleLog = [[NSMutableArray alloc] init];
+        self.capturedLines = [[NSMutableArray alloc] init];
+        self.captureSources = [[NSMutableArray alloc] init];
+        // Writers block on a full pipe without raising the reader's priority, so drain at a
+        // high QoS to keep up with output from the main thread.
+        self.captureQueue = dispatch_queue_create("io.gleap.consolelog", dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, 0));
         self.sessionStartDate = [NSDate date];
     }
     return self;
 }
 
 - (void)start {
-    if (self.consoleLogDisabled != YES) {
-        [self openConsoleLog];
+    if (self.consoleLogDisabled) {
+        return;
     }
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        BOOL stdoutCaptured = [self captureFileDescriptor: STDOUT_FILENO];
+        BOOL stderrCaptured = [self captureFileDescriptor: STDERR_FILENO];
+        self.streamCaptureActive = stdoutCaptured || stderrCaptured;
+    });
 }
 
-- (NSArray *)getConsoleLogs {
-    if (@available(iOS 15.0, *)) {
-        @try {
-            NSError *error = nil;
-            OSLogStore *store = [OSLogStore storeWithScope:OSLogStoreCurrentProcessIdentifier error:&error];
-            if (!store || error) { return [_consoleLog copy]; }
+#pragma mark - Entries
 
-            OSLogPosition *position = [store positionWithDate:self.sessionStartDate];
-            NSPredicate *predicate = [NSPredicate predicateWithFormat:
-                @"(subsystem == NULL) OR NOT (subsystem BEGINSWITH 'com.apple.')"];
-            OSLogEnumerator *enumerator = [store entriesEnumeratorWithOptions:OSLogEnumeratorReverse
-                                                                     position:position
-                                                                    predicate:predicate
-                                                                        error:&error];
-            if (!enumerator || error) { return [_consoleLog copy]; }
-
-            NSDate *startTime = [NSDate date];
-            NSMutableArray *collected = [NSMutableArray arrayWithCapacity:kGleapOSLogMaxEntries];
-            OSLogEntry *entry;
-            while ((entry = [enumerator nextObject])) {
-                if (![entry isKindOfClass:[OSLogEntryLog class]]) { continue; }
-                OSLogEntryLog *logEntry = (OSLogEntryLog *)entry;
-                NSString *message = logEntry.composedMessage;
-                if (!message || message.length == 0) { continue; }
-
-                NSString *priority = (logEntry.level == OSLogEntryLogLevelError ||
-                                      logEntry.level == OSLogEntryLogLevelFault) ? @"ERROR" : @"INFO";
-                if (message.length > kGleapLogMaxMessageLength) {
-                    message = [[message substringToIndex:kGleapLogMaxMessageLength] stringByAppendingString:@" [truncated]"];
-                }
-                NSString *dateString = [GleapUIHelper getJSStringForNSDate:logEntry.date];
-                [collected addObject:@{ @"date": dateString, @"log": message, @"priority": priority }];
-
-                if (collected.count >= kGleapOSLogMaxEntries) { break; }
-                if (-[startTime timeIntervalSinceNow] > kGleapOSLogMaxWallClock) { break; }
-            }
-
-            // Entries were collected newest → oldest; reverse to chronological order.
-            NSMutableArray *result = [NSMutableArray arrayWithArray:[_consoleLog copy]];
-            for (NSInteger i = (NSInteger)collected.count - 1; i >= 0; i--) {
-                [result addObject:collected[i]];
-            }
-            return [result copy];
-        }
-        @catch (id exp) {}
-    }
-    return [_consoleLog copy];
-}
-
-/**
- Returns the application type.
- */
-- (NSString *)getLogLevelAsString:(GleapLogLevel)logLevel {
-    NSString *logLevelString = @"INFO";
++ (NSString *)priorityForLogLevel:(GleapLogLevel)logLevel {
     if (logLevel == WARNING) {
-        logLevelString = @"WARNING";
-    } else if (logLevel == ERROR) {
-        logLevelString = @"ERROR";
+        return @"WARNING";
     }
-    return logLevelString;
+    if (logLevel == ERROR) {
+        return @"ERROR";
+    }
+    return @"INFO";
 }
 
-- (void)addLogWith:(NSString *)description andPriority:(NSString *)priority {
-    if (description.length > kGleapLogMaxMessageLength) {
-        description = [[description substringToIndex:kGleapLogMaxMessageLength] stringByAppendingString:@" [truncated]"];
++ (NSDictionary *)entryWithMessage:(NSString *)message priority:(NSString *)priority date:(NSDate *)date {
+    NSUInteger maxLength = [priority isEqualToString: @"ERROR"] ? kGleapMaxErrorLogLength : kGleapMaxLogLength;
+    if (message.length > maxLength) {
+        // Cut before the character that crosses the limit, never inside an emoji or surrogate pair.
+        NSUInteger cut = [message rangeOfComposedCharacterSequenceAtIndex: maxLength].location;
+        message = [[message substringToIndex: cut] stringByAppendingString: @"… [truncated]"];
     }
-    NSString *dateString = [GleapUIHelper getJSStringForNSDate: [[NSDate alloc] init]];
-    NSDictionary *log = @{ @"date": dateString, @"log": description, @"priority": priority };
-    if (_consoleLog.count > 1000) {
-        [_consoleLog removeObjectAtIndex: 0];
-    }
-    [_consoleLog addObject: log];
+    return @{
+        @"date": [GleapUIHelper getJSStringForNSDate: date],
+        @"log": message ?: @"",
+        @"priority": priority
+    };
 }
 
 - (void)log:(NSString *)msg andLogLevel:(GleapLogLevel)logLevel {
-    [self addLogWith: msg andPriority: [self getLogLevelAsString: logLevel]];
-}
-
-/*
- Starts reading the console output.
- On iOS 15+, OSLogStore is queried lazily in getConsoleLogs — no pipe setup needed.
- On iOS 12–14, redirect STDERR (and STDOUT in DEBUG) into an NSPipe.
- */
-- (void)openConsoleLog {
-    @try
-    {
-        if (@available(iOS 15.0, *)) {
-            // OSLogStore path: logs are read on demand in getConsoleLogs.
-            return;
-        }
-
-        #ifdef DEBUG
-        if (self.debugConsoleLogDisabled != YES) {
-            _inputPipe = [[NSPipe alloc] init];
-            _outputPipe = [[NSPipe alloc] init];
-
-            dup2(STDOUT_FILENO, _outputPipe.fileHandleForWriting.fileDescriptor);
-            int r2 = dup2(_inputPipe.fileHandleForWriting.fileDescriptor, STDOUT_FILENO);
-            int r3 = dup2(_inputPipe.fileHandleForWriting.fileDescriptor, STDERR_FILENO);
-
-            if (r2 < 0 || r3 < 0) {
-                _inputPipe = nil; _outputPipe = nil; return;
-            }
-            [NSNotificationCenter.defaultCenter addObserver: self selector: @selector(receiveLogNotification:)  name: NSFileHandleReadCompletionNotification object: _inputPipe.fileHandleForReading];
-
-            [_inputPipe.fileHandleForReading readInBackgroundAndNotify];
-        }
-        #else
-        _inputPipe = [[NSPipe alloc] init];
-
-        if (dup2([[_inputPipe fileHandleForWriting] fileDescriptor], STDERR_FILENO) < 0) {
-            _inputPipe = nil; return;
-        }
-        [NSNotificationCenter.defaultCenter addObserver: self selector: @selector(receiveLogNotification:)  name: NSFileHandleReadCompletionNotification object: _inputPipe.fileHandleForReading];
-
-        [_inputPipe.fileHandleForReading readInBackgroundAndNotify];
-        #endif
+    if (![msg isKindOfClass: [NSString class]] || msg.length == 0) {
+        return;
     }
-    @catch(id anException) {}
+    NSDictionary *entry = [GleapConsoleLogHelper entryWithMessage: msg priority: [GleapConsoleLogHelper priorityForLogLevel: logLevel] date: [NSDate date]];
+    os_unfair_lock_lock(&gleapConsoleLock);
+    [self.consoleLog addObject: entry];
+    while (self.consoleLog.count > kGleapMaxConsoleEntries) {
+        [self.consoleLog removeObjectAtIndex: 0];
+    }
+    os_unfair_lock_unlock(&gleapConsoleLock);
 }
 
-/*
- This callback receives all console output notifications and saves them for further use.
- */
-- (void)receiveLogNotification:(NSNotification *) notification
-{
+- (NSArray *)getBufferedConsoleLogs {
+    os_unfair_lock_lock(&gleapConsoleLock);
+    NSMutableArray *logs = [NSMutableArray arrayWithArray: self.consoleLog];
+    if (!self.consoleLogDisabled) {
+        [logs addObjectsFromArray: self.capturedLines];
+    }
+    os_unfair_lock_unlock(&gleapConsoleLock);
+    return [GleapConsoleLogHelper newestEntries: logs];
+}
+
+- (NSArray *)getConsoleLogs {
+    if (self.consoleLogDisabled) {
+        return [self getBufferedConsoleLogs];
+    }
+
+    os_unfair_lock_lock(&gleapConsoleLock);
+    NSArray *customLogs = [self.consoleLog copy];
+    NSArray *capturedLines = [self.capturedLines copy];
+    os_unfair_lock_unlock(&gleapConsoleLock);
+
+    NSMutableArray *logs = [NSMutableArray arrayWithArray: customLogs];
+    NSArray *osLogEntries = @[];
     @try {
-        [_inputPipe.fileHandleForReading readInBackgroundAndNotify];
-        NSData *data = notification.userInfo[NSFileHandleNotificationDataItem];
+        osLogEntries = [self readOSLogEntries];
+    } @catch (NSException *exception) {}
 
-        // Write data to output pipe
-        if (_outputPipe != nil) {
-            [[_outputPipe fileHandleForWriting] writeData: data];
-        }
-
-        // Don't process the logs when the widget is opened.
-        if ([[GleapWidgetManager sharedInstance] isOpened]) {
-            return;
-        }
-
-        NSString *consoleLogLines = [[NSString alloc] initWithData: data encoding: NSUTF8StringEncoding];
-        if (consoleLogLines != NULL) {
-
-            NSError *error = nil;
-            NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"\\d+-\\d+-\\d+ \\d+:\\d+:\\d+.\\d+\\+\\d+ .+\\[.+:.+\\] " options:NSRegularExpressionCaseInsensitive error:&error];
-            consoleLogLines = [regex stringByReplacingMatchesInString: consoleLogLines options: 0 range:NSMakeRange(0, [consoleLogLines length]) withTemplate:@"#BBNL#"];
-
-            NSArray *lines = [consoleLogLines componentsSeparatedByString: @"#BBNL#"];
-            for (int i = 0; i < lines.count; i++) {
-                NSString *line = [lines objectAtIndex: i];
-                if (line != NULL && ![line isEqualToString: @""]) {
-                    [self addLogWith: line andPriority: @"INFO"];
+    // A message can arrive both ways, e.g. under the Xcode debugger os_log mirrors every
+    // message to stderr ("[category] message"). The unified log entry wins: it carries
+    // the level and the exact time.
+    NSMutableIndexSet *duplicateLines = [NSMutableIndexSet indexSet];
+    if (osLogEntries.count > 0 && capturedLines.count > 0) {
+        NSMutableDictionary<NSString *, NSMutableArray<NSNumber *> *> *linesByText = [NSMutableDictionary dictionary];
+        [capturedLines enumerateObjectsUsingBlock: ^(NSDictionary *line, NSUInteger index, BOOL *stop) {
+            NSString *text = line[@"log"] ?: @"";
+            if (linesByText[text] == nil) {
+                linesByText[text] = [NSMutableArray array];
+            }
+            [linesByText[text] addObject: @(index)];
+        }];
+        BOOL mirroredToStderr = GleapOSLogMirroredToStderr();
+        for (NSDictionary *entry in osLogEntries) {
+            NSString *text = entry[@"log"] ?: @"";
+            NSUInteger match = NSNotFound;
+            for (NSNumber *index in linesByText[text]) {
+                if (![duplicateLines containsIndex: index.unsignedIntegerValue]) {
+                    match = index.unsignedIntegerValue;
+                    break;
                 }
             }
+            if (match == NSNotFound && mirroredToStderr && text.length >= 8) {
+                match = [capturedLines indexOfObjectPassingTest: ^BOOL(NSDictionary *line, NSUInteger index, BOOL *stop) {
+                    NSString *lineText = line[@"log"];
+                    return ![duplicateLines containsIndex: index] && [lineText isKindOfClass: [NSString class]] && [lineText hasSuffix: text];
+                }];
+            }
+            if (match != NSNotFound) {
+                [duplicateLines addIndex: match];
+            }
         }
-    } @catch (id exp) {}
+    }
+    [capturedLines enumerateObjectsUsingBlock: ^(NSDictionary *line, NSUInteger index, BOOL *stop) {
+        if (![duplicateLines containsIndex: index]) {
+            [logs addObject: line];
+        }
+    }];
+    [logs addObjectsFromArray: osLogEntries];
+
+    return [GleapConsoleLogHelper newestEntries: logs];
+}
+
+// Chronological (ISO UTC dates sort as strings), newest kGleapMaxConsoleEntries.
++ (NSArray *)newestEntries:(NSMutableArray *)logs {
+    [logs sortWithOptions: NSSortStable usingComparator: ^NSComparisonResult(NSDictionary *first, NSDictionary *second) {
+        NSString *firstDate = [first[@"date"] isKindOfClass: [NSString class]] ? first[@"date"] : @"";
+        NSString *secondDate = [second[@"date"] isKindOfClass: [NSString class]] ? second[@"date"] : @"";
+        return [firstDate compare: secondDate];
+    }];
+    if (logs.count > kGleapMaxConsoleEntries) {
+        return [logs subarrayWithRange: NSMakeRange(logs.count - kGleapMaxConsoleEntries, kGleapMaxConsoleEntries)];
+    }
+    return [logs copy];
+}
+
+#pragma mark - Unified log
+
+/*
+ The newest os_log entries of this process from the last few minutes. OSLogStore ignores
+ the reverse option, so the enumeration runs forward from a recent position and keeps the
+ last entries it sees.
+ */
+- (NSArray *)readOSLogEntries {
+    if (@available(iOS 15.0, *)) {
+        NSError *error = nil;
+        OSLogStore *store = self.osLogStore;
+        if (store == nil) {
+            store = [OSLogStore storeWithScope: OSLogStoreCurrentProcessIdentifier error: &error];
+            if (store == nil || error != nil) {
+                return @[];
+            }
+            self.osLogStore = store;
+        }
+
+        NSDate *from = [NSDate dateWithTimeIntervalSinceNow: -kGleapOSLogLookback];
+        if ([from compare: self.sessionStartDate] == NSOrderedAscending) {
+            from = self.sessionStartDate;
+        }
+        OSLogPosition *position = [store positionWithDate: from];
+        NSPredicate *predicate = [NSPredicate predicateWithFormat: @"(subsystem == NULL) OR NOT (subsystem BEGINSWITH 'com.apple.')"];
+        OSLogEnumerator *enumerator = [store entriesEnumeratorWithOptions: 0 position: position predicate: predicate error: &error];
+        if (enumerator == nil || error != nil) {
+            return @[];
+        }
+
+        BOOL skipNSLog = self.streamCaptureActive;
+        NSDate *startTime = [NSDate date];
+        NSMutableArray *entries = [NSMutableArray arrayWithCapacity: kGleapMaxOSLogEntries + 1];
+        for (OSLogEntry *entry in enumerator) {
+            if (-[startTime timeIntervalSinceNow] > kGleapOSLogMaxWallClock) {
+                break;
+            }
+            if (![entry isKindOfClass: [OSLogEntryLog class]]) {
+                continue;
+            }
+            OSLogEntryLog *logEntry = (OSLogEntryLog *)entry;
+            NSString *message = logEntry.composedMessage;
+            if (message.length == 0 || [message isEqualToString: @"<private>"]) {
+                continue;
+            }
+            if (skipNSLog && [logEntry.sender isEqualToString: @"Foundation"] && [logEntry.formatString isEqualToString: @"%s"]) {
+                continue;
+            }
+            NSString *priority = (logEntry.level == OSLogEntryLogLevelError || logEntry.level == OSLogEntryLogLevelFault) ? @"ERROR" : @"INFO";
+            [entries addObject: [GleapConsoleLogHelper entryWithMessage: message priority: priority date: logEntry.date]];
+            if (entries.count > kGleapMaxOSLogEntries) {
+                [entries removeObjectAtIndex: 0];
+            }
+        }
+        return entries;
+    }
+    return @[];
+}
+
+#pragma mark - stdout / stderr
+
+- (BOOL)captureFileDescriptor:(int)targetFd {
+    int originalFd = dup(targetFd);
+    if (originalFd < 0) {
+        return NO;
+    }
+    int pipeFds[2];
+    if (pipe(pipeFds) != 0) {
+        close(originalFd);
+        return NO;
+    }
+    int readFd = pipeFds[0];
+    int writeFd = pipeFds[1];
+    fcntl(readFd, F_SETFL, fcntl(readFd, F_GETFL) | O_NONBLOCK);
+    if (!GleapDebuggerAttached()) {
+        // Never stall the app on a full pipe: when the drain falls behind, drop the output.
+        // Under a debugger the writes stay blocking, so the Xcode console keeps every line.
+        fcntl(writeFd, F_SETFL, fcntl(writeFd, F_GETFL) | O_NONBLOCK);
+    }
+    fcntl(readFd, F_SETFD, FD_CLOEXEC);
+    fcntl(writeFd, F_SETFD, FD_CLOEXEC);
+    fcntl(originalFd, F_SETFD, FD_CLOEXEC);
+
+    fflush(targetFd == STDOUT_FILENO ? stdout : stderr);
+    if (dup2(writeFd, targetFd) < 0) {
+        close(readFd);
+        close(writeFd);
+        close(originalFd);
+        return NO;
+    }
+    close(writeFd);
+    if (targetFd == STDOUT_FILENO) {
+        // A pipe makes stdout fully buffered: print() lines would sit in the buffer.
+        setvbuf(stdout, NULL, _IOLBF, 0);
+    }
+
+    dispatch_source_t source = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, (uintptr_t)readFd, 0, self.captureQueue);
+    if (source == nil) {
+        // Put the original descriptor back rather than leave the stream unread.
+        dup2(originalFd, targetFd);
+        close(readFd);
+        close(originalFd);
+        return NO;
+    }
+    NSMutableData *pendingLine = [NSMutableData data];
+    __weak GleapConsoleLogHelper *weakSelf = self;
+    __weak dispatch_source_t weakSource = source;
+    dispatch_source_set_event_handler(source, ^{
+        char buffer[16384];
+        while (YES) {
+            ssize_t count = read(readFd, buffer, sizeof(buffer));
+            if (count > 0) {
+                GleapWriteAll(originalFd, buffer, (size_t)count);
+                @try {
+                    [weakSelf consumeBytes: buffer length: (NSUInteger)count pendingLine: pendingLine];
+                } @catch (NSException *exception) {}
+            } else if (count < 0 && errno == EINTR) {
+                continue;
+            } else {
+                if (count == 0 && weakSource != nil) {
+                    // Every writer is gone (the app closed the stream): stop polling.
+                    dispatch_source_cancel(weakSource);
+                }
+                break;
+            }
+        }
+    });
+    dispatch_resume(source);
+    [self.captureSources addObject: source];
+    return YES;
+}
+
+- (void)consumeBytes:(const char *)bytes length:(NSUInteger)length pendingLine:(NSMutableData *)pendingLine {
+    [pendingLine appendBytes: bytes length: length];
+    const char *data = pendingLine.bytes;
+    NSUInteger total = pendingLine.length;
+    NSUInteger lineStart = 0;
+    NSMutableArray<NSData *> *lines = [NSMutableArray array];
+    for (NSUInteger i = 0; i < total; i++) {
+        if (data[i] == '\n') {
+            [lines addObject: [NSData dataWithBytes: data + lineStart length: i - lineStart]];
+            lineStart = i + 1;
+        }
+    }
+    if (lineStart > 0) {
+        [pendingLine replaceBytesInRange: NSMakeRange(0, lineStart) withBytes: NULL length: 0];
+    }
+    if (pendingLine.length > kGleapMaxPendingLineBytes) {
+        [lines addObject: [pendingLine copy]];
+        [pendingLine setLength: 0];
+    }
+    for (NSData *line in lines) {
+        [self addCapturedLine: line];
+    }
+}
+
+- (void)addCapturedLine:(NSData *)lineData {
+    NSString *line = [[NSString alloc] initWithData: lineData encoding: NSUTF8StringEncoding];
+    if (line == nil) {
+        line = [[NSString alloc] initWithData: lineData encoding: NSISOLatin1StringEncoding];
+    }
+    line = [GleapConsoleLogHelper stripLogPrefix: line];
+    if (line.length == 0 || [[line stringByTrimmingCharactersInSet: [NSCharacterSet whitespaceAndNewlineCharacterSet]] length] == 0) {
+        return;
+    }
+
+    // The SDK's own output while the widget is open is not part of the app's story.
+    if ([[GleapWidgetManager sharedInstance] isOpened]) {
+        return;
+    }
+
+    // Capacitor prints the WebView's console ("⚡️  [log] - ...") and its bridge diagnostics
+    // to stdout in debug builds. The Gleap Capacitor plugin records the WebView console
+    // itself, with levels and uncaught errors, so these copies would only duplicate it.
+    if ([Gleap sharedInstance].applicationType == CAPACITOR && [line hasPrefix: @"⚡️"]) {
+        return;
+    }
+
+    NSDictionary *entry = [GleapConsoleLogHelper entryWithMessage: line priority: @"INFO" date: [NSDate date]];
+    os_unfair_lock_lock(&gleapConsoleLock);
+    [self.capturedLines addObject: entry];
+    while (self.capturedLines.count > kGleapMaxConsoleEntries) {
+        [self.capturedLines removeObjectAtIndex: 0];
+    }
+    os_unfair_lock_unlock(&gleapConsoleLock);
+}
+
+/*
+ Removes the "2026-09-27 10:00:00.123 App[123:4567] " prefix NSLog (and os_log mirrored
+ to stderr) put in front of every message, and a trailing carriage return.
+ */
++ (NSString *)stripLogPrefix:(NSString *)line {
+    if ([line hasSuffix: @"\r"]) {
+        line = [line substringToIndex: line.length - 1];
+    }
+    if (line.length < 24 || [line characterAtIndex: 0] < '0' || [line characterAtIndex: 0] > '9') {
+        return line;
+    }
+    static NSRegularExpression *prefixExpression = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        prefixExpression = [NSRegularExpression regularExpressionWithPattern: @"^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}[.,]\\d+(?:[+-]\\d{2}:?\\d{2}|Z)? .+?\\[\\d+:[0-9a-fA-Fx]+\\] " options: 0 error: nil];
+    });
+    NSTextCheckingResult *match = [prefixExpression firstMatchInString: line options: 0 range: NSMakeRange(0, line.length)];
+    if (match != nil && match.range.location == 0) {
+        return [line substringFromIndex: match.range.length];
+    }
+    return line;
 }
 
 @end

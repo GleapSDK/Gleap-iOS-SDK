@@ -16,69 +16,54 @@
 + (UIWindow *)getKeyWindow {
     UIWindow *keyWindow = nil;
 
-    if (@available(iOS 15.0, *)) {
-        for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
-            if ([scene isKindOfClass:[UIWindowScene class]]) {
-                UIWindowScene *windowScene = (UIWindowScene *)scene;
-                if (windowScene.activationState == UISceneActivationStateForegroundActive) {
-                    keyWindow = windowScene.keyWindow;
-                    if (keyWindow) break;
-                }
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if ([scene isKindOfClass:[UIWindowScene class]]) {
+            UIWindowScene *windowScene = (UIWindowScene *)scene;
+            if (windowScene.activationState == UISceneActivationStateForegroundActive) {
+                keyWindow = windowScene.keyWindow;
+                if (keyWindow) break;
             }
         }
-        if (!keyWindow) {
-            for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
-                if ([scene isKindOfClass:[UIWindowScene class]]) {
-                    keyWindow = ((UIWindowScene *)scene).keyWindow;
-                    if (keyWindow) break;
-                }
-            }
-        }
-    } else if (@available(iOS 13.0, *)) {
+    }
+    if (!keyWindow) {
         for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
             if ([scene isKindOfClass:[UIWindowScene class]]) {
-                UIWindowScene *windowScene = (UIWindowScene *)scene;
-                if (windowScene.activationState == UISceneActivationStateForegroundActive) {
-                    for (UIWindow *window in windowScene.windows) {
-                        if (window.isKeyWindow) {
-                            keyWindow = window;
-                            break;
-                        }
-                    }
-                    if (keyWindow) break;
-                }
+                keyWindow = ((UIWindowScene *)scene).keyWindow;
+                if (keyWindow) break;
             }
         }
     }
 
     if (!keyWindow) {
+        // Only reached without any window scene; the deprecated API is the right fallback there.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         keyWindow = [UIApplication sharedApplication].keyWindow;
+#pragma clang diagnostic pop
     }
 
     return keyWindow;
 }
 
 + (UIInterfaceOrientation)reliableInterfaceOrientation {
-    if (@available(iOS 13.0, *)) {
-        for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
-            if ([scene isKindOfClass:[UIWindowScene class]]) {
-                UIWindowScene *windowScene = (UIWindowScene *)scene;
-                if (windowScene.activationState == UISceneActivationStateForegroundActive) {
-                    return windowScene.interfaceOrientation;
-                }
-            }
-        }
-        for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
-            if ([scene isKindOfClass:[UIWindowScene class]]) {
-                return ((UIWindowScene *)scene).interfaceOrientation;
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if ([scene isKindOfClass:[UIWindowScene class]]) {
+            UIWindowScene *windowScene = (UIWindowScene *)scene;
+            if (windowScene.activationState == UISceneActivationStateForegroundActive) {
+                return windowScene.interfaceOrientation;
             }
         }
     }
+    for (UIScene *scene in UIApplication.sharedApplication.connectedScenes) {
+        if ([scene isKindOfClass:[UIWindowScene class]]) {
+            return ((UIWindowScene *)scene).interfaceOrientation;
+        }
+    }
+    // Only reached without any window scene.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     return [UIApplication sharedApplication].statusBarOrientation;
-}
-
-- (UIWindow *)getKeyWindowInstance {
-    return [GleapWindowChecker getKeyWindow];
+#pragma clang diagnostic pop
 }
 
 - (void)checkKeyWindowWithCompletion:(GleapWindowReadyCompletion)completion {

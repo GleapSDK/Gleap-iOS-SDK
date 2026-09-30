@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name         = "Gleap"
-  s.version      = "18.1.0"
+  s.version      = "19.0.0"
   s.summary      = "Gleap iOS SDK for customer support, live chat, in-app bug reporting and feedback."
   s.homepage     = "https://www.gleap.ai"
   s.license      = { :type => 'Commercial', :file => 'LICENSE.md' }
@@ -18,7 +18,7 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/GleapSDK/Gleap-iOS-SDK.git", :tag => s.version.to_s }
   
   s.source_files = 'Sources/**/*.{h,m,c}'
-  s.public_header_files = 'Sources/**/*.h'
+  s.public_header_files = 'Sources/ObjCSources/*.h'
   s.resource_bundles = {"Gleap" => ["Sources/PrivacyInfo.xcprivacy"]}
   
   s.frameworks   = 'UIKit', 'Foundation'

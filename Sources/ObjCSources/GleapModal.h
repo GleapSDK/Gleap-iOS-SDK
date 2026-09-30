@@ -1,8 +1,12 @@
 //
-//  GleapFeedbackButton.h
+//  GleapModal.h
 //  
 //
 //  Created by Lukas Boehler on 29.04.25.
+//
+//  Internal to the Gleap SDK. This header is only public because every header in
+//  Sources/ObjCSources is; it is not part of the supported API and may change without
+//  notice. Use the Gleap class (GleapCore.h) instead.
 //
 
 @class GleapUIOverlayViewController;
@@ -16,6 +20,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// Configure the modal with given data
 - (void)setupWithData:(NSDictionary *)modalData;
+
+/// Sends the modal data (incl. the widget colors) to the loaded modal. A resend
+/// only recolors, the current step is kept.
+- (void)sendModalData;
 
 @property (nonatomic, strong) UIView *backdropView;
 @property (nonatomic, strong) WKWebView *webView;

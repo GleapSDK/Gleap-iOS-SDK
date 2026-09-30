@@ -6,30 +6,26 @@
 //
 
 #import "GleapSession.h"
+#import "GleapInternal.h"
 #import "GleapCore.h"
 
 @implementation GleapSession
 
-static id ObjectOrNull(id object)
-{
-  return object ?: [NSNull null];
-}
-
 - (NSDictionary *)toDictionary {
     return @{
-        @"gleapId": ObjectOrNull(self.gleapId),
-        @"gleapHash": ObjectOrNull(self.gleapHash),
-        @"userId": ObjectOrNull(self.userId),
-        @"name": ObjectOrNull(self.name),
-        @"email": ObjectOrNull(self.email),
-        @"value": ObjectOrNull(self.value),
-        @"sla": ObjectOrNull(self.sla),
-        @"phone": ObjectOrNull(self.phone),
-        @"companyId": ObjectOrNull(self.companyId),
-        @"companyName": ObjectOrNull(self.companyName),
-        @"avatar": ObjectOrNull(self.avatar),
-        @"plan": ObjectOrNull(self.plan),
-        @"customData": ObjectOrNull(self.customData)
+        @"gleapId": GleapObjectOrNull(self.gleapId),
+        @"gleapHash": GleapObjectOrNull(self.gleapHash),
+        @"userId": GleapObjectOrNull(self.userId),
+        @"name": GleapObjectOrNull(self.name),
+        @"email": GleapObjectOrNull(self.email),
+        @"value": GleapObjectOrNull(self.value),
+        @"sla": GleapObjectOrNull(self.sla),
+        @"phone": GleapObjectOrNull(self.phone),
+        @"companyId": GleapObjectOrNull(self.companyId),
+        @"companyName": GleapObjectOrNull(self.companyName),
+        @"avatar": GleapObjectOrNull(self.avatar),
+        @"plan": GleapObjectOrNull(self.plan),
+        @"customData": GleapObjectOrNull(self.customData)
     };
 }
 

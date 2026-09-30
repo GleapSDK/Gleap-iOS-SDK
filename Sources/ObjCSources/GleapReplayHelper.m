@@ -62,14 +62,14 @@
 }
 
 - (void)start {
-    if (self.running) {
-        if (self.replayTimer != nil) {
-            [self.replayTimer invalidate];
-        }
-        return;
-    }
     self.running = true;
     dispatch_async(dispatch_get_main_queue(), ^{
+        if (!self.running) {
+            return;
+        }
+        // Starting again (after the app was in the background, or when the config is loaded again)
+        // replaces the timer; it used to only stop it, which ended the replays for good.
+        [self.replayTimer invalidate];
         self.replayTimer = [NSTimer scheduledTimerWithTimeInterval: self.timerInterval
                                              target: self
                                            selector: @selector(addReplayStep)

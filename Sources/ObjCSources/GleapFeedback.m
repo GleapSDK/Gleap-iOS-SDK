@@ -18,6 +18,7 @@
 #import "GleapSessionHelper.h"
 #import "GleapExternalDataHelper.h"
 #import "GleapTagHelper.h"
+#import "GleapAPIClient.h"
 
 @implementation GleapFeedback
 
@@ -73,14 +74,19 @@
     if ([self.excludeData objectForKey: @"attachments"] != nil && [[self.excludeData objectForKey: @"attachments"] boolValue] == YES) {
         completion(YES);
     } else {
-        NSArray * customAttachments = [GleapAttachmentHelper sharedInstance].customAttachments;
+        // A copy: the app may add or remove attachments while they upload.
+        NSArray *customAttachments;
+        GleapAttachmentHelper *attachmentHelper = [GleapAttachmentHelper sharedInstance];
+        @synchronized (attachmentHelper) {
+            customAttachments = [attachmentHelper.customAttachments copy];
+        }
         if (customAttachments.count > 0) {
             [GleapUploadManager uploadFiles: customAttachments forEndpoint: @"attachments" andCompletion:^(bool success, NSArray *fileUrls) {
                 if (success) {
                     // Attach attachments
                     NSMutableArray *attachmentsArray = [[NSMutableArray alloc] init];
                     
-                    for (int i = 0; i < customAttachments.count; i++) {
+                    for (NSUInteger i = 0; i < customAttachments.count; i++) {
                         NSMutableDictionary *currentAttachment = [[customAttachments objectAtIndex: i] mutableCopy];
                         NSString *currentAttachmentURL = [fileUrls objectAtIndex: i];
                         [currentAttachment setObject: currentAttachmentURL forKey: @"url"];
@@ -156,9 +162,20 @@
  off the main thread while the rest of the report is already assembled.
  */
 - (NSArray *)collectConsoleLog {
-    NSMutableArray *consoleLogs = [[NSMutableArray alloc] initWithArray: [[GleapConsoleLogHelper sharedInstance] getConsoleLogs]];
-    NSArray *existingConsoleLogs = [[GleapExternalDataHelper sharedInstance].data objectForKey: @"consoleLog"];
-    if (existingConsoleLogs != nil && existingConsoleLogs.count > 0) {
+    return [self mergeExternalConsoleLog: [[GleapConsoleLogHelper sharedInstance] getConsoleLogs]];
+}
+
+/*
+ The console log without the unified log (os_log): instant, for reports that cannot wait.
+ */
+- (NSArray *)collectBufferedConsoleLog {
+    return [self mergeExternalConsoleLog: [[GleapConsoleLogHelper sharedInstance] getBufferedConsoleLogs]];
+}
+
+- (NSArray *)mergeExternalConsoleLog:(NSArray *)logs {
+    NSMutableArray *consoleLogs = [[NSMutableArray alloc] initWithArray: logs ?: @[]];
+    NSArray *existingConsoleLogs = [[GleapExternalDataHelper sharedInstance] objectForKey: @"consoleLog"];
+    if ([existingConsoleLogs isKindOfClass: [NSArray class]] && existingConsoleLogs.count > 0) {
         [consoleLogs addObjectsFromArray: existingConsoleLogs];
     }
     return consoleLogs;
@@ -193,15 +210,12 @@
     // Attach custom event log.
     [self attachData: @{ @"customEventLog": [[GleapEventLogHelper sharedInstance] getLogs] }];
 
-    // Attach and merge network logs.
-    NSMutableArray *networkLogs = [[NSMutableArray alloc] initWithArray: [[GleapHttpTrafficRecorder sharedRecorder] networkLogs]];
-    if ([[GleapExternalDataHelper sharedInstance].data objectForKey: @"networkLogs"] != nil) {
-        NSArray *existingNetworkLogs = [[GleapExternalDataHelper sharedInstance].data objectForKey: @"networkLogs"];
-        if (existingNetworkLogs != nil && existingNetworkLogs.count > 0) {
-            [networkLogs addObjectsFromArray: existingNetworkLogs];
-        }
-    }
-    if ([networkLogs count] > 0 && [GleapHttpTrafficRecorder sharedRecorder].isRecording) {
+    // Attach and merge network logs: the SDK's own recording (while it runs) and the logs a
+    // wrapper SDK (React Native, Flutter, Capacitor) attached, both sanitized.
+    NSArray *recordedNetworkLogs = [GleapHttpTrafficRecorder sharedRecorder].isRecording ? [[GleapHttpTrafficRecorder sharedRecorder] networkLogs] : @[];
+    NSArray *existingNetworkLogs = [[GleapExternalDataHelper sharedInstance] objectForKey: @"networkLogs"];
+    NSArray *networkLogs = [GleapHttpTrafficRecorder mergeNetworkLogs: recordedNetworkLogs withExternalNetworkLogs: existingNetworkLogs];
+    if ([networkLogs count] > 0) {
         [self attachData: @{ @"networkLogs": [[GleapHttpTrafficRecorder sharedRecorder] filterNetworkLogs: networkLogs] }];
     }
 
@@ -232,10 +246,13 @@
 
 - (void)prepareDataWithDeadline:(NSTimeInterval)deadline completion:(void (^)(void))completion {
     // Must be called from the main thread — prepareMainThreadData reads UIKit.
-    // Everything but the console log is in-memory and returns right away, so the
-    // report is already complete except for the logs by the time we get here.
+    // Everything but the unified log (os_log) is in-memory and returns right away, so
+    // the report already carries the captured console output; the os_log entries are
+    // added when they arrive before the deadline.
     [self prepareMainThreadData];
     [self prepareInMemoryData];
+    [self attachData: @{ @"consoleLog": [self collectBufferedConsoleLog] }];
+    [self excludeExcludedData];
 
     __block BOOL finished = NO;
     // Only ever invoked on the main queue, so `finished` and self.data stay
@@ -278,7 +295,7 @@
         return;
     }
     
-    for (int i = 0; i < self.excludeData.allKeys.count; i++) {
+    for (NSUInteger i = 0; i < self.excludeData.allKeys.count; i++) {
         NSString *key = [self.excludeData.allKeys objectAtIndex: i];
         if ([[self.excludeData objectForKey: key] boolValue] == YES) {
             [self.data removeObjectForKey: key];
@@ -308,24 +325,21 @@
             return completion(false, errorInfo);
         }
         
-        NSMutableURLRequest *request = [NSMutableURLRequest new];
-        request.HTTPMethod = @"POST";
-        [request setURL: [NSURL URLWithString: [NSString stringWithFormat: @"%@/bugs/v2", Gleap.sharedInstance.apiUrl]]];
-        [GleapSessionHelper injectSessionInRequest: request];
-        [request setValue: @"application/json" forHTTPHeaderField: @"Content-Type"];
-        [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
+        NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/bugs/v2" identity: GleapRequestIdentityCurrentSession];
         [request setHTTPBody: jsonBodyData];
         
-        NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-        NSURLSession *session = [NSURLSession sessionWithConfiguration:config
-                                                              delegate:nil
-                                                         delegateQueue:[NSOperationQueue mainQueue]];
-        NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                                completionHandler:^(NSData * _Nullable data,
-                                                                    NSURLResponse * _Nullable response,
-                                                                    NSError * _Nullable error) {
+        [GleapAPIClient sendReportRequest: request completion:^(NSData * _Nullable data,
+                                                                NSURLResponse * _Nullable response,
+                                                                NSError * _Nullable error) {
             if (error != nil) {
                 NSDictionary *errorInfo = @{ @"error": @"Network error", @"details": error.localizedDescription };
+                return completion(false, errorInfo);
+            }
+            
+            // Only a 2xx creates the ticket; the server also answers errors with a JSON body.
+            if (![GleapAPIClient isSuccessResponse: response]) {
+                NSInteger statusCode = [GleapAPIClient statusCodeOfResponse: response];
+                NSDictionary *errorInfo = @{ @"error": @"Server error", @"statusCode": @(statusCode) };
                 return completion(false, errorInfo);
             }
             
@@ -338,7 +352,6 @@
                 return completion(false, errorInfo);
             }
         }];
-        [task resume];
     } @catch (NSException *exp) {
         NSLog(@"[GLEAP] Failed sending feedback: %@", NSThread.callStackSymbols);
         NSDictionary *errorInfo = @{ @"error": @"Exception occurred", @"details": exp.reason };

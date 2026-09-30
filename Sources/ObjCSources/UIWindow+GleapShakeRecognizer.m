@@ -9,6 +9,9 @@
 #import "UIWindow+GleapShakeRecognizer.h"
 #import "GleapCore.h"
 
+// UIWindow has no motion methods of its own, so these category methods add them; calling super
+// hands the event on to UIResponder, which passes it along the responder chain (the application
+// and its delegate) as it did before the category existed.
 @implementation UIWindow (GleapShakeRecognizer)
 
 NSNotificationName const WindowDidBeginMotionNotification = @"WindowDidBeginMotionNotification";
@@ -25,6 +28,7 @@ NSString * const WindowMotionEventSubtypeUserInfoKey = @"WindowMotionEventSubtyp
     [[NSNotificationCenter defaultCenter] postNotificationName: WindowDidBeginMotionNotification
                                                         object: nil
                                                       userInfo: userInfo];
+    [super motionBegan: motion withEvent: event];
 }
 
 - (void)motionEnded:(UIEventSubtype)motion withEvent:(UIEvent *)event {
@@ -39,6 +43,7 @@ NSString * const WindowMotionEventSubtypeUserInfoKey = @"WindowMotionEventSubtyp
     if (motion == UIEventSubtypeMotionShake) {
         [Gleap shakeInvocation];
     }
+    [super motionEnded: motion withEvent: event];
 }
 
 @end

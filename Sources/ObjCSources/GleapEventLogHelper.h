@@ -1,8 +1,12 @@
 //
-//  GleapReplayHelper.h
+//  GleapEventLogHelper.h
 //  Gleap
 //
 //  Created by Lukas Boehler on 15.01.21.
+//
+//  Internal to the Gleap SDK. This header is only public because every header in
+//  Sources/ObjCSources is; it is not part of the supported API and may change without
+//  notice. Use the Gleap class (GleapCore.h) instead.
 //
 
 #import <Foundation/Foundation.h>
@@ -14,10 +18,10 @@ NS_ASSUME_NONNULL_BEGIN
 @interface GleapEventLogHelper : NSObject
 
 /**
- * Returns a new shared instance of GleapReplayHelper.
+ * Returns the shared instance of GleapEventLogHelper.
  * @author Gleap
  *
- * @return A new shared instance of GleapReplayHelper.
+ * @return The shared instance of GleapEventLogHelper.
  */
 + (instancetype)sharedInstance;
 

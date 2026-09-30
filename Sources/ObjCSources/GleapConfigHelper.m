@@ -6,6 +6,7 @@
 //
 
 #import "GleapConfigHelper.h"
+#import "GleapConfigHelper+Internal.h"
 #import "GleapCore.h"
 #import "GleapActivationMethodHelper.h"
 #import "GleapHttpTrafficRecorder.h"
@@ -13,6 +14,15 @@
 #import "GleapWidgetManager.h"
 #import "GleapUIOverlayHelper.h"
 #import "GleapTranslationHelper.h"
+#import "GleapThemeHelper.h"
+#import "GleapAPIClient.h"
+
+@interface GleapConfigHelper ()
+// Set by run (once per initialize) and cleared when the app has been told: configLoaded: and
+// initialized are delivered once per initialize, by the first config load that succeeds, also
+// when that is a reload (a session recovery after an offline start).
+@property (nonatomic, assign) BOOL initializeCallbacksPending;
+@end
 
 @implementation GleapConfigHelper
 
@@ -36,42 +46,49 @@
 }
 
 - (void)run {
-    [self loadConfigAsReload: NO];
+    self.initializeCallbacksPending = YES;
+    [self loadConfig];
 }
 
 - (void)reload {
-    [self loadConfigAsReload: YES];
+    [self loadConfig];
 }
 
-- (void)loadConfigAsReload: (BOOL)isReload {
-    NSString *widgetConfigURL = [NSString stringWithFormat: @"%@/config/%@?lang=%@", Gleap.sharedInstance.apiUrl, Gleap.sharedInstance.token, GleapTranslationHelper.sharedInstance.language];
-    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
-    [request setHTTPMethod:@"GET"];
-    [request setURL: [NSURL URLWithString: widgetConfigURL]];
-    [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:
-      ^(NSData * _Nullable data,
-        NSURLResponse * _Nullable response,
-        NSError * _Nullable error) {
+- (void)repeatInitializeCallbacks {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        // Not loaded yet: the pending first delivery reaches whichever delegate is set by then.
+        if (self.initializeCallbacksPending || self.rawConfig == nil) {
+            return;
+        }
+        // The config as loaded, like the first delivery (not the color scheme applied to it).
+        [self notifyInitializeCallbacksWithConfig: self.rawConfig];
+    });
+}
+
+- (void)loadConfig {
+    NSString *path = [NSString stringWithFormat: @"/config/%@?lang=%@", Gleap.sharedInstance.token, GleapTranslationHelper.sharedInstance.language];
+    NSMutableURLRequest *request = [GleapAPIClient requestWithMethod: @"GET" path: path identity: GleapRequestIdentityNone];
+    // The shared API session answers on the main queue, so the config is applied and the app's
+    // callbacks run there.
+    [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
+                                                      NSURLResponse * _Nullable response,
+                                                      NSError * _Nullable error) {
         if (error == nil) {
             NSString *responseString = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
             NSError *e = nil;
             NSData *jsonData = [responseString dataUsingEncoding:NSUTF8StringEncoding];
             NSDictionary *configData = [NSJSONSerialization JSONObjectWithData:jsonData options: NSJSONReadingMutableContainers error: &e];
             if (e == nil && configData != nil) {
-                [self configureGleapWithConfig: configData isReload: isReload];
+                [self configureGleapWithConfig: configData];
                 return;
             }
         }
         
         NSLog(@"[GLEAP_SDK] Gleap auto-configuration failed. Please check your API key and internet connection.");
-    }] resume];
+    }];
 }
 
 - (void)configureGleapWithConfig: (NSDictionary *)data {
-    [self configureGleapWithConfig: data isReload: NO];
-}
-
-- (void)configureGleapWithConfig: (NSDictionary *)data isReload: (BOOL)isReload {
     NSDictionary *config = [data objectForKey: @"flowConfig"];
     NSDictionary *projectActions = [data objectForKey: @"projectActions"];
     
@@ -79,8 +96,13 @@
         return;
     }
     
-    self.config = config;
+    // Keep the server config to re-theme it whenever the color scheme changes.
+    self.rawConfig = config;
+    self.config = [[GleapThemeHelper sharedInstance] applyToConfig: config];
     self.projectActions = projectActions;
+    
+    // Follow the app's interface style if the dashboard asks for "auto".
+    [[GleapThemeHelper sharedInstance] start];
     
     // Network config
     if ([config objectForKey: @"networkLogPropsToIgnore"] != nil && [[config objectForKey: @"networkLogPropsToIgnore"] isKindOfClass:[NSArray class]]) {
@@ -91,8 +113,9 @@
         GleapHttpTrafficRecorder.sharedRecorder.blacklist = [config objectForKey: @"networkLogBlacklist"];
     }
     
+    // An explicit Gleap.stopNetworkRecording wins over the dashboard, also when the config is reloaded.
     if ([config objectForKey: @"enableNetworkLogs"] != nil && [[config objectForKey: @"enableNetworkLogs"] boolValue] == YES) {
-        [Gleap startNetworkRecording];
+        [GleapHttpTrafficRecorder.sharedRecorder startRecordingUnlessStoppedByApp];
     }
     
     // Replay config
@@ -137,13 +160,16 @@
     // Update notification UI components.
     [GleapUIOverlayHelper updateUI];
     
-    // A reload (e.g. after a language change) only swaps the config content — the
-    // app has already been told the SDK loaded its config and initialized, so
-    // firing those callbacks again would be a lie.
-    if (isReload) {
+    // A reload (e.g. after a language change or a session recovery) only swaps the config
+    // content once the app has been told the SDK loaded its config and initialized.
+    if (!self.initializeCallbacksPending) {
         return;
     }
+    self.initializeCallbacksPending = NO;
+    [self notifyInitializeCallbacksWithConfig: config];
+}
 
+- (void)notifyInitializeCallbacksWithConfig:(NSDictionary *)config {
     // Config loaded delegate
     if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(configLoaded:)]) {
         [Gleap.sharedInstance.delegate configLoaded: config];
@@ -153,6 +179,31 @@
     if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(initialized)]) {
         [Gleap.sharedInstance.delegate initialized];
     }
+}
+
+- (void)refreshColorScheme {
+    NSDictionary *rawConfig = self.rawConfig;
+    if (rawConfig == nil) {
+        return;
+    }
+    
+    NSDictionary *config = [[GleapThemeHelper sharedInstance] applyToConfig: rawConfig];
+    // The scheme changes the palette (background, UI and header colors), the
+    // logo, the header background image and the composer glow.
+    if (config == self.config || [config isEqualToDictionary: self.config]) {
+        return;
+    }
+    self.config = config;
+    
+    // Update widget config
+    [[GleapWidgetManager sharedInstance] sendConfigUpdate];
+    [[GleapWidgetManager sharedInstance].gleapWidget updateThemeColors];
+    
+    // Update notification UI components.
+    [GleapUIOverlayHelper updateUI];
+    
+    // Recolor a showing modal.
+    [[GleapUIOverlayHelper sharedInstance].uiOverlayViewController.modal sendModalData];
 }
 
 - (int)getButtonX {

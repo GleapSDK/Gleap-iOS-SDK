@@ -30,4 +30,19 @@
     return self;
 }
 
+- (void)addEntries:(NSDictionary *)entries {
+    if (![entries isKindOfClass: [NSDictionary class]]) {
+        return;
+    }
+    @synchronized (self) {
+        [self.data addEntriesFromDictionary: entries];
+    }
+}
+
+- (id)objectForKey:(NSString *)key {
+    @synchronized (self) {
+        return [self.data objectForKey: key];
+    }
+}
+
 @end

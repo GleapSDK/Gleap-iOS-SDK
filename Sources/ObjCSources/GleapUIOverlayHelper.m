@@ -110,11 +110,11 @@
         GleapUIOverlayHelper *sharedInstance = [GleapUIOverlayHelper sharedInstance];
         // Prevent duplicates from showing up.
         int updateAtIndex = -1;
-        for (int i = 0; i < sharedInstance.notifications.count; i++) {
+        for (NSUInteger i = 0; i < sharedInstance.notifications.count; i++) {
             NSString * newOutbound = [notification objectForKey: @"outbound"];
             NSString * existingOutbound = [[sharedInstance.notifications objectAtIndex: i] objectForKey: @"outbound"];
             if (newOutbound != nil && existingOutbound != nil && [newOutbound isEqualToString: existingOutbound]) {
-                updateAtIndex = i;
+                updateAtIndex = (int)i;
             }
         }
         if (updateAtIndex >= 0) {
