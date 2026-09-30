@@ -189,7 +189,7 @@ final class GleapEventPingTests: GleapNetworkTestCase {
         let failedReplies: [GleapStubReply] = [
             .json(["error": "Too many requests"], status: 429),
             .json(["error": "Internal"], status: 500),
-            .json(["error": "Bad request"], status: 400),
+            .json(["error": "Request timeout"], status: 408),
             .failure(.timedOut),
         ]
         for reply in failedReplies {
@@ -200,6 +200,15 @@ final class GleapEventPingTests: GleapNetworkTestCase {
 
         endBackoff()
         XCTAssertEqual(sentNames(ping(.json([String: Any]()))), ["checkout"])
+        XCTAssertEqual(queuedNames, [])
+    }
+
+    func testARefusedPingDropsItsEvents() throws {
+        installSession()
+        events.webSocketEnabled = true
+        events.logEvent("broken")
+
+        XCTAssertEqual(sentNames(try XCTUnwrap(ping(.json(["error": "Bad request"], status: 400)))), ["broken"])
         XCTAssertEqual(queuedNames, [])
     }
 

@@ -78,4 +78,8 @@ static NSTimeInterval const kGleapPingMaxRetryAfter = 5 * 60.0;
     return formatters;
 }
 
++ (BOOL)isRetryableStatusCode:(NSInteger)statusCode {
+    return statusCode == 408 || statusCode == 429 || statusCode >= 500;
+}
+
 @end

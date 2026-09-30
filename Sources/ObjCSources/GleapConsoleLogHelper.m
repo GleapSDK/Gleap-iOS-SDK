@@ -24,6 +24,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/sysctl.h>
 #include <unistd.h>
 
 static NSUInteger const kGleapMaxConsoleEntries = 500;
@@ -64,6 +65,19 @@ static BOOL GleapOSLogMirroredToStderr(void) {
     return getenv("OS_ACTIVITY_DT_MODE") != NULL;
 }
 
+// A debugger (Xcode) reads the original stdout / stderr. Without one they usually lead to
+// /dev/null, so nothing is lost when a full pipe drops output.
+static BOOL GleapDebuggerAttached(void) {
+    struct kinfo_proc info;
+    size_t size = sizeof(info);
+    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
+    info.kp_proc.p_flag = 0;
+    if (sysctl(mib, 4, &info, &size, NULL, 0) != 0) {
+        return NO;
+    }
+    return (info.kp_proc.p_flag & P_TRACED) != 0;
+}
+
 @implementation GleapConsoleLogHelper
 
 /*
@@ -87,7 +101,9 @@ static BOOL GleapOSLogMirroredToStderr(void) {
         self.consoleLog = [[NSMutableArray alloc] init];
         self.capturedLines = [[NSMutableArray alloc] init];
         self.captureSources = [[NSMutableArray alloc] init];
-        self.captureQueue = dispatch_queue_create("io.gleap.consolelog", DISPATCH_QUEUE_SERIAL);
+        // Writers block on a full pipe without raising the reader's priority, so drain at a
+        // high QoS to keep up with output from the main thread.
+        self.captureQueue = dispatch_queue_create("io.gleap.consolelog", dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, 0));
         self.sessionStartDate = [NSDate date];
     }
     return self;
@@ -301,6 +317,11 @@ static BOOL GleapOSLogMirroredToStderr(void) {
     int readFd = pipeFds[0];
     int writeFd = pipeFds[1];
     fcntl(readFd, F_SETFL, fcntl(readFd, F_GETFL) | O_NONBLOCK);
+    if (!GleapDebuggerAttached()) {
+        // Never stall the app on a full pipe: when the drain falls behind, drop the output.
+        // Under a debugger the writes stay blocking, so the Xcode console keeps every line.
+        fcntl(writeFd, F_SETFL, fcntl(writeFd, F_GETFL) | O_NONBLOCK);
+    }
     fcntl(readFd, F_SETFD, FD_CLOEXEC);
     fcntl(writeFd, F_SETFD, FD_CLOEXEC);
     fcntl(originalFd, F_SETFD, FD_CLOEXEC);

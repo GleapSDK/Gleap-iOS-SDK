@@ -38,6 +38,10 @@ GLEAP_INTERNAL
 /// factor between 0.8 and 1.2 (from `random` in [0, 1)), never more than 60 s.
 + (NSTimeInterval)delayAfterFailures:(NSInteger)failures random:(double)random;
 
+/// Whether a failed ping is worth sending again: 408, 429 or a 5xx. Other error answers mean the
+/// server will not take these events.
++ (BOOL)isRetryableStatusCode:(NSInteger)statusCode;
+
 /// A Retry-After value (delay-seconds or an HTTP date) in seconds from `now`: 0 for a date in the
 /// past, -1 without a valid value.
 + (NSTimeInterval)retryAfterFromValue:(nullable NSString *)value now:(NSDate *)now;

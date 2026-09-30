@@ -192,8 +192,8 @@ static NSUInteger const kGleapMaxPingBytes = 256 * 1024;
  Streams the queued events to the backend (POST /sessions/ping): only with a session, one ping at a
  time, the oldest events first and at most 100 events or about 256 KB per ping. Events leave the
  queue once a 2xx answer delivered them, and the rest of a longer queue follows right away. After a
- 429, a 5xx, any other error answer or a network error the events stay queued and the pings back
- off (see GleapPingBackoff); the timer ticks in between do nothing.
+ network error, 408, 429 or a 5xx the events stay queued, any other error answer drops them; either
+ way the pings back off (see GleapPingBackoff) and the timer ticks in between do nothing.
  */
 - (void)sendEventStreamToServer {
     // The ping state lives on the main queue, where the timers and the answers arrive.
@@ -282,6 +282,13 @@ static NSUInteger const kGleapMaxPingBytes = 256 * 1024;
             });
         }
         return;
+    }
+    
+    // The server refused these events for good (e.g. 400, 401, 413): drop them, so they do not
+    // hold back the rest of the queue. The next ping still backs off.
+    if (error == nil && [response isKindOfClass: [NSHTTPURLResponse class]]
+        && ![GleapPingBackoff isRetryableStatusCode: ((NSHTTPURLResponse *)response).statusCode]) {
+        [self removeSentEvents: sentEvents];
     }
     
     NSTimeInterval retryAfter = -1;
