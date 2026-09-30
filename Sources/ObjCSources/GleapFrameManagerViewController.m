@@ -161,7 +161,7 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 - (void)sendSessionUpdate {
     NSDictionary *currentSession = @{};
     if (GleapSessionHelper.sharedInstance.currentSession != nil) {
-        currentSession = [GleapSessionHelper.sharedInstance.currentSession toDictionary];
+        currentSession = [GleapSessionHelper.sharedInstance.currentSession widgetDictionary];
     }
     
     NSMutableDictionary *sessionUpdateData = [[NSMutableDictionary alloc] initWithDictionary: @{

@@ -16,6 +16,20 @@
 #import "GleapTranslationHelper.h"
 #import "GleapMetaDataHelper.h"
 
+// The file access token is renewed this long before it expires (it lives 15 minutes).
+static NSTimeInterval const kGleapFileAccessRenewBefore = 5 * 60;
+// Returning to the foreground renews at most this often.
+static NSTimeInterval const kGleapFileAccessForegroundInterval = 60;
+
+@interface GleapSessionHelper ()
+@property (atomic, assign) BOOL identifyInFlight;
+// Bumped by clearSession: an identify answer from before a logout must not restore that user.
+@property (nonatomic, assign) NSUInteger sessionEpoch;
+// Bumped on each new session and on logout: only the latest scheduled renewal runs.
+@property (nonatomic, assign) NSUInteger fileAccessRenewal;
+@property (nonatomic, retain, nullable) NSDate *lastForegroundRenewal;
+@end
+
 @implementation GleapSessionHelper
 
 // The session and the pending identify, update and push actions are set from whatever thread
@@ -110,6 +124,13 @@
 
 - (id)init {
     self = [super init];
+    if (self) {
+        // Timers do not run while the app is suspended; renew an expired file access on return.
+        [[NSNotificationCenter defaultCenter] addObserver: self
+                                                 selector: @selector(applicationDidBecomeActive)
+                                                     name: UIApplicationDidBecomeActiveNotification
+                                                   object: nil];
+    }
     return self;
 }
 
@@ -143,7 +164,8 @@
         [[GleapEventLogHelper sharedInstance] stop];
         [[GleapEventLogHelper sharedInstance] start];
     
-        return [self updateLocalSessionWith: sessionData andCompletion: completion];
+        [self updateLocalSessionWith: sessionData andCompletion: completion];
+        [self refreshFileAccessIfNeeded];
     }];
 }
 
@@ -159,6 +181,7 @@
             @"userHash": GleapObjectOrNull(userHash),
             @"data": data ?: [[GleapUserProperty alloc] init]
         };
+        self.lastIdentifyAction = self.openIdentityAction;
     }
     [self processOpenIdentityAction];
     [self processOpenPushAction];
@@ -255,6 +278,7 @@
             NSDictionary *sessionData = error == nil ? [GleapSessionHelper sessionDataInResponse: response data: data] : nil;
             if (sessionData != nil) {
                 [self updateLocalSessionWith: sessionData andCompletion:^(bool success) {}];
+                [self refreshFileAccessIfNeeded];
             }
         }];
     } @catch (id exp) {}
@@ -262,16 +286,18 @@
 
 - (void)processOpenIdentityAction {
     NSDictionary *identityAction;
+    NSUInteger epoch;
     @synchronized (self) {
         if (self.openIdentityAction == nil || self.currentSession == nil) {
             return;
         }
         identityAction = self.openIdentityAction;
         self.openIdentityAction = nil;
+        epoch = self.sessionEpoch;
     }
     
     NSString *userId = [identityAction objectForKey: @"userId"];
-    NSString *userHash = [identityAction objectForKey: @"userHash"];
+    id userHash = [identityAction objectForKey: @"userHash"];
     GleapUserProperty *data = [identityAction objectForKey: @"data"];
     
     NSDictionary *sessionRequestData = [data dataDictToSendWith: userId and: userHash];
@@ -283,7 +309,11 @@
     }
     
     bool needsUpdate = [self sessionUpgradeWithDataNeeded: sessionDataToCheckForUpdate];
-    if (!needsUpdate) {
+    // Only a verified identify issues the file access token, so it is sent even when nothing changed.
+    GleapSession *session = self.currentSession;
+    BOOL needsFileAccess = [userHash isKindOfClass: [NSString class]] && [userHash length] > 0 && session.authenticatedFilesRequired &&
+        ([[identityAction objectForKey: @"renewFileAccess"] boolValue] || ![session hasFileAccess]);
+    if (!needsUpdate && !needsFileAccess) {
         return;
     }
     
@@ -314,9 +344,17 @@
     NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions/identify" identity: GleapRequestIdentityStored];
     [request setHTTPBody: jsonBodyData];
     
+    self.identifyInFlight = YES;
     [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
                                                       NSURLResponse * _Nullable response,
                                                       NSError * _Nullable error) {
+        self.identifyInFlight = NO;
+        @synchronized (self) {
+            // The user logged out while this identify was on its way.
+            if (epoch != self.sessionEpoch) {
+                return;
+            }
+        }
         if (error != nil) {
             return;
         }
@@ -324,14 +362,18 @@
         NSDictionary *sessionData = [GleapSessionHelper sessionDataInResponse: response data: data];
         if (sessionData != nil) {
             // Send unregister of previous group.
-            [self sendPushMessageUnregister];
+            if (![[sessionData objectForKey: @"gleapHash"] isEqual: self.currentSession.gleapHash]) {
+                [self sendPushMessageUnregister];
+            }
             
             [self updateLocalSessionWith: sessionData andCompletion:^(bool success) {}];
             
-            // Restart logger.
-            [Gleap logEvent: @"sessionStarted"];
-            [[GleapEventLogHelper sharedInstance] stop];
-            [[GleapEventLogHelper sharedInstance] start];
+            // Restart logger, unless this identify only renewed the file access.
+            if (needsUpdate) {
+                [Gleap logEvent: @"sessionStarted"];
+                [[GleapEventLogHelper sharedInstance] stop];
+                [[GleapEventLogHelper sharedInstance] start];
+            }
         } else if ([GleapSessionHelper isErrorAnswerInResponse: response data: data]) {
             // The server refused this identity (for example a wrong user hash): start over as a guest.
             [self clearSession];
@@ -446,8 +488,11 @@
         
     }
     
+    [self applyFileAccessFrom: data to: gleapSession previous: self.currentSession];
+    
     // Update local session.
     self.currentSession = gleapSession;
+    [self scheduleFileAccessRenewal];
     
     // Process any open identity actions.
     [self processOpenIdentityAction];
@@ -465,6 +510,8 @@
     // Update widget session
     [[GleapWidgetManager sharedInstance] sendSessionUpdate];
     
+    [self processPendingProtectedFile];
+    
     return completion(true);
 }
 
@@ -477,10 +524,15 @@
 
 - (void)clearSession {
     [self sendPushMessageUnregister];
+    [self revokeFileAccess: self.currentSession.fileAccessToken];
     
     @synchronized (self) {
         self.currentSession = nil;
         self.openIdentityAction = nil;
+        self.lastIdentifyAction = nil;
+        self.pendingProtectedFileId = nil;
+        self.sessionEpoch++;
+        self.fileAccessRenewal++;
     }
     [[NSUserDefaults standardUserDefaults] removeObjectForKey: @"gleapId"];
     [[NSUserDefaults standardUserDefaults] removeObjectForKey: @"gleapHash"];
@@ -491,6 +543,172 @@
     
     // Restart a session.
     [self startSessionWith:^(bool success) {}];
+}
+
+#pragma mark - Protected files
+
+/*
+ Takes the file access from a session answer. Only identify issues a token; an answer without one
+ (session start, partial update) keeps the current token while it is the same session and user.
+ */
+- (void)applyFileAccessFrom:(NSDictionary *)data to:(GleapSession *)session previous:(nullable GleapSession *)previous {
+    id required = [data objectForKey: @"authenticatedFilesRequired"];
+    session.authenticatedFilesRequired = [required isKindOfClass: [NSNumber class]] && [required boolValue];
+    
+    id token = [data objectForKey: @"fileAccessToken"];
+    id expiresAt = [data objectForKey: @"fileAccessExpiresAt"];
+    if ([token isKindOfClass: [NSString class]] && [token length] > 0 && [expiresAt isKindOfClass: [NSString class]]) {
+        session.fileAccessToken = token;
+        session.fileAccessExpiresAt = [GleapSessionHelper dateFromISOString: expiresAt];
+        return;
+    }
+    
+    if (previous != nil && [previous hasFileAccess] && [previous.gleapId isEqual: session.gleapId] &&
+        (previous.userId == session.userId || [previous.userId isEqual: session.userId])) {
+        session.fileAccessToken = previous.fileAccessToken;
+        session.fileAccessExpiresAt = previous.fileAccessExpiresAt;
+    }
+}
+
++ (nullable NSDate *)dateFromISOString:(NSString *)value {
+    NSISO8601DateFormatter *formatter = [[NSISO8601DateFormatter alloc] init];
+    formatter.formatOptions = NSISO8601DateFormatWithInternetDateTime | NSISO8601DateFormatWithFractionalSeconds;
+    NSDate *date = [formatter dateFromString: value];
+    if (date == nil) {
+        formatter.formatOptions = NSISO8601DateFormatWithInternetDateTime;
+        date = [formatter dateFromString: value];
+    }
+    return date;
+}
+
+- (void)applicationDidBecomeActive {
+    @synchronized (self) {
+        if (self.lastForegroundRenewal != nil && [[NSDate date] timeIntervalSinceDate: self.lastForegroundRenewal] < kGleapFileAccessForegroundInterval) {
+            return;
+        }
+    }
+    if ([self refreshFileAccessIfNeeded]) {
+        @synchronized (self) {
+            self.lastForegroundRenewal = [NSDate date];
+        }
+    }
+}
+
+/*
+ Replays the app's last verified identify when the project requires file access and the token is
+ missing or about to expire.
+ */
+- (BOOL)refreshFileAccessIfNeeded {
+    GleapSession *session = self.currentSession;
+    NSDictionary *identify;
+    @synchronized (self) {
+        identify = self.lastIdentifyAction;
+        if (session == nil || !session.authenticatedFilesRequired || identify == nil || self.openIdentityAction != nil || self.identifyInFlight) {
+            return NO;
+        }
+    }
+    id userHash = [identify objectForKey: @"userHash"];
+    if (![userHash isKindOfClass: [NSString class]] || [userHash length] == 0) {
+        return NO;
+    }
+    if ([session hasFileAccess] && [session.fileAccessExpiresAt timeIntervalSinceNow] > kGleapFileAccessRenewBefore) {
+        return NO;
+    }
+    [self renewFileAccessWith: identify];
+    return YES;
+}
+
+- (void)renewFileAccessWith:(NSDictionary *)identify {
+    @synchronized (self) {
+        if (self.openIdentityAction != nil) {
+            return;
+        }
+        NSMutableDictionary *action = [identify mutableCopy];
+        [action setObject: @(YES) forKey: @"renewFileAccess"];
+        self.openIdentityAction = action;
+    }
+    [self processOpenIdentityAction];
+}
+
+- (void)scheduleFileAccessRenewal {
+    GleapSession *session = self.currentSession;
+    NSUInteger renewal;
+    @synchronized (self) {
+        renewal = ++self.fileAccessRenewal;
+    }
+    if (![session hasFileAccess]) {
+        return;
+    }
+    NSTimeInterval delay = MAX(0, [session.fileAccessExpiresAt timeIntervalSinceNow] - kGleapFileAccessRenewBefore);
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        NSDictionary *identify;
+        @synchronized (self) {
+            if (renewal != self.fileAccessRenewal) {
+                return;
+            }
+            identify = self.lastIdentifyAction;
+        }
+        id userHash = [identify objectForKey: @"userHash"];
+        if ([userHash isKindOfClass: [NSString class]] && [userHash length] > 0 && !self.identifyInFlight) {
+            [self renewFileAccessWith: identify];
+        }
+    });
+}
+
+- (void)revokeFileAccess:(nullable NSString *)token {
+    if (token.length == 0) {
+        return;
+    }
+    // Best effort: offline the token still expires within 15 minutes.
+    NSMutableURLRequest *request = [GleapAPIClient requestWithMethod: @"POST" path: @"/files/session/revoke" identity: GleapRequestIdentityNone];
+    [request setValue: token forHTTPHeaderField: @"X-File-Session"];
+    [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {}];
+}
+
+- (BOOL)openProtectedFileFromURL:(NSURL *)url {
+    NSString *fileId = nil;
+    for (NSURLQueryItem *item in [NSURLComponents componentsWithURL: url resolvingAgainstBaseURL: NO].queryItems) {
+        if ([item.name isEqualToString: @"gleapFile"]) {
+            fileId = item.value;
+        }
+    }
+    if (fileId == nil || [fileId rangeOfString: @"^[a-f0-9]{24}$" options: NSRegularExpressionSearch].location == NSNotFound) {
+        return NO;
+    }
+    @synchronized (self) {
+        self.pendingProtectedFileId = fileId;
+    }
+    [self processPendingProtectedFile];
+    return YES;
+}
+
+/*
+ Asks the API which conversation holds the requested file and opens it. Waits until a verified
+ identify gave the session file access; the file id alone grants nothing.
+ */
+- (void)processPendingProtectedFile {
+    GleapSession *session = self.currentSession;
+    NSString *fileId;
+    @synchronized (self) {
+        if (self.pendingProtectedFileId == nil || ![session hasFileAccess]) {
+            return;
+        }
+        fileId = self.pendingProtectedFileId;
+        self.pendingProtectedFileId = nil;
+    }
+    NSString *token = session.fileAccessToken;
+    NSMutableURLRequest *request = [GleapAPIClient requestWithMethod: @"GET" path: [NSString stringWithFormat: @"/files/%@/location", fileId] identity: GleapRequestIdentityNone];
+    [request setValue: token forHTTPHeaderField: @"X-File-Session"];
+    [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+        if (error != nil || ![GleapAPIClient isSuccessResponse: response] || data == nil || ![self.currentSession.fileAccessToken isEqualToString: token]) {
+            return;
+        }
+        id json = [NSJSONSerialization JSONObjectWithData: data options: 0 error: nil];
+        id shareToken = [json isKindOfClass: [NSDictionary class]] ? [json objectForKey: @"shareToken"] : nil;
+        if ([shareToken isKindOfClass: [NSString class]] && [shareToken length] > 0) {
+            [Gleap openConversation: shareToken];
+        }
+    }];
 }
 
 - (BOOL)sessionCustomDataItemNeedsUpgrade:(NSDictionary *)data compareTo:(NSDictionary *)newData {

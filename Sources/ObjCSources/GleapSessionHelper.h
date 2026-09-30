@@ -34,6 +34,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)updateContact:(nullable GleapUserProperty *)data;
 - (void)processOpenPushAction;
 - (void)clearSession;
+- (BOOL)openProtectedFileFromURL:(NSURL *)url;
+- (BOOL)refreshFileAccessIfNeeded;
 - (NSString *)getSessionName;
 
 @property (nonatomic, retain, nullable) GleapSession* currentSession;
@@ -41,6 +43,10 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, retain, nullable) NSDictionary* openIdentityAction;
 @property (nonatomic, retain, nullable) NSDictionary* openUpdateAction;
 @property (nonatomic, retain, nullable) NSString* lastRegisterGleapHash;
+// The app's latest identify (userId, userHash, data), in memory only: replayed to renew the file access token.
+@property (nonatomic, retain, nullable) NSDictionary* lastIdentifyAction;
+// A protected file from an emailed link, opened once the session has file access.
+@property (nonatomic, retain, nullable) NSString* pendingProtectedFileId;
 
 @end
 
