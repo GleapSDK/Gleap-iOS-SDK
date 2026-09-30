@@ -41,10 +41,17 @@ jobs:
         env:
           COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
         run: |
-          if pod trunk info Gleap | grep -q -- "- $VERSION "; then
+          on_trunk() { pod trunk info Gleap | grep -q -- "- $VERSION "; }
+          if on_trunk; then
             echo "Gleap $VERSION is already on trunk"
-          else
-            pod trunk push Gleap.podspec --allow-warnings
+          elif ! pod trunk push Gleap.podspec --allow-warnings; then
+            # Trunk can report "Calling the GitHub commit API timed out" after it accepted the pod.
+            sleep 30
+            if on_trunk; then
+              echo "::warning::pod trunk push reported an error, but Gleap $VERSION is on trunk"
+            else
+              exit 1
+            fi
           fi
 
       - name: Create the GitHub release
