@@ -17,6 +17,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSDictionary *)toDictionary;
 
+/// toDictionary plus the file access credential; only for the widget, never for getIdentity.
+- (NSDictionary *)widgetDictionary;
+
+/// YES while the file access token is set and has not expired.
+- (BOOL)hasFileAccess;
+
 @property (nonatomic, retain) NSString* gleapId;
 @property (nonatomic, retain) NSString* gleapHash;
 @property (nonatomic, retain, nullable) NSString* userId;
@@ -31,6 +37,13 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, retain, nullable) NSDictionary* customData;
 @property (nonatomic, retain, nullable) NSNumber* value;
 @property (nonatomic, retain, nullable) NSNumber* sla;
+
+/// The project requires a verified identity to open conversation files.
+@property (nonatomic, assign) BOOL authenticatedFilesRequired;
+/// Short-lived credential for protected conversation files, issued by a verified identify.
+/// Kept in memory only and handed to the widget.
+@property (nonatomic, retain, nullable) NSString* fileAccessToken;
+@property (nonatomic, retain, nullable) NSDate* fileAccessExpiresAt;
 
 @end
 

@@ -145,6 +145,19 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)openConversation:(NSString *)shareToken;
 
 /**
+ * Opens the conversation of a protected file from an emailed file link.
+ * With "Require authenticated file access", email replies link attachments to your customer
+ * application URL with a `gleapFile` query parameter. Pass that URL (for example from a universal
+ * link) here. The conversation opens once `identifyContact` with a valid user hash gave the
+ * session file access; the link alone grants nothing.
+ * @author Gleap
+ *
+ * @param url The link that opened the app.
+ * @return YES if the URL carries a Gleap file reference.
+ */
++ (BOOL)openProtectedFileFromURL:(NSURL *)url;
+
+/**
  * Show a news article.
  * @author Gleap
  *

@@ -145,3 +145,29 @@ Gleap.setColorScheme("dark", lightBackgroundColor: nil, darkBackgroundColor: "#1
 ```
 
 Light mode uses the widget colors from the dashboard, dark mode the dark colors set in the dashboard (header colors, UI color and background); a dark color that is not set keeps the normal one. Dark mode also uses the dark logo, header background image and composer glow set in the dashboard. Without dark colors the widget keeps its normal colors, also in dark mode. The `lightBackgroundColor` / `darkBackgroundColor` parameters (#rrggbb) override the background of the respective scheme. Button colors are unchanged. Can be called before or after `initialize`.
+
+## Protected conversation files
+
+With "Require authenticated file access" (Project settings → User identity), conversation files can only be opened by agents and by the verified customer the conversation belongs to. The SDK supports it without extra setup, as long as the app identifies the customer with a user hash on every app start (the hash is created on your server with the project's identity verification secret):
+
+**Swift**
+
+```
+Gleap.identifyContact("user-1", andData: userProperty, andUserHash: userHash)
+```
+
+A verified identify gives the session a short-lived file access token (15 minutes). The SDK keeps it in memory only, hands it to the widget and renews it while the app is in use. `clearIdentity` revokes it. Guests and contacts identified without a hash see "Sign in to view" instead of the file.
+
+Email replies link attachments to your customer application URL with a `gleapFile` query parameter. If that URL opens your app (for example as a universal link), pass it to Gleap; the conversation opens once the customer is identified:
+
+**Swift**
+
+```
+Gleap.openProtectedFile(from: url)
+```
+
+**Objective-C**
+
+```
+[Gleap openProtectedFileFromURL: url];
+```

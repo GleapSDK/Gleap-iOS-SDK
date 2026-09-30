@@ -1,3 +1,7 @@
+## Unreleased
+Protected conversation files ("Require authenticated file access" in the project settings) now work in the iOS widget. A verified `identifyContact` (with a user hash) gives the session a short-lived file access token, which the SDK keeps in memory only, passes to the widget and renews 5 minutes before it expires and when the app becomes active again. `identifyContact` is sent even when the user data is unchanged if the project requires file access and the token is missing, so identify on every app start. `clearIdentity` revokes the token on the server. An identify that is answered after `clearIdentity` no longer restores the logged-out user. Renewing the token does not re-register the push group or log a new session start.
+New `Gleap.openProtectedFile(from:)` (`openProtectedFileFromURL:`) opens the conversation of an emailed file link (`?gleapFile=…`) once the session has file access.
+
 ## 19.0.0
 Added dark / light mode support for the widget. The widget colors now follow the color scheme set in the dashboard (`colorScheme`: default, auto, light, dark) or at runtime:
 `Gleap.setColorScheme("auto")` follows the app's interface style (the system appearance, or the app's own `overrideUserInterfaceStyle`) and switches live when it changes. `"light"` / `"dark"` force a scheme; any other value is treated as `"auto"`. Until `setColorScheme` is called, the dashboard setting applies. `setColorScheme` only takes effect when "Adapt to dark / light mode" is enabled in the dashboard; otherwise the widget keeps its normal colors.

@@ -29,4 +29,19 @@
     };
 }
 
+- (NSDictionary *)widgetDictionary {
+    NSMutableDictionary *data = [[self toDictionary] mutableCopy];
+    if ([self hasFileAccess]) {
+        NSISO8601DateFormatter *formatter = [[NSISO8601DateFormatter alloc] init];
+        formatter.formatOptions = NSISO8601DateFormatWithInternetDateTime | NSISO8601DateFormatWithFractionalSeconds;
+        [data setObject: self.fileAccessToken forKey: @"fileAccessToken"];
+        [data setObject: [formatter stringFromDate: self.fileAccessExpiresAt] forKey: @"fileAccessExpiresAt"];
+    }
+    return data;
+}
+
+- (BOOL)hasFileAccess {
+    return self.fileAccessToken.length > 0 && self.fileAccessExpiresAt != nil && [self.fileAccessExpiresAt timeIntervalSinceNow] > 0;
+}
+
 @end

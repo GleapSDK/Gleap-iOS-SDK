@@ -362,6 +362,10 @@
     }];
 }
 
++ (BOOL)openProtectedFileFromURL:(NSURL *)url {
+    return [GleapSessionHelper.sharedInstance openProtectedFileFromURL: url];
+}
+
 + (void)openChecklists {
     [self openChecklists: YES];
 }

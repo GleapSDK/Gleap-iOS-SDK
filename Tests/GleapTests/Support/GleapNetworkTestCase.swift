@@ -105,6 +105,8 @@ class GleapNetworkTestCase: XCTestCase {
         sessions.openUpdateAction = nil
         sessions.openPushAction = nil
         sessions.lastRegisterGleapHash = nil
+        sessions.lastIdentifyAction = nil
+        sessions.pendingProtectedFileId = nil
 
         let events = GleapEventLogHelper.sharedInstance()
         events.stop()
