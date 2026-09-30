@@ -71,6 +71,7 @@ typedef NS_ENUM(NSInteger, GleapBodyState) {
 
 @interface GleapHttpTrafficRecorder ()
 @property (nonatomic, assign, readwrite) BOOL isRecording;
+@property (nonatomic, assign, readwrite) BOOL stoppedByApp;
 @property (nonatomic, strong) NSMutableArray<GleapNetworkRecord *> *records;
 @property (nonatomic, assign) int maxRequestsInQueue;
 @property (nonatomic, strong) NSArray<NSString *> *internalHosts;
@@ -115,22 +116,51 @@ static void GleapObserveSessionDelegate(NSURLSession *session);
     return [self startRecording];
 }
 
+// Start, stop and the app's stop flag change under one lock, so a config applied while the app
+// stops recording on another thread can't start it again after the stop.
 - (BOOL)startRecording {
-    [self updateInternalHosts];
-    if (self.isRecording) {
+    @synchronized (self) {
+        [self updateInternalHosts];
+        if (self.isRecording) {
+            return YES;
+        }
+        @try {
+            [GleapHttpTrafficRecorder installHooks];
+        } @catch (NSException *exception) {
+            return NO;
+        }
+        self.isRecording = YES;
         return YES;
     }
-    @try {
-        [GleapHttpTrafficRecorder installHooks];
-    } @catch (NSException *exception) {
-        return NO;
-    }
-    self.isRecording = YES;
-    return YES;
 }
 
 - (void)stopRecording {
-    self.isRecording = NO;
+    @synchronized (self) {
+        self.isRecording = NO;
+    }
+}
+
+- (BOOL)startRecordingByApp {
+    @synchronized (self) {
+        self.stoppedByApp = NO;
+        return [self startRecording];
+    }
+}
+
+- (void)stopRecordingByApp {
+    @synchronized (self) {
+        self.stoppedByApp = YES;
+        [self stopRecording];
+    }
+}
+
+- (BOOL)startRecordingUnlessStoppedByApp {
+    @synchronized (self) {
+        if (self.stoppedByApp) {
+            return NO;
+        }
+        return [self startRecording];
+    }
 }
 
 - (void)setMaxRequests:(int)maxRequests {

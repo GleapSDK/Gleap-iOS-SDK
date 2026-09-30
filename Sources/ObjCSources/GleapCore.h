@@ -648,7 +648,8 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 + (void)handleURL: (NSString *)url;
 
 /**
- * Stops network recording.
+ * Stops network recording. Wins over the dashboard setting (also when the config is loaded again)
+ * until startNetworkRecording is called.
  * @author Gleap
  *
  */

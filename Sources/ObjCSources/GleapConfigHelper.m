@@ -113,8 +113,9 @@
         GleapHttpTrafficRecorder.sharedRecorder.blacklist = [config objectForKey: @"networkLogBlacklist"];
     }
     
+    // An explicit Gleap.stopNetworkRecording wins over the dashboard, also when the config is reloaded.
     if ([config objectForKey: @"enableNetworkLogs"] != nil && [[config objectForKey: @"enableNetworkLogs"] boolValue] == YES) {
-        [Gleap startNetworkRecording];
+        [GleapHttpTrafficRecorder.sharedRecorder startRecordingUnlessStoppedByApp];
     }
     
     // Replay config

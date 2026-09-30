@@ -166,15 +166,15 @@
 }
 
 + (void)startNetworkRecording {
-    [[GleapHttpTrafficRecorder sharedRecorder] startRecording];
+    [[GleapHttpTrafficRecorder sharedRecorder] startRecordingByApp];
 }
 
 + (void)startNetworkRecordingForSessionConfiguration:(NSURLSessionConfiguration *)configuration {
-    [[GleapHttpTrafficRecorder sharedRecorder] startRecordingForSessionConfiguration: configuration];
+    [[GleapHttpTrafficRecorder sharedRecorder] startRecordingByApp];
 }
 
 + (void)stopNetworkRecording {
-    [[GleapHttpTrafficRecorder sharedRecorder] stopRecording];
+    [[GleapHttpTrafficRecorder sharedRecorder] stopRecordingByApp];
 }
 
 + (void)logEvent: (NSString *)name {

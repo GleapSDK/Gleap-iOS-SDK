@@ -122,6 +122,7 @@ class GleapNetworkTestCase: XCTestCase {
 
         let recorder = GleapHttpTrafficRecorder.shared()!
         recorder.stopRecording()
+        recorder.setValue(false, forKey: "stoppedByApp")   // forget an earlier Gleap.stopNetworkRecording()
         recorder.clearLogs()
         recorder.networkLogPropsToIgnore = []
         recorder.blacklist = []

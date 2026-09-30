@@ -28,6 +28,19 @@
 - (void)stopRecording;
 
 /*
+ The app's own start / stop (Gleap.startNetworkRecording / stopNetworkRecording). A stop by the
+ app is remembered until the app starts recording again, so the config (which starts recording when
+ the dashboard enables network logs, also on every reload) does not undo it.
+ */
+- (BOOL)startRecordingByApp;
+- (void)stopRecordingByApp;
+
+/*
+ Starts recording unless the app stopped it (the dashboard's "network logs" switch).
+ */
+- (BOOL)startRecordingUnlessStoppedByApp;
+
+/*
  The logged requests, oldest first, not yet sanitized.
  */
 - (NSArray *)networkLogs;
@@ -47,6 +60,7 @@
 - (NSArray *)filterNetworkLogs:(NSArray *)networkLogs;
 
 @property(nonatomic, readonly, assign) BOOL isRecording;
+@property(nonatomic, readonly, assign) BOOL stoppedByApp;
 @property (retain, nonatomic) NSArray *networkLogPropsToIgnore;
 @property (retain, nonatomic) NSArray *blacklist;
 

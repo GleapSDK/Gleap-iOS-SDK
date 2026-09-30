@@ -56,6 +56,22 @@ final class GleapRemoteConfigTests: GleapNetworkTestCase {
         XCTAssertEqual(recorder.blacklist as? [String], ["blocked.example"])
     }
 
+    func testTheAppsStopWinsOverTheConfigUntilTheAppStartsAgain() {
+        let recorder = GleapHttpTrafficRecorder.shared()!
+        load(["enableNetworkLogs": true])
+        XCTAssertTrue(recorder.isRecording)
+
+        // setLanguage and the session recovery reload the config without telling the app.
+        Gleap.stopNetworkRecording()
+        load(["enableNetworkLogs": true], reload: true)
+        XCTAssertFalse(recorder.isRecording, "the app's stop survives a reload")
+
+        Gleap.startNetworkRecording()
+        XCTAssertTrue(recorder.isRecording)
+        load(["enableNetworkLogs": true], reload: true)
+        XCTAssertTrue(recorder.isRecording)
+    }
+
     func testReplaySwitch() {
         let replays = GleapReplayHelper.sharedInstance()
 
