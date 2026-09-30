@@ -188,7 +188,7 @@ final class GleapIdentityTests: GleapNetworkTestCase {
         let body = try XCTUnwrap(request.json)
         XCTAssertEqual(body["ws"] as? Bool, true)
         XCTAssertEqual(body["type"] as? String, "ios")
-        XCTAssertEqual(body["sdkVersion"] as? String, "18.2.0")
+        XCTAssertEqual(body["sdkVersion"] as? String, "19.0.0")
         let data = try XCTUnwrap(body["data"] as? [String: Any])
         XCTAssertEqual(data["plan"] as? String, "Pro")
         XCTAssertEqual(data["platform"] as? String, "iOS")

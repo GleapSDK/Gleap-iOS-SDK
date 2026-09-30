@@ -22,7 +22,7 @@ final class GleapEventStreamAndRoutingTests: GleapNetworkTestCase {
         XCTAssertEqual(sent.map { $0["name"] as? String }, ["checkout-started", "coupon-applied"])
         XCTAssertEqual((sent[1]["data"] as? [String: Any])?["code"] as? String, "SPRING")
         XCTAssertEqual(body["type"] as? String, "ios")
-        XCTAssertEqual(body["sdkVersion"] as? String, "18.2.0")
+        XCTAssertEqual(body["sdkVersion"] as? String, "19.0.0")
         XCTAssertNotNil(body["time"] as? Double)
         XCTAssertEqual(body["opened"] as? Bool, false)
         XCTAssertNotNil(body["ws"] as? Bool)
@@ -67,7 +67,7 @@ final class GleapEventStreamAndRoutingTests: GleapNetworkTestCase {
         XCTAssertEqual(query["gleapId"], "gid-ws")
         XCTAssertEqual(query["gleapHash"], "ghash-ws")
         XCTAssertEqual(query["apiKey"], Self.sdkKey)
-        XCTAssertEqual(query["sdkVersion"], "18.2.0")
+        XCTAssertEqual(query["sdkVersion"], "19.0.0")
         events.stop()
     }
 

@@ -1,4 +1,4 @@
-## 18.2.0
+## 19.0.0
 Added dark / light mode support for the widget. The widget colors now follow the color scheme set in the dashboard (`colorScheme`: default, auto, light, dark) or at runtime:
 `Gleap.setColorScheme("auto")` follows the app's interface style (the system appearance, or the app's own `overrideUserInterfaceStyle`) and switches live when it changes. `"light"` / `"dark"` force a scheme; any other value is treated as `"auto"`. Until `setColorScheme` is called, the dashboard setting applies. `setColorScheme` only takes effect when "Adapt to dark / light mode" is enabled in the dashboard; otherwise the widget keeps its normal colors.
 Light mode uses the widget colors from the dashboard. Dark mode uses the dark colors set in the dashboard (header colors, UI color and background); a dark color that is not set keeps the normal one. Dark mode also uses the dark logo, header background image and composer glow set in the dashboard. Without dark colors the widget keeps its normal colors, also in dark mode. The backgrounds can be overridden via `Gleap.setColorScheme("auto", lightBackgroundColor: "#ffffff", darkBackgroundColor: "#121212")`. Button colors are unchanged. The widget, its loading screen, notifications and modals follow the scheme, including ones that are already showing.
@@ -47,6 +47,8 @@ Touches and motion events (such as a shake) that reach the app's window are now 
 A feedback button that is created again (for example after the app switched its key window) no longer gets a layout constraint that ties the button to itself.
 
 The SDK no longer adds a second feedback button when the config arrives while it is still setting up its overlay. The extra button sat underneath the real one without a notification badge, and stayed on screen after `showFeedbackButton(false)` hid the real one.
+
+`stopNetworkRecording()` now wins over the dashboard's network logs setting until `startNetworkRecording()` is called. The SDK started recording again whenever it loaded the config anew (after `setLanguage` with another language or when the session was recovered), without calling `configLoaded`, so the React Native and Flutter SDKs could not stop it again.
 
 ## 18.1.0
 Added control over the env data (device, OS, screen, locale and battery details shown under the Env data tab of a ticket) the SDK collects:
