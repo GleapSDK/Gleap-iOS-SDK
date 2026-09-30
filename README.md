@@ -171,3 +171,10 @@ Gleap.openProtectedFile(from: url)
 ```
 [Gleap openProtectedFileFromURL: url];
 ```
+
+## Releasing
+
+1. Set the version in `Gleap.podspec` (`s.version`) and `SDK_VERSION` in `Sources/ObjCSources/GleapMetaDataHelper.h`, and rename the `## Unreleased` section of `CHANGELOG.md` to `## X.Y.Z`. In the Gleap workspace, `node scripts/sdk-release/release.mjs bump X.Y.Z` does this for all native SDKs and wrappers.
+2. Merge, then `git tag X.Y.Z && git push origin X.Y.Z`.
+
+The `Release` workflow checks that the tag matches the podspec and the CHANGELOG, runs the tests, pushes the pod to CocoaPods trunk (secret `COCOAPODS_TRUNK_TOKEN`) and creates the GitHub release. Swift Package Manager resolves the tag directly. CocoaPods trunk becomes read-only on December 2, 2026; after that only the SPM release applies.

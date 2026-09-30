@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit tests
+        run: .github/scripts/test.sh
+      - name: Lint podspec
+        env:
+          LANG: en_US.UTF-8
+        run: pod lib lint Gleap.podspec --allow-warnings

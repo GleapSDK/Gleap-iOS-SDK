@@ -1,0 +1,59 @@
+name: Release
+
+# Push a tag X.Y.Z (equal to s.version in Gleap.podspec) to release it.
+# Swift Package Manager resolves the tag directly; this publishes the pod and the GitHub release.
+on:
+  push:
+    tags: ['[0-9]+.[0-9]+.[0-9]+*']
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      LANG: en_US.UTF-8
+      VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the version
+        run: |
+          podspec=$(ruby -e 'puts File.read("Gleap.podspec")[/s\.version\s*=\s*"([^"]+)"/, 1]')
+          if [ "$podspec" != "$VERSION" ]; then
+            echo "::error::Tag $VERSION does not match Gleap.podspec version $podspec"
+            exit 1
+          fi
+          if ! grep -q "^## $VERSION\$" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## $VERSION' section"
+            exit 1
+          fi
+
+      - name: Unit tests
+        run: .github/scripts/test.sh
+
+      - name: Publish to CocoaPods trunk
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+        run: |
+          if pod trunk info Gleap | grep -q -- "- $VERSION "; then
+            echo "Gleap $VERSION is already on trunk"
+          else
+            pod trunk push Gleap.podspec --allow-warnings
+          fi
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          awk -v v="## $VERSION" '$0 == v {found=1; next} found && /^## / {exit} found' CHANGELOG.md > notes.md
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION exists"
+          else
+            gh release create "$VERSION" --title "$VERSION" --notes-file notes.md --verify-tag
+          fi
