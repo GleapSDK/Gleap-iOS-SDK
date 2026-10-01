@@ -19,6 +19,8 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)uploadFile: (NSData *)fileData andFileName: (NSString*)filename andContentType: (NSString*)contentType andCompletion: (void (^)(bool success, NSString *fileUrl))completion;
 + (void)uploadImage: (UIImage *)image andCompletion: (void (^)(bool success, NSString *fileUrl))completion;
 + (void)uploadStepImages: (NSArray *)steps andCompletion: (void (^)(bool success, NSArray *fileUrls))completion;
+/// A replay frame as it is uploaded: half the screen's point size at 1x, JPEG 0.9. Any thread.
++ (nullable NSData *)replayFrameDataForImage: (nullable UIImage *)image;
 + (void)uploadFiles: (NSArray *)files forEndpoint:(NSString *)endpoint andCompletion: (void (^)(bool success, NSArray *fileUrls))completion;
 
 @end

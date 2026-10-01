@@ -11,6 +11,15 @@
 #import "GleapScreenCaptureHelper.h"
 #import "GleapUIHelper.h"
 #import "GleapWidgetManager.h"
+#import "GleapUploadManager.h"
+
+// The replay keeps this many frames (5 minutes at the default 5 s interval).
+static NSUInteger const kGleapMaxReplaySteps = 60;
+
+@interface GleapReplayHelper ()
+// Encodes the frames off the main thread.
+@property (nonatomic, strong) dispatch_queue_t frameQueue;
+@end
 
 @implementation GleapReplayHelper
 
@@ -39,6 +48,7 @@
     self.replaySteps = [[NSMutableArray alloc] init];
     self.running = false;
     self.timerInterval = 5;
+    self.frameQueue = dispatch_queue_create("io.gleap.replay.frames", dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, 0));
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appWillResignActive:) name: UIApplicationWillResignActiveNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(appWillEnterForeground:) name:UIApplicationWillEnterForegroundNotification object:nil];
@@ -94,22 +104,33 @@
         return;
     }
     
-    if (self.replaySteps.count >= 60) {
-        [self.replaySteps removeObjectAtIndex: 0];
-    }
-    
     dispatch_async(dispatch_get_main_queue(), ^{
         if ([UIApplication sharedApplication].applicationState == UIApplicationStateActive) {
             UIImage *screenshot = [GleapScreenCaptureHelper captureScreen];
             if (screenshot != nil) {
-                NSString *currentViewControllerName = [GleapUIHelper getTopMostViewControllerName];
-                
-                [self.replaySteps addObject: @{
-                    @"screenname": currentViewControllerName,
-                    @"image": screenshot,
+                NSMutableDictionary *step = [@{
+                    @"screenname": [GleapUIHelper getTopMostViewControllerName],
                     @"interactions": [GleapTouchHelper getAndClearTouchEvents],
                     @"date": [GleapUIHelper getJSStringForNSDate: [[NSDate alloc] init]]
-                }];
+                } mutableCopy];
+                // Frames are kept as they are uploaded (half size, JPEG): 60 full-resolution screenshots
+                // held hundreds of megabytes.
+                dispatch_async(self.frameQueue, ^{
+                    NSData *imageData = nil;
+                    @autoreleasepool {
+                        imageData = [GleapUploadManager replayFrameDataForImage: screenshot];
+                    }
+                    if (imageData == nil) {
+                        return;
+                    }
+                    step[@"imageData"] = imageData;
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        while (self.replaySteps.count >= kGleapMaxReplaySteps) {
+                            [self.replaySteps removeObjectAtIndex: 0];
+                        }
+                        [self.replaySteps addObject: [step copy]];
+                    });
+                });
             }
         }
     });
