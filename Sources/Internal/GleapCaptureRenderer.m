@@ -4,7 +4,11 @@
 //
 
 #import "GleapCaptureRenderer.h"
+#import "GleapBanner.h"
 #import "GleapCore.h"
+#import "GleapFeedbackButton.h"
+#import "GleapModal.h"
+#import "GleapUIOverlayViewController+Internal.h"
 #import "GleapWindowChecker.h"
 #import <QuartzCore/QuartzCore.h>
 
@@ -136,25 +140,20 @@ static CGFloat const kGleapMaskPadding = 3.0;
 
 + (void)drawWindow:(UIWindow *)window inRect:(CGRect)rect isFlutter:(BOOL)isFlutter context:(CGContextRef)context {
     BOOL drawn = NO;
-    if (isFlutter) {
-        // Flutter renders into its own layer; its top-level views are drawn one by one, each at its real frame
-        // in the window (drawing them at their bounds origin put every smaller view at the top left).
-        CGFloat scaleX = rect.size.width / MAX(window.bounds.size.width, 1.0);
-        CGFloat scaleY = rect.size.height / MAX(window.bounds.size.height, 1.0);
-        for (UIView *view in window.subviews) {
-            if (view.isHidden || view.alpha < 0.01 || CGRectIsEmpty(view.bounds)) {
-                continue;
-            }
-            @try {
-                CGRect frame = [view convertRect: view.bounds toView: window];
-                CGRect target = CGRectMake(rect.origin.x + frame.origin.x * scaleX,
-                                           rect.origin.y + frame.origin.y * scaleY,
-                                           frame.size.width * scaleX,
-                                           frame.size.height * scaleY);
-                if (!CGRectIsEmpty(target) && [view drawViewHierarchyInRect: target afterScreenUpdates: NO]) {
-                    drawn = YES;
-                }
-            } @catch (NSException *exception) {}
+    // The SDK's own views in the app's window (launcher, banner, modal, in-app notifications) are not part of what
+    // the user shows: with one of them on screen, the window is drawn view by view without them.
+    BOOL hasGleapOverlay = NO;
+    for (UIView *view in window.subviews) {
+        if ([self isGleapOverlayView: view] && [self isPossiblyVisible: view]) {
+            hasGleapOverlay = YES;
+            break;
+        }
+    }
+    if (isFlutter || hasGleapOverlay) {
+        drawn = [self drawSubviewsOfWindow: window inRect: rect skipInvisible: isFlutter context: context];
+        if (!drawn && hasGleapOverlay) {
+            // Nothing but the SDK's views: the window's background is all there is to show.
+            return;
         }
     }
     if (!drawn) {
@@ -170,6 +169,48 @@ static CGFloat const kGleapMaskPadding = 3.0;
         } @catch (NSException *exception) {}
         CGContextRestoreGState(context);
     }
+}
+
+// The window's background, then its subviews one by one, each at its real frame in the window, without the SDK's
+// own views. Flutter renders into its own layer and is drawn this way too: drawing its top-level views at their
+// bounds origin put every smaller one at the top left.
++ (BOOL)drawSubviewsOfWindow:(UIWindow *)window inRect:(CGRect)rect skipInvisible:(BOOL)skipInvisible context:(CGContextRef)context {
+    BOOL drawn = NO;
+    CGFloat scaleX = rect.size.width / MAX(window.bounds.size.width, 1.0);
+    CGFloat scaleY = rect.size.height / MAX(window.bounds.size.height, 1.0);
+    UIColor *background = window.backgroundColor;
+    if (background != nil && CGColorGetAlpha(background.CGColor) > 0) {
+        CGContextSaveGState(context);
+        CGContextSetFillColorWithColor(context, background.CGColor);
+        CGContextFillRect(context, rect);
+        CGContextRestoreGState(context);
+    }
+    for (UIView *view in window.subviews) {
+        if (view.isHidden || CGRectIsEmpty(view.bounds) || [self isGleapOverlayView: view]) {
+            continue;
+        }
+        if (skipInvisible && view.alpha < 0.01) {
+            continue;
+        }
+        @try {
+            CGRect frame = [view convertRect: view.bounds toView: window];
+            CGRect target = CGRectMake(rect.origin.x + frame.origin.x * scaleX,
+                                       rect.origin.y + frame.origin.y * scaleY,
+                                       frame.size.width * scaleX,
+                                       frame.size.height * scaleY);
+            if (!CGRectIsEmpty(target) && [view drawViewHierarchyInRect: target afterScreenUpdates: NO]) {
+                drawn = YES;
+            }
+        } @catch (NSException *exception) {}
+    }
+    return drawn;
+}
+
++ (BOOL)isGleapOverlayView:(UIView *)view {
+    return [view isKindOfClass: [GleapFeedbackButton class]]
+        || [view isKindOfClass: [GleapBanner class]]
+        || [view isKindOfClass: [GleapModal class]]
+        || [view isKindOfClass: [GleapNotificationsContainerView class]];
 }
 
 #pragma mark - Masks
