@@ -51,16 +51,11 @@
     NSMutableArray * files = [[NSMutableArray alloc] init];
     for (NSUInteger i = 0; i < steps.count; i++) {
         NSDictionary *currentStep = [steps objectAtIndex: i];
-        UIImage *currentImage = [currentStep objectForKey: @"image"];
-        
-        // Resize screenshot
-        CGSize size = CGSizeMake(currentImage.size.width * 0.5, currentImage.size.height * 0.5);
-        UIGraphicsBeginImageContext(size);
-        [currentImage drawInRect:CGRectMake(0, 0, size.width, size.height)];
-        UIImage *destImage = UIGraphicsGetImageFromCurrentImageContext();
-        UIGraphicsEndImageContext();
-        
-        NSData *imageData = UIImageJPEGRepresentation(destImage, 0.9);
+        // The replay keeps its frames already encoded (see GleapReplayHelper); a plain image is encoded here.
+        NSData *imageData = [currentStep objectForKey: @"imageData"];
+        if (![imageData isKindOfClass: [NSData class]]) {
+            imageData = [self replayFrameDataForImage: [currentStep objectForKey: @"image"]];
+        }
         NSString *filename = [NSString stringWithFormat: @"step_%lu", (unsigned long)i];
         
         if (imageData != nil) {
@@ -81,6 +76,7 @@
                 NSString *currentImageUrl = [fileUrls objectAtIndex: i];
                 [currentStep setObject: currentImageUrl forKey: @"url"];
                 [currentStep removeObjectForKey: @"image"];
+                [currentStep removeObjectForKey: @"imageData"];
                 [replayArray addObject: currentStep];
             }
             
@@ -89,6 +85,20 @@
             return completion(false, nil);
         }
     }];
+}
+
++ (NSData *)replayFrameDataForImage: (UIImage *)image {
+    if (![image isKindOfClass: [UIImage class]]) {
+        return nil;
+    }
+    // Resize screenshot
+    CGSize size = CGSizeMake(image.size.width * 0.5, image.size.height * 0.5);
+    UIGraphicsBeginImageContext(size);
+    [image drawInRect:CGRectMake(0, 0, size.width, size.height)];
+    UIImage *destImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return UIImageJPEGRepresentation(destImage, 0.9);
 }
 
 /*

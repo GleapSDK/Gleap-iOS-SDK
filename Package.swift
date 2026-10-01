@@ -24,6 +24,10 @@ let package = Package(
            publicHeadersPath: "ObjCSources",
            cSettings: [
               .headerSearchPath("Internal"),
+           ],
+           linkerSettings: [
+              // gzip for the logs sent for capture requests.
+              .linkedLibrary("z"),
            ]
         ),
         .testTarget(

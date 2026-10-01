@@ -22,6 +22,8 @@
 #import "GleapUIHelper.h"
 #import "GleapPreFillHelper.h"
 #import "GleapAgentToolHelper.h"
+#import "GleapCaptureManager.h"
+#import <objc/runtime.h>
 
 // How long we may take to answer the widget's `collect-ticket-data` request.
 // The widget drops the whole payload once its own timeout elapses, so this stays
@@ -29,11 +31,51 @@
 // messenger).
 static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 
+static char kGleapPanelCompletionKey;
+
+/// Calls the completion handler of a JavaScript panel exactly once: when it is answered, when it cannot be shown,
+/// or at the latest when the panel goes away unanswered (WebKit throws when a handler is never called).
+GLEAP_INTERNAL
+@interface GleapPanelCompletion : NSObject
+- (instancetype)initWithHandler:(void (^)(void))handler;
+- (void)call;
+@end
+
+@implementation GleapPanelCompletion {
+    void (^_handler)(void);
+}
+
+- (instancetype)initWithHandler:(void (^)(void))handler {
+    self = [super init];
+    if (self) {
+        _handler = [handler copy];
+    }
+    return self;
+}
+
+- (void)call {
+    void (^handler)(void) = _handler;
+    _handler = nil;
+    if (handler != nil) {
+        handler();
+    }
+}
+
+- (void)dealloc {
+    [self call];
+}
+
+@end
+
 @interface GleapFrameManagerViewController ()
 
 @property (retain, nonatomic) WKWebView *webView;
 @property (retain, nonatomic) UIView *loadingView;
 @property (retain, nonatomic) UIActivityIndicatorView *loadingActivityView;
+// The page's web content process ended while the widget was off screen: it loads again once the widget is back.
+@property (assign, nonatomic) BOOL needsReload;
+// Loaded again after its web content process ended: the next ping brings the capture state back.
+@property (assign, nonatomic) BOOL reloadedAfterTermination;
 
 @end
 
@@ -146,6 +188,14 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 - (void)viewWillDisappear:(BOOL)animated {
     [super viewWillDisappear: animated];
     [self invalidateTimeout];
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear: animated];
+    if (self.needsReload) {
+        self.needsReload = NO;
+        [self reloadWidgetPage];
+    }
 }
 
 - (void)closeWidget: (void (^)(void))completion {
@@ -306,12 +356,17 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
         [self handleWidgetEvent: messageData];
     } else if ([name isEqualToString: @"send-feedback"]) {
         [self sendFeedbackFromWidget: messageData];
+    } else if ([name hasPrefix: @"capture-"]) {
+        // capture-start, capture-cancel, capture-done, capture-editor.
+        [[GleapCaptureManager sharedInstance] handleWidgetMessage: name data: messageData];
     }
 }
 
 - (void)widgetDidConnect {
     [self invalidateTimeout];
     self.connected = YES;
+    BOOL reloaded = self.reloadedAfterTermination;
+    self.reloadedAfterTermination = NO;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
         [self stopLoading];
     });
@@ -322,10 +377,25 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
     [self sendSessionUpdate];
     [self sendPreFillData];
     [self sendScreenshotUpdate];
+    [self sendCaptureCapabilities];
+    if (reloaded) {
+        [[GleapCaptureManager sharedInstance] widgetPageDidReload];
+    }
     
     if (self.delegate != nil && [self.delegate respondsToSelector:@selector(connected)]) {
         [self.delegate connected];
     }
+}
+
+// What the app can capture for the widget's capture requests; widgets that never hear this offer uploads only.
+- (void)sendCaptureCapabilities {
+    @try {
+        [self sendMessageWithData: @{
+            @"name": @"capture-capabilities",
+            @"data": [[GleapCaptureManager sharedInstance] widgetCapabilities]
+        }];
+    }
+    @catch(id exception) {}
 }
 
 - (void)notifyToolExecution:(NSDictionary *)toolExecution {
@@ -474,15 +544,45 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 
 - (void)webView:(WKWebView *)webView runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))completionHandler
 {
-    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:message
-                                                                             message:nil
-                                                                      preferredStyle:UIAlertControllerStyleAlert];
-    [alertController addAction:[UIAlertAction actionWithTitle:@"OK"
-                                                        style:UIAlertActionStyleCancel
-                                                      handler:^(UIAlertAction *action) {
-                                                          completionHandler();
-                                                      }]];
-    [self presentViewController:alertController animated:YES completion:^{}];
+    // Shown when possible; otherwise (off screen, or while the widget is on its way in or out, when UIKit refuses to
+    // present) the page goes on at once.
+    GleapPanelCompletion *completion = [[GleapPanelCompletion alloc] initWithHandler: completionHandler];
+    @try {
+        if (![self canPresentPanel]) {
+            [completion call];
+            return;
+        }
+        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:message
+                                                                                 message:nil
+                                                                          preferredStyle:UIAlertControllerStyleAlert];
+        [alertController addAction:[UIAlertAction actionWithTitle:@"OK"
+                                                            style:UIAlertActionStyleCancel
+                                                          handler:^(UIAlertAction *action) {
+                                                              [completion call];
+                                                          }]];
+        // Dismissed without a tap (the widget minimized or closed under it): the handler runs when the alert goes.
+        objc_setAssociatedObject(alertController, &kGleapPanelCompletionKey, completion, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        [self presentViewController:alertController animated:YES completion:^{}];
+        // A refused presentation reports nothing.
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            if (alertController.presentingViewController == nil && !alertController.isBeingPresented) {
+                [completion call];
+            }
+        });
+    } @catch (NSException *exception) {
+        [completion call];
+    }
+}
+
+// The widget is on screen and settled, with nothing presented over it.
+- (BOOL)canPresentPanel {
+    UIViewController *container = self.navigationController ?: self;
+    return self.view.window != nil
+        && ![GleapWidgetManager sharedInstance].widgetMinimized
+        && container.presentingViewController != nil
+        && !container.isBeingPresented
+        && !container.isBeingDismissed
+        && self.presentedViewController == nil;
 }
 
 - (WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures {
@@ -491,7 +591,9 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 }
 
 - (void)createWebView {
-    WKWebViewConfiguration *webConfig = [GleapWebViewSupport configurationWithMessageHandler: self name: @"gleapCallback" allowsInlineMediaPlayback: NO];
+    // Videos in the conversation (screen recordings, video attachments) play inline, as in the banner and modal;
+    // playback still needs a tap (WebKit's default: media requires a user action).
+    WKWebViewConfiguration *webConfig = [GleapWebViewSupport configurationWithMessageHandler: self name: @"gleapCallback" allowsInlineMediaPlayback: YES];
     self.webView = [[WKWebView alloc] initWithFrame:self.view.frame configuration: webConfig];
     [GleapWebViewSupport makeWebViewTransparent: self.webView];
     [GleapWebViewSupport disableScrollingInWebView: self.webView];
@@ -536,6 +638,41 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 
 - (void)webView:(WKWebView *)webView didFailNavigation:(WKNavigation *)navigation withError:(NSError *)error {
     [self loadingFailed: error];
+}
+
+// iOS ends a web content process under memory pressure (likely while the widget is minimized for a capture): the
+// page is gone and the widget would stay blank.
+- (void)webViewWebContentProcessDidTerminate:(WKWebView *)webView {
+    @try {
+        NSLog(@"[GLEAP_SDK] The widget page stopped (its web content process ended); it loads again.");
+        self.connected = NO;
+        if (self.view.window == nil) {
+            self.needsReload = YES;
+            return;
+        }
+        [self reloadWidgetPage];
+    } @catch (NSException *exception) {}
+}
+
+- (void)reloadWidgetPage {
+    self.reloadedAfterTermination = YES;
+    self.connected = NO;
+    self.view.userInteractionEnabled = NO;
+    if (self.loadingView != nil) {
+        self.loadingView.hidden = NO;
+        self.loadingView.alpha = 1.0;
+        [self.view bringSubviewToFront: self.loadingView];
+    }
+    [self invalidateTimeout];
+    self.timeoutTimer = [NSTimer scheduledTimerWithTimeInterval: 15
+                                         target: self
+                                       selector: @selector(requestTimedOut:)
+                                       userInfo: nil
+                                        repeats: NO];
+    NSURL *url = [NSURL URLWithString: Gleap.sharedInstance.frameUrl];
+    if (url != nil) {
+        [self.webView loadRequest: [NSURLRequest requestWithURL: url]];
+    }
 }
 
 - (void)requestTimedOut:(id)sender {

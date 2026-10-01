@@ -36,6 +36,8 @@ static NSUInteger const kGleapMaxErrorLogLength = 5000;
 static NSUInteger const kGleapMaxPendingLineBytes = 16384;
 
 static os_unfair_lock gleapConsoleLock = OS_UNFAIR_LOCK_INIT;
+// Reports and logs requests read the unified log on different threads at the same time.
+static os_unfair_lock gleapOSLogStoreLock = OS_UNFAIR_LOCK_INIT;
 
 @interface GleapConsoleLogHelper ()
 @property (nonatomic, strong) NSMutableArray<NSDictionary *> *capturedLines;
@@ -250,16 +252,28 @@ static BOOL GleapDebuggerAttached(void) {
  the reverse option, so the enumeration runs forward from a recent position and keeps the
  last entries it sees.
  */
+// Created once, on first use, by whichever thread reads the unified log first.
+- (OSLogStore *)sharedOSLogStore API_AVAILABLE(ios(15.0)) {
+    os_unfair_lock_lock(&gleapOSLogStoreLock);
+    OSLogStore *store = self.osLogStore;
+    if (store == nil) {
+        NSError *error = nil;
+        store = [OSLogStore storeWithScope: OSLogStoreCurrentProcessIdentifier error: &error];
+        if (error != nil) {
+            store = nil;
+        }
+        self.osLogStore = store;
+    }
+    os_unfair_lock_unlock(&gleapOSLogStoreLock);
+    return store;
+}
+
 - (NSArray *)readOSLogEntries {
     if (@available(iOS 15.0, *)) {
         NSError *error = nil;
-        OSLogStore *store = self.osLogStore;
+        OSLogStore *store = [self sharedOSLogStore];
         if (store == nil) {
-            store = [OSLogStore storeWithScope: OSLogStoreCurrentProcessIdentifier error: &error];
-            if (store == nil || error != nil) {
-                return @[];
-            }
-            self.osLogStore = store;
+            return @[];
         }
 
         NSDate *from = [NSDate dateWithTimeIntervalSinceNow: -kGleapOSLogLookback];
@@ -409,8 +423,9 @@ static BOOL GleapDebuggerAttached(void) {
         return;
     }
 
-    // The SDK's own output while the widget is open is not part of the app's story.
-    if ([[GleapWidgetManager sharedInstance] isOpened]) {
+    // The SDK's own output while the widget is open is not part of the app's story. While it is minimized for a
+    // capture the user is in the app again, and its output is exactly what the capture is about.
+    if ([[GleapWidgetManager sharedInstance] isWidgetVisible]) {
         return;
     }
 

@@ -15,6 +15,7 @@
 #import "GleapWebSocketHelper.h"
 #import "GleapAPIClient.h"
 #import "GleapPingBackoff.h"
+#import "GleapCaptureManager.h"
 
 // At most this many events wait for a ping; the oldest ones (other than a session start) make room.
 static NSUInteger const kGleapMaxQueuedEvents = 500;
@@ -146,7 +147,9 @@ static NSUInteger const kGleapMaxPingBytes = 256 * 1024;
         GleapSession *session = GleapSessionHelper.sharedInstance.currentSession;
         if (session != nil && session.gleapId != nil && session.gleapHash != nil) {
             self.webSocketEnabled = YES;
-            NSString *urlToConnectTo = [NSString stringWithFormat: @"%@?gleapId=%@&gleapHash=%@&apiKey=%@&sdkVersion=%@", [Gleap sharedInstance].wsApiUrl, session.gleapId, session.gleapHash, [Gleap sharedInstance].token, SDK_VERSION];
+            // What the SDK can do for capture requests (the server only asks for what it lists).
+            NSString *capabilities = [[[GleapCaptureManager sharedInstance] sdkCapabilities] componentsJoinedByString: @","];
+            NSString *urlToConnectTo = [NSString stringWithFormat: @"%@?gleapId=%@&gleapHash=%@&apiKey=%@&sdkVersion=%@%@", [Gleap sharedInstance].wsApiUrl, session.gleapId, session.gleapHash, [Gleap sharedInstance].token, SDK_VERSION, capabilities.length > 0 ? [@"&caps=" stringByAppendingString: capabilities] : @""];
             [[GleapWebSocketHelper sharedInstance] connectToURL: [NSURL URLWithString: urlToConnectTo]];
         }
         
@@ -177,7 +180,7 @@ static NSUInteger const kGleapMaxPingBytes = 256 * 1024;
         currentViewControllerName != nil
         && ![currentViewControllerName isEqualToString: self.lastPageName]
         && Gleap.sharedInstance.applicationType == NATIVE
-        && ![[GleapWidgetManager sharedInstance] isOpened]
+        && ![[GleapWidgetManager sharedInstance] isWidgetVisible]
     ) {
         self.lastPageName = currentViewControllerName;
         
@@ -237,6 +240,7 @@ static NSUInteger const kGleapMaxPingBytes = 256 * 1024;
         @"ws": @(self.webSocketEnabled),
         @"type": @"ios",
         @"sdkVersion": SDK_VERSION,
+        @"caps": [[GleapCaptureManager sharedInstance] sdkCapabilities],
     };
     
     NSData *jsonBodyData = nil;
@@ -269,10 +273,15 @@ static NSUInteger const kGleapMaxPingBytes = 256 * 1024;
         [self removeSentEvents: sentEvents];
         
         // Only a delivered ping carries actions and the unread count; an error answer would reset the badge.
-        if (!self.webSocketEnabled && data != nil) {
-            id actionData = [NSJSONSerialization JSONObjectWithData: data options: 0 error: nil];
-            if ([actionData isKindOfClass: [NSDictionary class]]) {
+        id actionData = data != nil ? [NSJSONSerialization JSONObjectWithData: data options: 0 error: nil] : nil;
+        if ([actionData isKindOfClass: [NSDictionary class]]) {
+            if (!self.webSocketEnabled) {
                 [self parseUpdate: actionData];
+            }
+            // Pending log requests, for when the websocket does not deliver them.
+            id captureRequests = [(NSDictionary *)actionData objectForKey: @"cr"];
+            if ([captureRequests isKindOfClass: [NSArray class]] && [captureRequests count] > 0) {
+                [[GleapCaptureManager sharedInstance] handleCaptureRequests: captureRequests];
             }
         }
         
