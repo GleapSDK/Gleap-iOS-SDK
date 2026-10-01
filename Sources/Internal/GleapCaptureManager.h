@@ -19,6 +19,9 @@ GLEAP_INTERNAL
 
 + (instancetype)sharedInstance;
 
+/// Deletes what captures of an earlier run left behind (the app ended mid-capture). Once at SDK start, any thread.
++ (void)removeLeftoverFiles;
+
 #pragma mark Settings (any thread)
 
 /// Screenshots and recordings for the widget (default YES). Off: the widget offers file uploads only.

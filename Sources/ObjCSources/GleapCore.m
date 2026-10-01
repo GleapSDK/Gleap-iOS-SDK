@@ -226,6 +226,9 @@
         NSLog(@"[GLEAP_SDK] Gleap has already been initialized.");
     }
     
+    if (![Gleap sharedInstance].initialized) {
+        [GleapCaptureManager removeLeftoverFiles];
+    }
     [Gleap sharedInstance].initialized = YES;
     [Gleap sharedInstance].token = token;
     

@@ -28,6 +28,9 @@ static NSUInteger const kGleapMaxLogsAttempts = 3;
 // ...waiting this long before the second and the third try (about ten minutes in all). Then it is reported `failed`.
 static NSTimeInterval const kGleapLogsRetryDelays[] = { 120, 480 };
 static NSString * const kGleapRecordingFileName = @"screen-recording.mp4";
+// Recordings and upload bodies live in tmp/GleapCapture/<capture>/ while a capture runs.
+static NSString * const kGleapCaptureDirectoryName = @"GleapCapture";
+static NSString * const kGleapLeftoverPrefix = @"GleapCapture-leftover-";
 
 // The step of a logs request an answer belongs to.
 typedef NS_ENUM(NSInteger, GleapLogsStep) {
@@ -89,7 +92,6 @@ GLEAP_INTERNAL
 @property (nonatomic, strong) NSMutableDictionary<NSString *, NSNumber *> *logRequestAttempts;
 @property (nonatomic, strong) NSMutableDictionary<NSString *, NSDate *> *logRequestRetryAt;
 @property (nonatomic, strong) NSMutableOrderedSet<NSString *> *attachedLogRequests;
-@property (nonatomic, assign) BOOL removedStaleFiles;
 // The last capture-image (until the widget is done with its request) and the last capture-state for the widget. They
 // go to the widget again when its page had to be loaded again (its web content process ended).
 @property (nonatomic, copy, nullable) NSDictionary *pendingImageMessage;
@@ -356,7 +358,6 @@ GLEAP_INTERNAL
     session.state = GleapCaptureSessionStateMinimizing;
     session.workDirectory = [[self captureDirectory] URLByAppendingPathComponent: [NSUUID UUID].UUIDString isDirectory: YES];
     self.session = session;
-    [self removeStaleFilesKeeping: session.workDirectory];
 
     __weak typeof(self) weakSelf = self;
     [[GleapWidgetManager sharedInstance] minimizeWidgetWithCompletion:^(BOOL minimized, UIWindowScene * _Nullable scene) {
@@ -1130,7 +1131,7 @@ GLEAP_INTERNAL
 }
 
 - (NSURL *)captureDirectory {
-    return [NSURL fileURLWithPath: [NSTemporaryDirectory() stringByAppendingPathComponent: @"GleapCapture"] isDirectory: YES];
+    return [NSURL fileURLWithPath: [NSTemporaryDirectory() stringByAppendingPathComponent: kGleapCaptureDirectoryName] isDirectory: YES];
 }
 
 - (void)removeItemAtURL:(NSURL *)url {
@@ -1142,22 +1143,26 @@ GLEAP_INTERNAL
     });
 }
 
-// Recordings of an earlier run that ended mid-capture (the app was terminated) are removed once.
-- (void)removeStaleFilesKeeping:(NSURL *)keep {
-    if (self.removedStaleFiles) {
-        return;
-    }
-    self.removedStaleFiles = YES;
-    NSURL *root = [self captureDirectory];
-    NSString *keepName = keep.lastPathComponent;
-    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
-        NSArray<NSURL *> *children = [[NSFileManager defaultManager] contentsOfDirectoryAtURL: root includingPropertiesForKeys: nil options: 0 error: nil];
-        for (NSURL *child in children) {
-            if (![child.lastPathComponent isEqualToString: keepName]) {
-                [[NSFileManager defaultManager] removeItemAtURL: child error: nil];
++ (void)removeLeftoverFiles {
+    @try {
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        NSString *temporary = NSTemporaryDirectory();
+        NSString *directory = [temporary stringByAppendingPathComponent: kGleapCaptureDirectoryName];
+        if ([fileManager fileExistsAtPath: directory]) {
+            // Moved aside at once (a capture right after starts in a new folder), deleted in the background.
+            NSString *aside = [temporary stringByAppendingPathComponent: [kGleapLeftoverPrefix stringByAppendingString: [NSUUID UUID].UUIDString]];
+            if (![fileManager moveItemAtPath: directory toPath: aside error: nil]) {
+                [fileManager removeItemAtPath: directory error: nil];
             }
         }
-    });
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0), ^{
+            for (NSString *name in [fileManager contentsOfDirectoryAtPath: temporary error: nil]) {
+                if ([name hasPrefix: kGleapLeftoverPrefix]) {
+                    [fileManager removeItemAtPath: [temporary stringByAppendingPathComponent: name] error: nil];
+                }
+            }
+        });
+    } @catch (NSException *exception) {}
 }
 
 @end
