@@ -6,9 +6,13 @@
 #import "GleapCaptureRenderer.h"
 #import "GleapCore.h"
 #import "GleapWindowChecker.h"
+#import <QuartzCore/QuartzCore.h>
 
 // A view hierarchy walk for secure text fields stops after this many views per window.
 static NSUInteger const kGleapMaxViewsPerMaskWalk = 20000;
+// Points added on every side of a mask: antialiased edges, and a little play between the masks' geometry and the
+// snapshot of the screen.
+static CGFloat const kGleapMaskPadding = 3.0;
 
 @implementation GleapCaptureRenderer
 
@@ -90,17 +94,43 @@ static NSUInteger const kGleapMaxViewsPerMaskWalk = 20000;
     id<UICoordinateSpace> space = scene.coordinateSpace;
     BOOL isFlutter = [Gleap sharedInstance].applicationType == FLUTTER;
     for (UIWindow *window in windows) {
+        CGRect frame = CGRectNull;
+        NSArray<UIView *> *targets = nil;
+        NSArray<NSValue *> *before = nil;
         @try {
-            CGRect frame = [window convertRect: window.bounds toCoordinateSpace: space];
+            frame = [window convertRect: window.bounds toCoordinateSpace: space];
             frame = CGRectOffset(frame, -canvas.origin.x, -canvas.origin.y);
             if (CGRectIsEmpty(frame) || !CGRectIntersectsRect(frame, CGRectMake(0, 0, canvas.size.width, canvas.size.height))) {
                 continue;
             }
+            // The snapshot shows the screen of this very moment, mid-animation. Core Animation reports the on-screen
+            // (presentation) geometry of the moment the run loop turn began, though, which can be well before the
+            // snapshot (windows drawn earlier take time). A flush starts a fresh transaction, so the geometry taken
+            // right before and right after the snapshot brackets what it shows.
+            [CATransaction flush];
+            targets = [self maskTargetsInWindow: window maskedViews: maskedViews];
+            before = [self presentationRectsOfViews: targets inWindow: window];
+        } @catch (NSException *exception) {
+            // Without knowing what to mask, the window is left out.
+            NSLog(@"[GLEAP_SDK] Could not capture a window: %@", exception.reason);
+            continue;
+        }
+        @try {
             [self drawWindow: window inRect: frame isFlutter: isFlutter context: context];
-            [self fillMasksOfWindow: window maskedViews: maskedViews space: space canvas: canvas context: context];
         } @catch (NSException *exception) {
             NSLog(@"[GLEAP_SDK] Could not capture a window: %@", exception.reason);
         }
+        if (targets.count == 0) {
+            continue;
+        }
+        NSArray<NSValue *> *after = nil;
+        @try {
+            [CATransaction flush];
+            after = [self presentationRectsOfViews: targets inWindow: window];
+        } @catch (NSException *exception) {
+            after = nil;
+        }
+        [self fillMasksOfViews: targets inWindow: window windowFrame: frame before: before after: after space: space canvas: canvas context: context];
     }
 }
 
@@ -144,20 +174,125 @@ static NSUInteger const kGleapMaxViewsPerMaskWalk = 20000;
 
 #pragma mark - Masks
 
-+ (void)fillMasksOfWindow:(UIWindow *)window
-              maskedViews:(NSArray<UIView *> *)maskedViews
-                    space:(id<UICoordinateSpace>)space
-                   canvas:(CGRect)canvas
-                  context:(CGContextRef)context {
-    NSMutableArray<NSValue *> *rects = [NSMutableArray array];
+// The masked views and sensitive text fields of `window` that may be on screen.
++ (NSArray<UIView *> *)maskTargetsInWindow:(UIWindow *)window maskedViews:(NSArray<UIView *> *)maskedViews {
+    NSMutableArray<UIView *> *targets = [NSMutableArray array];
     for (UIView *view in maskedViews) {
-        if (view.window == window && [self isViewVisible: view]) {
-            [rects addObject: [NSValue valueWithCGRect: [self rectOfView: view inSpace: space canvas: canvas]]];
+        if (view.window == window && [self isPossiblyVisible: view]) {
+            [targets addObject: view];
         }
     }
-    [self collectSensitiveInputRectsInWindow: window space: space canvas: canvas into: rects];
-    if (rects.count == 0) {
-        return;
+    NSMutableArray<UIView *> *stack = [NSMutableArray arrayWithObject: window];
+    NSUInteger visited = 0;
+    while (stack.count > 0 && visited < kGleapMaxViewsPerMaskWalk) {
+        UIView *view = stack.lastObject;
+        [stack removeLastObject];
+        visited++;
+        if ([self isHiddenNow: view]) {
+            continue;
+        }
+        if ([self isSensitiveTextInput: view]) {
+            if (![self hasNoArea: view] && ![targets containsObject: view]) {
+                [targets addObject: view];
+            }
+            continue;
+        }
+        [stack addObjectsFromArray: view.subviews];
+    }
+    return targets;
+}
+
+// Hidden in the model (where a running animation ends) as well as on screen (where it is right now): a view fading
+// out is already invisible in the model but still on screen.
++ (BOOL)isHiddenNow:(UIView *)view {
+    if (!view.isHidden && view.alpha >= 0.01) {
+        return NO;
+    }
+    CALayer *presentation = view.layer.presentationLayer;
+    return presentation == nil || presentation.isHidden || presentation.opacity < 0.01;
+}
+
++ (BOOL)hasNoArea:(UIView *)view {
+    if (!CGRectIsEmpty(view.bounds)) {
+        return NO;
+    }
+    CALayer *presentation = view.layer.presentationLayer;
+    return presentation == nil || CGRectIsEmpty(presentation.bounds);
+}
+
++ (BOOL)isPossiblyVisible:(UIView *)view {
+    if ([self hasNoArea: view]) {
+        return NO;
+    }
+    for (UIView *current = view; current != nil; current = current.superview) {
+        if ([self isHiddenNow: current]) {
+            return NO;
+        }
+    }
+    return YES;
+}
+
+// Where each view is on screen right now, in its window's coordinates: its presentation layer, placed by the
+// presentation layers above it. CGRectNull for a view that has none (not on screen yet).
++ (NSArray<NSValue *> *)presentationRectsOfViews:(NSArray<UIView *> *)views inWindow:(UIWindow *)window {
+    NSMutableArray<NSValue *> *rects = [NSMutableArray arrayWithCapacity: views.count];
+    for (UIView *view in views) {
+        CGRect rect = CGRectNull;
+        @try {
+            CALayer *layer = view.layer.presentationLayer;
+            // The window's layer is not the root of the tree (iOS 26 hosts windows in transform layers): the
+            // presentation tree is walked up to the window.
+            CALayer *windowLayer = nil;
+            for (CALayer *current = layer; current != nil; current = current.superlayer) {
+                if (current.modelLayer == window.layer) {
+                    windowLayer = current;
+                    break;
+                }
+            }
+            if (layer != nil && windowLayer != nil) {
+                rect = [layer convertRect: layer.bounds toLayer: windowLayer];
+            }
+        } @catch (NSException *exception) {
+            rect = CGRectNull;
+        }
+        if (!CGRectIsNull(rect) && (!isfinite(rect.origin.x) || !isfinite(rect.origin.y) || !isfinite(rect.size.width) || !isfinite(rect.size.height))) {
+            rect = CGRectNull;
+        }
+        [rects addObject: [NSValue valueWithCGRect: rect]];
+    }
+    return rects;
+}
+
+// Every view is blacked out where its model puts it (where a running animation ends) and wherever its presentation
+// was from right before to right after the snapshot. Should that fail, the whole window is.
++ (void)fillMasksOfViews:(NSArray<UIView *> *)views
+                inWindow:(UIWindow *)window
+             windowFrame:(CGRect)windowFrame
+                  before:(NSArray<NSValue *> *)before
+                   after:(NSArray<NSValue *> *)after
+                   space:(id<UICoordinateSpace>)space
+                  canvas:(CGRect)canvas
+                 context:(CGContextRef)context {
+    NSMutableArray<NSValue *> *rects = [NSMutableArray arrayWithCapacity: views.count * 2];
+    @try {
+        [views enumerateObjectsUsingBlock:^(UIView *view, NSUInteger index, BOOL *stop) {
+            [rects addObject: [NSValue valueWithCGRect: [view convertRect: view.bounds toView: window]]];
+            CGRect first = index < before.count ? before[index].CGRectValue : CGRectNull;
+            CGRect second = index < after.count ? after[index].CGRectValue : CGRectNull;
+            CGRect swept = CGRectUnion(first, second);
+            if (!CGRectIsNull(swept)) {
+                [rects addObject: [NSValue valueWithCGRect: swept]];
+            }
+        }];
+        for (NSUInteger index = 0; index < rects.count; index++) {
+            CGRect rect = [window convertRect: rects[index].CGRectValue toCoordinateSpace: space];
+            rect = CGRectOffset(rect, -canvas.origin.x, -canvas.origin.y);
+            rects[index] = [NSValue valueWithCGRect: CGRectInset(rect, -kGleapMaskPadding, -kGleapMaskPadding)];
+        }
+    } @catch (NSException *exception) {
+        NSLog(@"[GLEAP_SDK] Could not place the masks of a window: %@", exception.reason);
+        [rects removeAllObjects];
+        [rects addObject: [NSValue valueWithCGRect: windowFrame]];
     }
     CGContextSaveGState(context);
     CGContextSetFillColorWithColor(context, [UIColor blackColor].CGColor);
@@ -165,48 +300,6 @@ static NSUInteger const kGleapMaxViewsPerMaskWalk = 20000;
         CGContextFillRect(context, value.CGRectValue);
     }
     CGContextRestoreGState(context);
-}
-
-+ (BOOL)isViewVisible:(UIView *)view {
-    if (CGRectIsEmpty(view.bounds)) {
-        return NO;
-    }
-    for (UIView *current = view; current != nil; current = current.superview) {
-        if (current.isHidden || current.alpha < 0.01) {
-            return NO;
-        }
-    }
-    return YES;
-}
-
-+ (CGRect)rectOfView:(UIView *)view inSpace:(id<UICoordinateSpace>)space canvas:(CGRect)canvas {
-    CGRect rect = [view convertRect: view.bounds toCoordinateSpace: space];
-    rect = CGRectOffset(rect, -canvas.origin.x, -canvas.origin.y);
-    // A point more on each side, so no antialiased edge of the content shows.
-    return CGRectInset(rect, -1.0, -1.0);
-}
-
-+ (void)collectSensitiveInputRectsInWindow:(UIWindow *)window
-                                     space:(id<UICoordinateSpace>)space
-                                    canvas:(CGRect)canvas
-                                      into:(NSMutableArray<NSValue *> *)rects {
-    NSMutableArray<UIView *> *stack = [NSMutableArray arrayWithObject: window];
-    NSUInteger visited = 0;
-    while (stack.count > 0 && visited < kGleapMaxViewsPerMaskWalk) {
-        UIView *view = stack.lastObject;
-        [stack removeLastObject];
-        visited++;
-        if (view.isHidden || view.alpha < 0.01) {
-            continue;
-        }
-        if ([self isSensitiveTextInput: view]) {
-            if (!CGRectIsEmpty(view.bounds)) {
-                [rects addObject: [NSValue valueWithCGRect: [self rectOfView: view inSpace: space canvas: canvas]]];
-            }
-            continue;
-        }
-        [stack addObjectsFromArray: view.subviews];
-    }
 }
 
 + (BOOL)isSensitiveTextInput:(UIView *)view {

@@ -15,6 +15,8 @@ final class GleapCaptureTests: XCTestCase {
     private typealias ObjectToObject = @convention(c) (AnyClass, Selector, AnyObject?) -> AnyObject?
     private typealias BundleToData = @convention(c) (AnyClass, Selector, NSDictionary, UInt) -> NSData?
     private typealias WriteMultipart = @convention(c) (AnyClass, Selector, NSURL, NSString, NSString, NSString, NSURL, UnsafeMutablePointer<NSError?>?) -> Bool
+    private typealias MaskTargets = @convention(c) (AnyClass, Selector, UIWindow, NSArray) -> NSArray
+    private typealias PresentationRects = @convention(c) (AnyClass, Selector, NSArray, UIWindow) -> NSArray
 
     private func implementation<T>(_ className: String, _ selectorName: String, as type: T.Type) throws -> (AnyClass, Selector, T) {
         let cls: AnyClass = try XCTUnwrap(NSClassFromString(className), "\(className) is missing")
@@ -89,6 +91,63 @@ final class GleapCaptureTests: XCTestCase {
         let nested = try XCTUnwrap(safe["nested"] as? [String: Any])
         XCTAssertEqual(Array(nested.keys), ["ok"], "non-string keys are left out, as in reports")
         XCTAssertEqual(nested["ok"] as? [String], ["https://gleap.io", "<3 bytes>"])
+    }
+
+    // MARK: - Masks
+
+    /// Frames show the screen mid-animation. Masked content stays covered where it is on screen, not only where its
+    /// model says it ends: a masked view sliding, a masked view fading out (already invisible in its model) and a
+    /// password field inside a container that moves.
+    func testMasksCoverViewsWhereTheyAreOnScreenMidAnimation() throws {
+        let (cls, targetsSelector, maskTargets): (AnyClass, Selector, MaskTargets) = try implementation("GleapCaptureRenderer", "maskTargetsInWindow:maskedViews:", as: MaskTargets.self)
+        let (_, rectsSelector, presentationRects): (AnyClass, Selector, PresentationRects) = try implementation("GleapCaptureRenderer", "presentationRectsOfViews:inWindow:", as: PresentationRects.self)
+
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 400, height: 800))
+        window.isHidden = false
+        defer { window.isHidden = true }
+        let sliding = UIView(frame: CGRect(x: 250, y: 100, width: 100, height: 50))
+        let fading = UIView(frame: CGRect(x: 0, y: 300, width: 100, height: 50))
+        fading.alpha = 0
+        let gone = UIView(frame: CGRect(x: 0, y: 400, width: 100, height: 50))
+        gone.alpha = 0
+        let container = UIView(frame: window.bounds)
+        let password = UITextField(frame: CGRect(x: 0, y: 500, width: 200, height: 40))
+        password.isSecureTextEntry = true
+        container.addSubview(password)
+        [sliding, fading, gone, container].forEach { window.addSubview($0) }
+
+        // Each animation stands still halfway through.
+        func freezeHalfway(_ layer: CALayer, _ keyPath: String, from: Any, to: Any) {
+            let animation = CABasicAnimation(keyPath: keyPath)
+            animation.fromValue = from
+            animation.toValue = to
+            animation.duration = 1
+            animation.beginTime = 1e-9
+            animation.fillMode = .both
+            animation.isRemovedOnCompletion = false
+            layer.speed = 0
+            layer.timeOffset = 0.5
+            layer.add(animation, forKey: "test")
+        }
+        freezeHalfway(sliding.layer, "position.x", from: 50, to: 300)
+        freezeHalfway(fading.layer, "opacity", from: 1, to: 0)
+        freezeHalfway(container.layer, "transform.translation.y", from: 400, to: 0)
+        CATransaction.flush()
+        let onScreen = try XCTUnwrap(sliding.layer.presentation(), "the test needs a presentation tree")
+        XCTAssertEqual(onScreen.position.x, 175, accuracy: 0.5)
+
+        let targets = maskTargets(cls, targetsSelector, window, [sliding, fading, gone] as NSArray) as! [UIView]
+        XCTAssertTrue(targets.contains(sliding))
+        XCTAssertTrue(targets.contains(fading), "invisible in the model, but still on screen")
+        XCTAssertTrue(targets.contains(password), "secure text fields are masked without being registered")
+        XCTAssertFalse(targets.contains(gone), "nothing to mask for a view that is not on screen")
+
+        let rects = (presentationRects(cls, rectsSelector, targets as NSArray, window) as! [NSValue]).map { $0.cgRectValue }
+        func rect(of view: UIView) -> CGRect { rects[targets.firstIndex(of: view)!] }
+        XCTAssertEqual(rect(of: sliding).minX, 125, accuracy: 0.5, "halfway, not where the slide ends (250)")
+        XCTAssertEqual(rect(of: sliding).width, 100, accuracy: 0.5)
+        XCTAssertEqual(rect(of: password).minY, 700, accuracy: 0.5, "moved with its container")
+        XCTAssertEqual(rect(of: fading), CGRect(x: 0, y: 300, width: 100, height: 50))
     }
 
     // MARK: - Recording upload (multipart streamed from a file)
