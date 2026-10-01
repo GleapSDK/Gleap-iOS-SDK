@@ -12,6 +12,7 @@
 #import "GleapUIHelper.h"
 #import "GleapWidgetManager.h"
 #import "GleapUploadManager.h"
+#import "GleapCaptureManager.h"
 
 // The replay keeps this many frames (5 minutes at the default 5 s interval).
 static NSUInteger const kGleapMaxReplaySteps = 60;
@@ -100,7 +101,9 @@ static NSUInteger const kGleapMaxReplaySteps = 60;
 }
 
 - (void)addReplayStep {
-    if ([[GleapWidgetManager sharedInstance] isOpened]) {
+    // Not while the widget is on screen (minimized for a capture, the app is what the user sees), and not while a
+    // screen recording runs, which is the better record and keeps the main thread to itself.
+    if ([[GleapWidgetManager sharedInstance] isWidgetVisible] || [[GleapCaptureManager sharedInstance] isRecording]) {
         return;
     }
     

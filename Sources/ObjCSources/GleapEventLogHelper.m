@@ -177,7 +177,7 @@ static NSUInteger const kGleapMaxPingBytes = 256 * 1024;
         currentViewControllerName != nil
         && ![currentViewControllerName isEqualToString: self.lastPageName]
         && Gleap.sharedInstance.applicationType == NATIVE
-        && ![[GleapWidgetManager sharedInstance] isOpened]
+        && ![[GleapWidgetManager sharedInstance] isWidgetVisible]
     ) {
         self.lastPageName = currentViewControllerName;
         

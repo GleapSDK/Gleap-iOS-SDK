@@ -33,6 +33,7 @@
 #import "GleapTagHelper.h"
 #import "GleapThemeHelper.h"
 #import "GleapURLHandler.h"
+#import "GleapCaptureManager.h"
 
 @interface Gleap ()
 
@@ -783,6 +784,38 @@
 
 + (void)handleURL: (NSString *)url {
     [GleapURLHandler handleURL: url];
+}
+
+#pragma mark - Capture requests
+
++ (void)setCaptureEnabled:(BOOL)enabled {
+    @try {
+        [GleapCaptureManager sharedInstance].captureEnabled = enabled;
+    } @catch (NSException *exception) {}
+}
+
++ (void)setRemoteLogCollectionEnabled:(BOOL)enabled {
+    @try {
+        [GleapCaptureManager sharedInstance].remoteLogCollectionEnabled = enabled;
+    } @catch (NSException *exception) {}
+}
+
++ (void)maskView:(UIView *)view {
+    @try {
+        [[GleapCaptureManager sharedInstance] maskView: view];
+    } @catch (NSException *exception) {}
+}
+
++ (void)unmaskView:(UIView *)view {
+    @try {
+        [[GleapCaptureManager sharedInstance] unmaskView: view];
+    } @catch (NSException *exception) {}
+}
+
++ (void)setLogFlushHandler:(GleapLogFlushHandler)handler {
+    @try {
+        [GleapCaptureManager sharedInstance].logFlushHandler = handler;
+    } @catch (NSException *exception) {}
 }
 
 @end

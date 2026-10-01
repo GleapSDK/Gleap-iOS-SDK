@@ -12,6 +12,14 @@
 #import "GleapScreenshotManager.h"
 #import "GleapUIOverlayHelper.h"
 #import "GleapCore.h"
+#import "GleapCaptureManager.h"
+
+@interface GleapWidgetManager ()
+@property (nonatomic, assign, readwrite) BOOL widgetMinimized;
+// The presented controller (the navigation controller around the widget) while it is minimized.
+@property (nonatomic, strong, nullable) UIViewController *minimizedController;
+@property (nonatomic, weak, nullable) UIWindowScene *minimizedScene;
+@end
 
 @implementation GleapWidgetManager
 
@@ -45,6 +53,10 @@
     return self.widgetOpened && self.gleapWidget != nil && self.gleapWidget.connected;
 }
 
+- (BOOL)isWidgetVisible {
+    return self.widgetOpened && !self.widgetMinimized;
+}
+
 - (void)sendMessageWithData:(NSDictionary *)data {
     if ([self isConnected]) {
         [self.gleapWidget sendMessageWithData: data];
@@ -73,6 +85,8 @@
         [self.messageQueue removeAllObjects];
     }
     [[GleapAgentToolHelper sharedInstance] clearExecutionState];
+    // A capture in progress ends with the widget, and its request goes back to the server.
+    [[GleapCaptureManager sharedInstance] widgetWillClose];
     
     dispatch_async(dispatch_get_main_queue(), ^{
         if (self.gleapWidget == nil) {
@@ -82,20 +96,169 @@
             return;
         }
         
+        if (self.widgetMinimized) {
+            // Minimized for a capture: there is nothing on screen to dismiss.
+            [self forgetMinimizedWidget];
+            [self didCloseWidgetWithCompletion: completion];
+            return;
+        }
+        
         [self.gleapWidget dismissViewControllerAnimated: animated completion:^{
-            self.widgetOpened = NO;
-            self.gleapWidget = nil;
-            self.widgetOpened = NO;
-            if (completion != nil) {
-                completion();
+            [self didCloseWidgetWithCompletion: completion];
+        }];
+    });
+}
+
+- (void)didCloseWidgetWithCompletion:(void (^)(void))completion {
+    self.widgetOpened = NO;
+    self.gleapWidget = nil;
+    if (completion != nil) {
+        completion();
+    }
+    
+    [GleapUIOverlayHelper updateUI];
+    
+    if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetClosed)]) {
+        [Gleap.sharedInstance.delegate widgetClosed];
+    }
+}
+
+#pragma mark - Minimize for captures
+
+- (void)forgetMinimizedWidget {
+    self.widgetMinimized = NO;
+    self.minimizedController = nil;
+    self.minimizedScene = nil;
+}
+
+- (void)minimizeWidgetWithCompletion:(void (^)(BOOL minimized, UIWindowScene * _Nullable scene))completion {
+    dispatch_block_t work = ^{
+        if (!self.widgetOpened || self.gleapWidget == nil) {
+            completion(NO, nil);
+            return;
+        }
+        if (self.widgetMinimized) {
+            completion(YES, self.minimizedScene);
+            return;
+        }
+        UIViewController *presented = self.gleapWidget.navigationController ?: self.gleapWidget;
+        if (presented.presentingViewController == nil || presented.isBeingDismissed) {
+            completion(NO, nil);
+            return;
+        }
+        UIWindowScene *scene = presented.view.window.windowScene;
+        // Kept here while off screen, so the web view and its page survive the dismissal.
+        self.minimizedController = presented;
+        self.minimizedScene = scene;
+        self.widgetMinimized = YES;
+        __block BOOL finished = NO;
+        void (^finish)(void) = ^{
+            if (finished) {
+                return;
             }
-            
-            [GleapUIOverlayHelper updateUI];
-            
-            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetClosed)]) {
-                [Gleap.sharedInstance.delegate widgetClosed];
+            finished = YES;
+            completion(YES, scene);
+        };
+        [presented dismissViewControllerAnimated: YES completion: finish];
+        // UIKit skips the completion when the dismissal cannot run; the capture must not wait forever.
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), finish);
+    };
+    if ([NSThread isMainThread]) {
+        work();
+    } else {
+        dispatch_async(dispatch_get_main_queue(), work);
+    }
+}
+
+- (void)restoreWidgetWithCompletion:(void (^)(BOOL restored))completion {
+    dispatch_block_t work = ^{
+        if (!self.widgetMinimized) {
+            if (completion != nil) {
+                completion(self.widgetOpened && self.gleapWidget != nil);
+            }
+            return;
+        }
+        [self presentMinimizedWidgetAttempt: 0 completion: completion];
+    };
+    if ([NSThread isMainThread]) {
+        work();
+    } else {
+        dispatch_async(dispatch_get_main_queue(), work);
+    }
+}
+
+- (void)presentMinimizedWidgetAttempt:(NSUInteger)attempt completion:(void (^)(BOOL restored))completion {
+    UIViewController *controller = self.minimizedController;
+    if (!self.widgetMinimized || controller == nil || self.gleapWidget == nil) {
+        if (completion != nil) {
+            completion(NO);
+        }
+        return;
+    }
+    if (controller.presentingViewController != nil) {
+        // Already back on screen.
+        [self forgetMinimizedWidget];
+        if (completion != nil) {
+            completion(YES);
+        }
+        return;
+    }
+    
+    UIViewController *top = [GleapUIHelper getTopMostViewController];
+    __block BOOL finished = NO;
+    void (^retryOrGiveUp)(void) = ^{
+        if (attempt < 2) {
+            [self presentMinimizedWidgetAttempt: attempt + 1 completion: completion];
+            return;
+        }
+        // Nothing to show it on: the widget closes for good.
+        NSLog(@"[GLEAP_SDK] The widget could not be shown again after a capture.");
+        [self forgetMinimizedWidget];
+        @synchronized (self) {
+            [self.messageQueue removeAllObjects];
+        }
+        [[GleapAgentToolHelper sharedInstance] clearExecutionState];
+        [self didCloseWidgetWithCompletion: nil];
+        if (completion != nil) {
+            completion(NO);
+        }
+    };
+    
+    if (top == nil || top == controller || top.isBeingDismissed || top.isBeingPresented) {
+        // Another presentation is on its way in or out: try again in a moment.
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), retryOrGiveUp);
+        return;
+    }
+    
+    @try {
+        [top presentViewController: controller animated: YES completion:^{
+            if (finished) {
+                return;
+            }
+            finished = YES;
+            [self forgetMinimizedWidget];
+            if (completion != nil) {
+                completion(YES);
             }
         }];
+    } @catch (NSException *exception) {
+        NSLog(@"[GLEAP_SDK] Showing the widget again failed: %@", exception.reason);
+    }
+    
+    // A presentation UIKit refused never calls its completion.
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (finished) {
+            return;
+        }
+        finished = YES;
+        if (controller.presentingViewController != nil) {
+            [self forgetMinimizedWidget];
+            if (completion != nil) {
+                completion(YES);
+            }
+            return;
+        }
+        retryOrGiveUp();
     });
 }
 

@@ -409,8 +409,9 @@ static BOOL GleapDebuggerAttached(void) {
         return;
     }
 
-    // The SDK's own output while the widget is open is not part of the app's story.
-    if ([[GleapWidgetManager sharedInstance] isOpened]) {
+    // The SDK's own output while the widget is open is not part of the app's story. While it is minimized for a
+    // capture the user is in the app again, and its output is exactly what the capture is about.
+    if ([[GleapWidgetManager sharedInstance] isWidgetVisible]) {
         return;
     }
 

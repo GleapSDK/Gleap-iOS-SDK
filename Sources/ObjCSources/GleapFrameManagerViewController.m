@@ -22,6 +22,7 @@
 #import "GleapUIHelper.h"
 #import "GleapPreFillHelper.h"
 #import "GleapAgentToolHelper.h"
+#import "GleapCaptureManager.h"
 
 // How long we may take to answer the widget's `collect-ticket-data` request.
 // The widget drops the whole payload once its own timeout elapses, so this stays
@@ -306,6 +307,9 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
         [self handleWidgetEvent: messageData];
     } else if ([name isEqualToString: @"send-feedback"]) {
         [self sendFeedbackFromWidget: messageData];
+    } else if ([name hasPrefix: @"capture-"]) {
+        // capture-start, capture-cancel, capture-done, capture-editor.
+        [[GleapCaptureManager sharedInstance] handleWidgetMessage: name data: messageData];
     }
 }
 
@@ -322,10 +326,22 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
     [self sendSessionUpdate];
     [self sendPreFillData];
     [self sendScreenshotUpdate];
+    [self sendCaptureCapabilities];
     
     if (self.delegate != nil && [self.delegate respondsToSelector:@selector(connected)]) {
         [self.delegate connected];
     }
+}
+
+// What the app can capture for the widget's capture requests; widgets that never hear this offer uploads only.
+- (void)sendCaptureCapabilities {
+    @try {
+        [self sendMessageWithData: @{
+            @"name": @"capture-capabilities",
+            @"data": [[GleapCaptureManager sharedInstance] widgetCapabilities]
+        }];
+    }
+    @catch(id exception) {}
 }
 
 - (void)notifyToolExecution:(NSDictionary *)toolExecution {
@@ -474,6 +490,12 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 
 - (void)webView:(WKWebView *)webView runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))completionHandler
 {
+    if (self.view.window == nil) {
+        // Off screen (minimized for a capture): nothing to present the alert on, and WebKit requires the
+        // completion handler to be called.
+        completionHandler();
+        return;
+    }
     UIAlertController *alertController = [UIAlertController alertControllerWithTitle:message
                                                                              message:nil
                                                                       preferredStyle:UIAlertControllerStyleAlert];

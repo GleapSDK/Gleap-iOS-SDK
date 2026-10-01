@@ -20,6 +20,12 @@ typedef enum gleapLogLevel { INFO, WARNING, ERROR } GleapLogLevel;
 typedef enum applicationType { NATIVE, REACTNATIVE, FLUTTER, CORDOVA, CAPACITOR } GleapApplicationType;
 typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
 
+/**
+ * Called before the SDK collects logs for a capture request. Hand over buffered logs (for example with
+ * attachExternalData:) and then call `done`, from any thread. The SDK waits at most 500 ms for `done`.
+ */
+typedef void (^GleapLogFlushHandler)(void (^done)(void));
+
 @protocol GleapDelegate <NSObject>
 @optional
 - (void) feedbackFlowStarted: (NSDictionary *)feedbackAction;
@@ -667,6 +673,60 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
  *
  */
 + (void)stopNetworkRecording;
+
+/**
+ * Enables or disables screenshots and screen recordings of the app for capture requests ("Show me the issue").
+ * When a workflow, an AI agent or a teammate asks the user for a screenshot or a recording, the widget
+ * minimizes itself on the user's tap and shows a capture bar above the app. The SDK draws the app's own
+ * windows (no system prompt, no ReplayKit); Gleap's own UI and the keyboard are never part of it, masked
+ * views and secure text fields are blacked out. Recordings show a red indicator while they run and are
+ * only sent after the user confirms them in a preview.
+ * Enabled by default. When disabled, the widget offers to upload a file instead.
+ * @author Gleap
+ *
+ * @param enabled NO to turn screenshots and recordings off.
+ */
++ (void)setCaptureEnabled:(BOOL)enabled;
+
+/**
+ * Enables or disables collecting logs when the support team (a workflow, an AI agent or a teammate) asks for
+ * them. The logs are what a bug report contains: console and network logs, custom data, environment data,
+ * custom events and, when asked for and enabled in the dashboard, the replay. Collected in the background,
+ * without a user action. Enabled by default. When disabled, log requests are answered as not supported
+ * and no logs are attached to screenshots or recordings the user sends.
+ * @author Gleap
+ *
+ * @param enabled NO to turn log collection off.
+ */
++ (void)setRemoteLogCollectionEnabled:(BOOL)enabled;
+
+/**
+ * Blacks out a view in screenshots and screen recordings for capture requests (for example one that shows
+ * personal data). Secure text fields, one-time code and card number fields are masked automatically.
+ * The SDK keeps a weak reference: the mask ends with the view, or with unmaskView:.
+ * @author Gleap
+ *
+ * @param view The view to mask.
+ */
++ (void)maskView:(UIView *)view;
+
+/**
+ * Stops masking a view masked with maskView:.
+ * @author Gleap
+ *
+ * @param view The view to show again.
+ */
++ (void)unmaskView:(UIView *)view;
+
+/**
+ * Sets a handler that is called before logs are collected for a capture request, so a wrapper SDK (React
+ * Native, Flutter, Capacitor) can hand over the logs it buffers. The handler must call `done` (from any
+ * thread); the SDK waits at most 500 ms. Pass nil to remove it.
+ * @author Gleap
+ *
+ * @param handler The flush handler.
+ */
++ (void)setLogFlushHandler:(nullable GleapLogFlushHandler)handler;
 
 // Helper
 + (void)setApplicationType: (GleapApplicationType)applicationType;
