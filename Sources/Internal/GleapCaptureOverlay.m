@@ -140,6 +140,17 @@ GLEAP_INTERNAL
 
 @end
 
+#pragma mark - Guard
+
+// Taps, gestures and notifications of the capture UI: an exception is logged, never passed on to the app.
+static void GleapCaptureGuarded(dispatch_block_t block) {
+    @try {
+        block();
+    } @catch (NSException *exception) {
+        NSLog(@"[GLEAP_SDK] The capture bar failed: %@", exception.reason);
+    }
+}
+
 #pragma mark - Buttons
 
 static UIFont *GleapCaptureFont(UIFontTextStyle style, CGFloat size, UIFontWeight weight, CGFloat maximum) {
@@ -169,7 +180,7 @@ static UIButton *GleapCaptureButton(BOOL prominent, UIColor *background, UIColor
     };
     UIButton *button = [UIButton buttonWithConfiguration: configuration primaryAction: [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
         if (handler != nil) {
-            handler();
+            GleapCaptureGuarded(handler);
         }
     }]];
     button.translatesAutoresizingMaskIntoConstraints = NO;
@@ -469,6 +480,12 @@ GLEAP_INTERNAL
 #pragma mark Dragging
 
 - (void)handlePan:(UIPanGestureRecognizer *)pan {
+    GleapCaptureGuarded(^{
+        [self dragBarWithPan: pan];
+    });
+}
+
+- (void)dragBarWithPan:(UIPanGestureRecognizer *)pan {
     CGPoint translation = [pan translationInView: self.view];
     switch (pan.state) {
         case UIGestureRecognizerStateChanged:
@@ -502,17 +519,21 @@ GLEAP_INTERNAL
 #pragma mark Keyboard
 
 - (void)keyboardWillChangeFrame:(NSNotification *)notification {
-    CGRect endFrame = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
-    UIScreen *screen = self.view.window.windowScene.screen ?: UIScreen.mainScreen;
-    CGRect keyboard = [self.view convertRect: endFrame fromCoordinateSpace: screen.coordinateSpace];
-    CGRect overlap = CGRectIntersection(keyboard, self.view.bounds);
-    self.keyboardOverlap = CGRectIsNull(overlap) || CGRectIsEmpty(overlap) ? 0 : MAX(0, CGRectGetMaxY(self.view.bounds) - CGRectGetMinY(keyboard));
-    [self animateBottomSpacingWithNotification: notification];
+    GleapCaptureGuarded(^{
+        CGRect endFrame = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
+        UIScreen *screen = self.view.window.windowScene.screen ?: UIScreen.mainScreen;
+        CGRect keyboard = [self.view convertRect: endFrame fromCoordinateSpace: screen.coordinateSpace];
+        CGRect overlap = CGRectIntersection(keyboard, self.view.bounds);
+        self.keyboardOverlap = CGRectIsNull(overlap) || CGRectIsEmpty(overlap) ? 0 : MAX(0, CGRectGetMaxY(self.view.bounds) - CGRectGetMinY(keyboard));
+        [self animateBottomSpacingWithNotification: notification];
+    });
 }
 
 - (void)keyboardWillHide:(NSNotification *)notification {
-    self.keyboardOverlap = 0;
-    [self animateBottomSpacingWithNotification: notification];
+    GleapCaptureGuarded(^{
+        self.keyboardOverlap = 0;
+        [self animateBottomSpacingWithNotification: notification];
+    });
 }
 
 - (void)animateBottomSpacingWithNotification:(NSNotification *)notification {
@@ -567,7 +588,9 @@ GLEAP_INTERNAL
 
         __weak typeof(self) weakSelf = self;
         self.playButton = [UIButton buttonWithConfiguration: [UIButtonConfiguration filledButtonConfiguration] primaryAction: [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
-            [weakSelf togglePlayback];
+            GleapCaptureGuarded(^{
+                [weakSelf togglePlayback];
+            });
         }]];
         UIButtonConfiguration *configuration = self.playButton.configuration;
         configuration.cornerStyle = UIButtonConfigurationCornerStyleCapsule;
@@ -595,11 +618,13 @@ GLEAP_INTERNAL
         ]];
 
         self.timeObserver = [player addPeriodicTimeObserverForInterval: CMTimeMake(1, 10) queue: dispatch_get_main_queue() usingBlock:^(CMTime time) {
-            [weakSelf updateProgress];
+            GleapCaptureGuarded(^{
+                [weakSelf updateProgress];
+            });
         }];
         [[NSNotificationCenter defaultCenter] addObserver: self selector: @selector(playerDidReachEnd:) name: AVPlayerItemDidPlayToEndTimeNotification object: player.currentItem];
 
-        UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget: self action: @selector(togglePlayback)];
+        UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget: self action: @selector(handleTap:)];
         [self addGestureRecognizer: tap];
         [self updatePlayButton];
     }
@@ -639,6 +664,12 @@ GLEAP_INTERNAL
     [self updatePlayButton];
 }
 
+- (void)handleTap:(UITapGestureRecognizer *)tap {
+    GleapCaptureGuarded(^{
+        [self togglePlayback];
+    });
+}
+
 - (void)togglePlayback {
     if (self.player.rate > 0) {
         [self pause];
@@ -648,9 +679,11 @@ GLEAP_INTERNAL
 }
 
 - (void)playerDidReachEnd:(NSNotification *)notification {
-    self.reachedEnd = YES;
-    [self updatePlayButton];
-    [self updateProgress];
+    GleapCaptureGuarded(^{
+        self.reachedEnd = YES;
+        [self updatePlayButton];
+        [self updateProgress];
+    });
 }
 
 - (void)updateProgress {
@@ -711,9 +744,11 @@ GLEAP_INTERNAL
     titleLabel.accessibilityTraits = UIAccessibilityTraitHeader;
 
     self.cancelButton = [UIButton buttonWithConfiguration: [UIButtonConfiguration plainButtonConfiguration] primaryAction: [UIAction actionWithHandler:^(__kindof UIAction * _Nonnull action) {
-        if (weakSelf.onCancel) {
-            weakSelf.onCancel();
-        }
+        GleapCaptureGuarded(^{
+            if (weakSelf.onCancel) {
+                weakSelf.onCancel();
+            }
+        });
     }]];
     GleapSetButtonTitle(self.cancelButton, [self.labels text: @"barCancel"]);
     [self.cancelButton setContentHuggingPriority: UILayoutPriorityRequired forAxis: UILayoutConstraintAxisHorizontal];
@@ -800,7 +835,7 @@ GLEAP_INTERNAL
     if (!self.dismissalExpected && self.presentingViewController == nil && self.onDismissedUnexpectedly != nil) {
         void (^handler)(void) = self.onDismissedUnexpectedly;
         self.onDismissedUnexpectedly = nil;
-        handler();
+        GleapCaptureGuarded(handler);
     }
 }
 

@@ -276,6 +276,26 @@ GLEAP_INTERNAL
     }
 }
 
+// Entry points of the capture flow (taps, timers, network answers, system notifications) run through here: an
+// exception ends the running capture as failed instead of reaching the app.
+- (void)guarded:(dispatch_block_t)block {
+    [self guardedFor: self.session block: block];
+}
+
+// The same for a callback of one capture: an exception ends that capture, if it still runs.
+- (void)guardedFor:(nullable GleapCaptureSession *)session block:(dispatch_block_t)block {
+    @try {
+        block();
+    } @catch (NSException *exception) {
+        NSLog(@"[GLEAP_SDK] Capture request failed: %@", exception.reason);
+        @try {
+            if (session != nil && self.session == session) {
+                [self finishSession: session widgetState: @"failed" error: @"exception" eventType: @"failed" restore: YES];
+            }
+        } @catch (NSException *inner) {}
+    }
+}
+
 - (BOOL)handleWidgetMessage:(NSString *)name data:(id)data {
     if (![name isKindOfClass: [NSString class]] || ![name hasPrefix: @"capture-"]) {
         return NO;
@@ -486,12 +506,16 @@ GLEAP_INTERNAL
                 [weakSelf sendState: widgetState requestId: requestId extra: (error != nil && ![widgetState isEqualToString: @"cancelled"]) ? @{ @"error": error } : nil];
             }
         };
-        if (restore) {
-            [weakSelf restoreWidgetThen:^(BOOL restored) {
+        @try {
+            if (restore) {
+                [weakSelf restoreWidgetThen:^(BOOL restored) {
+                    notify();
+                }];
+            } else {
                 notify();
-            }];
-        } else {
-            notify();
+            }
+        } @catch (NSException *exception) {
+            NSLog(@"[GLEAP_SDK] Ending the capture failed: %@", exception.reason);
         }
     };
     if (overlay != nil) {
@@ -511,32 +535,39 @@ GLEAP_INTERNAL
         return;
     }
     // Queued behind a minimize still under way, so a widget on its way down comes back too.
+    __weak typeof(self) weakSelf = self;
     [widgetManager restoreWidgetWithCompletion:^(BOOL restored) {
-        if (completion) {
-            completion(restored);
-        }
+        [weakSelf guardedFor: nil block:^{
+            if (completion) {
+                completion(restored);
+            }
+        }];
     }];
 }
 
 #pragma mark - Overlay actions
 
 - (void)captureOverlayDidTapCapture {
-    GleapCaptureSession *session = self.session;
-    if (session == nil || session.state != GleapCaptureSessionStateBar || ![session.kind isEqualToString: @"screenshot"]) {
-        return;
-    }
-    session.state = GleapCaptureSessionStateCapturing;
-    [self sendState: @"capturing" requestId: session.requestId extra: nil];
-    __weak typeof(self) weakSelf = self;
-    __weak GleapCaptureSession *weakSession = session;
-    [session.overlay setBarHidden: YES animated: YES completion:^{
-        // Let the hidden bar reach the screen, then take the shot.
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.06 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            GleapCaptureSession *capturingSession = weakSession;
-            if (capturingSession != nil) {
-                [weakSelf takeScreenshotForSession: capturingSession];
-            }
-        });
+    [self guarded:^{
+        GleapCaptureSession *session = self.session;
+        if (session == nil || session.state != GleapCaptureSessionStateBar || ![session.kind isEqualToString: @"screenshot"]) {
+            return;
+        }
+        session.state = GleapCaptureSessionStateCapturing;
+        [self sendState: @"capturing" requestId: session.requestId extra: nil];
+        __weak typeof(self) weakSelf = self;
+        __weak GleapCaptureSession *weakSession = session;
+        [session.overlay setBarHidden: YES animated: YES completion:^{
+            // Let the hidden bar reach the screen, then take the shot.
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.06 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                GleapCaptureSession *capturingSession = weakSession;
+                [weakSelf guardedFor: capturingSession block:^{
+                    if (capturingSession != nil) {
+                        [weakSelf takeScreenshotForSession: capturingSession];
+                    }
+                }];
+            });
+        }];
     }];
 }
 
@@ -569,7 +600,9 @@ GLEAP_INTERNAL
             }
         }
         dispatch_async(dispatch_get_main_queue(), ^{
-            [weakSelf deliverScreenshot: dataUrl size: pixelSize capturedAt: capturedAt session: session];
+            [weakSelf guardedFor: session block:^{
+                [weakSelf deliverScreenshot: dataUrl size: pixelSize capturedAt: capturedAt session: session];
+            }];
         });
     });
 }
@@ -622,7 +655,12 @@ GLEAP_INTERNAL
 }
 
 - (void)captureOverlayDidTapStart {
-    GleapCaptureSession *session = self.session;
+    [self guarded:^{
+        [self startRecordingForSession: self.session];
+    }];
+}
+
+- (void)startRecordingForSession:(GleapCaptureSession *)session {
     if (session == nil || session.state != GleapCaptureSessionStateBar || ![session.kind isEqualToString: @"recording"]) {
         return;
     }
@@ -651,7 +689,10 @@ GLEAP_INTERNAL
     [session.overlay updateElapsed: 0 maxDuration: session.maxDuration];
     __weak GleapCaptureSession *weakSession = session;
     session.elapsedTimer = [NSTimer timerWithTimeInterval: 0.5 repeats: YES block:^(NSTimer * _Nonnull timer) {
-        [weakSelf recordingTickForSession: weakSession];
+        GleapCaptureSession *tickingSession = weakSession;
+        [weakSelf guardedFor: tickingSession block:^{
+            [weakSelf recordingTickForSession: tickingSession];
+        }];
     }];
     [[NSRunLoop mainRunLoop] addTimer: session.elapsedTimer forMode: NSRunLoopCommonModes];
     UIAccessibilityPostNotification(UIAccessibilityAnnouncementNotification, [session.labels text: @"barRecording"]);
@@ -670,7 +711,9 @@ GLEAP_INTERNAL
 }
 
 - (void)captureOverlayDidTapStop {
-    [self stopRecordingForSession: self.session];
+    [self guarded:^{
+        [self stopRecordingForSession: self.session];
+    }];
 }
 
 - (void)stopRecordingForSession:(GleapCaptureSession *)session {
@@ -684,7 +727,9 @@ GLEAP_INTERNAL
     [session.overlay showBarMode: GleapCaptureBarModeBusy];
     __weak typeof(self) weakSelf = self;
     [session.recorder stopWithCompletion:^(GleapRecordingResult * _Nullable result, NSError * _Nullable error) {
-        [weakSelf recordingDidFinish: result error: error session: session];
+        [weakSelf guardedFor: session block:^{
+            [weakSelf recordingDidFinish: result error: error session: session];
+        }];
     }];
 }
 
@@ -711,31 +756,42 @@ GLEAP_INTERNAL
 }
 
 - (void)captureOverlayDidTapCancel {
-    GleapCaptureSession *session = self.session;
-    if (session == nil || (session.state != GleapCaptureSessionStateBar && session.state != GleapCaptureSessionStateMinimizing)) {
-        return;
-    }
-    [self finishSession: session widgetState: @"cancelled" error: nil eventType: @"released" restore: YES];
+    [self guarded:^{
+        GleapCaptureSession *session = self.session;
+        if (session == nil || (session.state != GleapCaptureSessionStateBar && session.state != GleapCaptureSessionStateMinimizing)) {
+            return;
+        }
+        [self finishSession: session widgetState: @"cancelled" error: nil eventType: @"released" restore: YES];
+    }];
 }
 
 - (void)captureOverlayDidTapPreviewCancel {
-    GleapCaptureSession *session = self.session;
-    if (session == nil || (session.state != GleapCaptureSessionStatePreview && session.state != GleapCaptureSessionStateUploading)) {
-        return;
-    }
-    [self finishSession: session widgetState: @"cancelled" error: nil eventType: @"released" restore: YES];
+    [self guarded:^{
+        GleapCaptureSession *session = self.session;
+        if (session == nil || (session.state != GleapCaptureSessionStatePreview && session.state != GleapCaptureSessionStateUploading)) {
+            return;
+        }
+        [self finishSession: session widgetState: @"cancelled" error: nil eventType: @"released" restore: YES];
+    }];
 }
 
 - (void)captureOverlayPreviewWasDismissed {
-    GleapCaptureSession *session = self.session;
-    if (session == nil || (session.state != GleapCaptureSessionStatePreview && session.state != GleapCaptureSessionStateUploading)) {
-        return;
-    }
-    [self finishSession: session widgetState: @"cancelled" error: @"preview-dismissed" eventType: @"released" restore: YES];
+    [self guarded:^{
+        GleapCaptureSession *session = self.session;
+        if (session == nil || (session.state != GleapCaptureSessionStatePreview && session.state != GleapCaptureSessionStateUploading)) {
+            return;
+        }
+        [self finishSession: session widgetState: @"cancelled" error: @"preview-dismissed" eventType: @"released" restore: YES];
+    }];
 }
 
 - (void)captureOverlayDidTapRetake {
-    GleapCaptureSession *session = self.session;
+    [self guarded:^{
+        [self retakeRecordingForSession: self.session];
+    }];
+}
+
+- (void)retakeRecordingForSession:(GleapCaptureSession *)session {
     if (session == nil || session.state != GleapCaptureSessionStatePreview) {
         return;
     }
@@ -747,16 +803,23 @@ GLEAP_INTERNAL
     session.state = GleapCaptureSessionStateBar;
     __weak typeof(self) weakSelf = self;
     [session.overlay dismissPreviewWithCompletion:^{
-        if (weakSelf.session != session || session.state != GleapCaptureSessionStateBar) {
-            return;
-        }
-        [session.overlay showBarMode: GleapCaptureBarModeRecordReady];
-        [weakSelf sendState: @"bar" requestId: session.requestId extra: nil];
+        [weakSelf guardedFor: session block:^{
+            if (weakSelf.session != session || session.state != GleapCaptureSessionStateBar) {
+                return;
+            }
+            [session.overlay showBarMode: GleapCaptureBarModeRecordReady];
+            [weakSelf sendState: @"bar" requestId: session.requestId extra: nil];
+        }];
     }];
 }
 
 - (void)captureOverlayDidTapSend {
-    GleapCaptureSession *session = self.session;
+    [self guarded:^{
+        [self sendRecordingForSession: self.session];
+    }];
+}
+
+- (void)sendRecordingForSession:(GleapCaptureSession *)session {
     if (session == nil || session.state != GleapCaptureSessionStatePreview || session.recording == nil) {
         return;
     }
@@ -773,9 +836,13 @@ GLEAP_INTERNAL
     }
     __weak typeof(self) weakSelf = self;
     session.upload = [GleapCaptureAPI uploadFileAtURL: session.recording.fileURL fileName: kGleapRecordingFileName contentType: @"video/mp4" progress:^(double fraction) {
-        [weakSelf uploadProgress: fraction session: session];
+        [weakSelf guardedFor: session block:^{
+            [weakSelf uploadProgress: fraction session: session];
+        }];
     } completion:^(NSString * _Nullable fileUrl, NSInteger statusCode, NSError * _Nullable error) {
-        [weakSelf uploadDidFinish: fileUrl statusCode: statusCode error: error session: session];
+        [weakSelf guardedFor: session block:^{
+            [weakSelf uploadDidFinish: fileUrl statusCode: statusCode error: error session: session];
+        }];
     }];
 }
 
@@ -837,7 +904,9 @@ GLEAP_INTERNAL
     }
     __weak typeof(self) weakSelf = self;
     [GleapCaptureAPI completeRequest: session.requestId body: body completion:^(NSInteger statusCode, NSDictionary * _Nullable response, NSError * _Nullable error) {
-        [weakSelf completeDidFinish: statusCode error: error session: session];
+        [weakSelf guardedFor: session block:^{
+            [weakSelf completeDidFinish: statusCode error: error session: session];
+        }];
     }];
 }
 
@@ -874,27 +943,33 @@ GLEAP_INTERNAL
 #pragma mark - GleapScreenRecorderDelegate
 
 - (void)screenRecorderDidReachMaxDuration:(id<GleapScreenRecorder>)recorder {
-    GleapCaptureSession *session = self.session;
-    if (session.recorder == recorder) {
-        [self stopRecordingForSession: session];
-    }
+    [self guarded:^{
+        GleapCaptureSession *session = self.session;
+        if (session.recorder == recorder) {
+            [self stopRecordingForSession: session];
+        }
+    }];
 }
 
 - (void)screenRecorderDidReceiveMemoryWarning:(id<GleapScreenRecorder>)recorder {
-    // Keep what was recorded rather than risk the app.
-    GleapCaptureSession *session = self.session;
-    if (session.recorder == recorder) {
-        [self stopRecordingForSession: session];
-    }
+    [self guarded:^{
+        // Keep what was recorded rather than risk the app.
+        GleapCaptureSession *session = self.session;
+        if (session.recorder == recorder) {
+            [self stopRecordingForSession: session];
+        }
+    }];
 }
 
 - (void)screenRecorder:(id<GleapScreenRecorder>)recorder didFailWithError:(NSError *)error {
-    NSLog(@"[GLEAP_SDK] The screen recording stopped: %@", error.localizedDescription);
-    GleapCaptureSession *session = self.session;
-    if (session.recorder == recorder) {
-        // Whatever was written before the failure is kept; with nothing, the stop reports the failure.
-        [self stopRecordingForSession: session];
-    }
+    [self guarded:^{
+        NSLog(@"[GLEAP_SDK] The screen recording stopped: %@", error.localizedDescription);
+        GleapCaptureSession *session = self.session;
+        if (session.recorder == recorder) {
+            // Whatever was written before the failure is kept; with nothing, the stop reports the failure.
+            [self stopRecordingForSession: session];
+        }
+    }];
 }
 
 #pragma mark - Background logs
@@ -1058,13 +1133,21 @@ GLEAP_INTERNAL
     [self rememberRequest: requestId in: self.attachedLogRequests];
     __weak typeof(self) weakSelf = self;
     [self flushWrapperLogsThen:^{
-        [GleapLogsBundle collectWithInclude: include windowStart: windowStart windowEnd: windowEnd completion:^(NSDictionary * _Nonnull bundle) {
-            [weakSelf postLogsBundle: bundle requestId: requestId completion:^(NSInteger statusCode) {
-                if (statusCode < 200 || statusCode >= 300) {
-                    NSLog(@"[GLEAP_SDK] The logs for capture request %@ were not accepted (%ld).", requestId, (long)statusCode);
+        @try {
+            [GleapLogsBundle collectWithInclude: include windowStart: windowStart windowEnd: windowEnd completion:^(NSDictionary * _Nonnull bundle) {
+                @try {
+                    [weakSelf postLogsBundle: bundle requestId: requestId completion:^(NSInteger statusCode) {
+                        if (statusCode < 200 || statusCode >= 300) {
+                            NSLog(@"[GLEAP_SDK] The logs for capture request %@ were not accepted (%ld).", requestId, (long)statusCode);
+                        }
+                    }];
+                } @catch (NSException *exception) {
+                    NSLog(@"[GLEAP_SDK] The logs for capture request %@ could not be sent: %@", requestId, exception.reason);
                 }
             }];
-        }];
+        } @catch (NSException *exception) {
+            NSLog(@"[GLEAP_SDK] The logs for capture request %@ could not be collected: %@", requestId, exception.reason);
+        }
     }];
 }
 
@@ -1075,14 +1158,18 @@ GLEAP_INTERNAL
             body = [GleapLogsBundle gzippedJSONForBundle: bundle maxBytes: kGleapMaxLogsBytes];
         } @catch (NSException *exception) {}
         dispatch_async(dispatch_get_main_queue(), ^{
-            if (body == nil) {
-                // Nothing that fits could be encoded: final, like a 413.
-                completion(413);
-                return;
+            @try {
+                if (body == nil) {
+                    // Nothing that fits could be encoded: final, like a 413.
+                    completion(413);
+                    return;
+                }
+                [GleapCaptureAPI postLogs: body requestId: requestId completion:^(NSInteger statusCode, NSDictionary * _Nullable response, NSError * _Nullable error) {
+                    completion(statusCode);
+                }];
+            } @catch (NSException *exception) {
+                completion(0);
             }
-            [GleapCaptureAPI postLogs: body requestId: requestId completion:^(NSInteger statusCode, NSDictionary * _Nullable response, NSError * _Nullable error) {
-                completion(statusCode);
-            }];
         });
     });
 }
@@ -1100,7 +1187,11 @@ GLEAP_INTERNAL
             return;
         }
         finished = YES;
-        then();
+        @try {
+            then();
+        } @catch (NSException *exception) {
+            NSLog(@"[GLEAP_SDK] Collecting logs failed: %@", exception.reason);
+        }
     };
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kGleapLogFlushTimeout * NSEC_PER_SEC)), dispatch_get_main_queue(), finish);
     void (^done)(void) = ^{

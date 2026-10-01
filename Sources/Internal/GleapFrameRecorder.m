@@ -258,13 +258,18 @@ typedef NS_ENUM(NSInteger, GleapFrameRecorderState) {
 }
 
 - (void)frameTimerFired {
-    self.frameTimer = nil;
     @try {
-        [self captureFrame];
+        self.frameTimer = nil;
+        @try {
+            [self captureFrame];
+        } @catch (NSException *exception) {
+            NSLog(@"[GLEAP_SDK] Screen recording frame failed: %@", exception.reason);
+        }
+        [self scheduleNextFrame];
     } @catch (NSException *exception) {
-        NSLog(@"[GLEAP_SDK] Screen recording frame failed: %@", exception.reason);
+        // Without a next frame the recording still ends: by Stop, the maximum length or the elapsed timer.
+        NSLog(@"[GLEAP_SDK] Screen recording timer failed: %@", exception.reason);
     }
-    [self scheduleNextFrame];
 }
 
 - (void)captureFrame {
@@ -549,17 +554,21 @@ typedef NS_ENUM(NSInteger, GleapFrameRecorderState) {
         [writer endSessionAtSourceTime: CMTimeMake(endValue, 1000)];
         [writer finishWritingWithCompletionHandler:^{
             dispatch_async(self.encodeQueue, ^{
-                if (writer.status == AVAssetWriterStatusCompleted && url != nil) {
-                    [self.queueFinishedSegments addObject: @{
-                        @"url": url,
-                        @"index": @(index),
-                        @"duration": @((double)endValue / 1000.0),
-                    }];
-                } else {
-                    NSLog(@"[GLEAP_SDK] A screen recording part could not be written: %@", writer.error.localizedDescription);
-                    if (url != nil) {
-                        [[NSFileManager defaultManager] removeItemAtURL: url error: nil];
+                @try {
+                    if (writer.status == AVAssetWriterStatusCompleted && url != nil) {
+                        [self.queueFinishedSegments addObject: @{
+                            @"url": url,
+                            @"index": @(index),
+                            @"duration": @((double)endValue / 1000.0),
+                        }];
+                    } else {
+                        NSLog(@"[GLEAP_SDK] A screen recording part could not be written: %@", writer.error.localizedDescription);
+                        if (url != nil) {
+                            [[NSFileManager defaultManager] removeItemAtURL: url error: nil];
+                        }
                     }
+                } @catch (NSException *exception) {
+                    NSLog(@"[GLEAP_SDK] A screen recording part could not be kept: %@", exception.reason);
                 }
                 completion();
             });
@@ -610,23 +619,32 @@ typedef NS_ENUM(NSInteger, GleapFrameRecorderState) {
 
     [self queueJoinSegments: segments toURL: finalURL completion:^(BOOL joined, NSTimeInterval duration) {
         dispatch_async(self.encodeQueue, ^{
-            if (joined) {
-                for (NSDictionary *segment in segments) {
-                    [[NSFileManager defaultManager] removeItemAtURL: segment[@"url"] error: nil];
-                }
-                finish(finalURL, duration);
-                return;
+            @try {
+                [self queueFinishJoin: joined duration: duration segments: segments finalURL: finalURL finish: finish];
+            } @catch (NSException *exception) {
+                completion(nil, [GleapFrameRecorder errorWithCode: 11 description: exception.reason ?: @"The recording could not be assembled."]);
             }
-            // Joining failed: keep the longest part rather than nothing.
-            NSDictionary *longest = segments.firstObject;
-            for (NSDictionary *segment in segments) {
-                if ([segment[@"duration"] doubleValue] > [longest[@"duration"] doubleValue]) {
-                    longest = segment;
-                }
-            }
-            finish(longest[@"url"], [longest[@"duration"] doubleValue]);
         });
     }];
+}
+
+// Encode queue: the joined file, or the longest part when joining failed.
+- (void)queueFinishJoin:(BOOL)joined duration:(NSTimeInterval)duration segments:(NSArray<NSDictionary *> *)segments finalURL:(NSURL *)finalURL finish:(void (^)(NSURL *, NSTimeInterval))finish {
+    if (joined) {
+        for (NSDictionary *segment in segments) {
+            [[NSFileManager defaultManager] removeItemAtURL: segment[@"url"] error: nil];
+        }
+        finish(finalURL, duration);
+        return;
+    }
+    // Joining failed: keep the longest part rather than nothing.
+    NSDictionary *longest = segments.firstObject;
+    for (NSDictionary *segment in segments) {
+        if ([segment[@"duration"] doubleValue] > [longest[@"duration"] doubleValue]) {
+            longest = segment;
+        }
+    }
+    finish(longest[@"url"], [longest[@"duration"] doubleValue]);
 }
 
 // Encode queue. Joins the parts (all H.264 in the same size) without re-encoding.
@@ -669,10 +687,15 @@ typedef NS_ENUM(NSInteger, GleapFrameRecorderState) {
         exportSession.shouldOptimizeForNetworkUse = YES;
         NSTimeInterval duration = CMTimeGetSeconds(cursor);
         [exportSession exportAsynchronouslyWithCompletionHandler:^{
-            BOOL joined = exportSession.status == AVAssetExportSessionStatusCompleted;
-            if (!joined) {
-                NSLog(@"[GLEAP_SDK] Could not join the screen recording parts: %@", exportSession.error.localizedDescription);
-                [[NSFileManager defaultManager] removeItemAtURL: url error: nil];
+            BOOL joined = NO;
+            @try {
+                joined = exportSession.status == AVAssetExportSessionStatusCompleted;
+                if (!joined) {
+                    NSLog(@"[GLEAP_SDK] Could not join the screen recording parts: %@", exportSession.error.localizedDescription);
+                    [[NSFileManager defaultManager] removeItemAtURL: url error: nil];
+                }
+            } @catch (NSException *exception) {
+                joined = NO;
             }
             completion(joined, duration);
         }];
@@ -722,18 +745,24 @@ typedef NS_ENUM(NSInteger, GleapFrameRecorderState) {
 }
 
 - (void)applicationDidReceiveMemoryWarning:(NSNotification *)notification {
-    if (self.state != GleapFrameRecorderStateRecording && self.state != GleapFrameRecorderStatePaused) {
-        return;
-    }
-    id<GleapScreenRecorderDelegate> delegate = self.delegate;
-    if ([delegate respondsToSelector: @selector(screenRecorderDidReceiveMemoryWarning:)]) {
-        [delegate screenRecorderDidReceiveMemoryWarning: self];
+    @try {
+        if (self.state != GleapFrameRecorderStateRecording && self.state != GleapFrameRecorderStatePaused) {
+            return;
+        }
+        id<GleapScreenRecorderDelegate> delegate = self.delegate;
+        if ([delegate respondsToSelector: @selector(screenRecorderDidReceiveMemoryWarning:)]) {
+            [delegate screenRecorderDidReceiveMemoryWarning: self];
+        }
+    } @catch (NSException *exception) {
+        NSLog(@"[GLEAP_SDK] Screen recording memory warning handling failed: %@", exception.reason);
     }
 }
 
 - (void)sceneDidDisconnect:(NSNotification *)notification {
-    // Nothing left to record: end it like reaching the maximum length.
-    [self reportMaxDuration];
+    @try {
+        // Nothing left to record: end it like reaching the maximum length.
+        [self reportMaxDuration];
+    } @catch (NSException *exception) {}
 }
 
 #pragma mark - Reporting
@@ -789,7 +818,7 @@ typedef NS_ENUM(NSInteger, GleapFrameRecorderState) {
     NSDate *startedAt = self.startedAt;
     NSDate *endedAt = self.endedAt;
     dispatch_group_notify(self.segmentGroup, self.encodeQueue, ^{
-        [self queueAssembleWithCompletion:^(GleapRecordingResult * _Nullable result, NSError * _Nullable error) {
+        void (^deliver)(GleapRecordingResult *, NSError *) = ^(GleapRecordingResult * _Nullable result, NSError * _Nullable error) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (self.state == GleapFrameRecorderStateCancelled) {
                     if (result != nil) {
@@ -800,11 +829,20 @@ typedef NS_ENUM(NSInteger, GleapFrameRecorderState) {
                 self.state = GleapFrameRecorderStateStopped;
                 result.startedAt = startedAt;
                 result.endedAt = endedAt;
-                if (completion) {
-                    completion(result, result == nil ? error : nil);
+                @try {
+                    if (completion) {
+                        completion(result, result == nil ? error : nil);
+                    }
+                } @catch (NSException *exception) {
+                    NSLog(@"[GLEAP_SDK] Finishing the screen recording failed: %@", exception.reason);
                 }
             });
-        }];
+        };
+        @try {
+            [self queueAssembleWithCompletion: deliver];
+        } @catch (NSException *exception) {
+            deliver(nil, [GleapFrameRecorder errorWithCode: 11 description: exception.reason ?: @"The recording could not be assembled."]);
+        }
     });
 }
 

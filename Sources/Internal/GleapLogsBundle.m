@@ -82,22 +82,37 @@ static NSTimeInterval const kGleapUnifiedLogDeadline = 5.0;
             NSLog(@"[GLEAP_SDK] Collecting logs failed: %@", exception.reason);
         }
         dispatch_async(dispatch_get_main_queue(), ^{
-            [bundle addEntriesFromDictionary: collected];
-            [self addReplay: collect[@"replays"].boolValue to: bundle completion:^{
-                NSDate *now = [NSDate date];
-                bundle[@"capturedAt"] = [GleapUIHelper getJSStringForNSDate: now];
-                if (windowStart != nil) {
-                    bundle[@"windowStart"] = [GleapUIHelper getJSStringForNSDate: windowStart];
+            __block BOOL finished = NO;
+            void (^finish)(void) = ^{
+                if (finished) {
+                    return;
                 }
-                if (windowEnd != nil) {
-                    bundle[@"windowEnd"] = [GleapUIHelper getJSStringForNSDate: windowEnd];
+                finished = YES;
+                @try {
+                    NSDate *now = [NSDate date];
+                    bundle[@"capturedAt"] = [GleapUIHelper getJSStringForNSDate: now];
+                    if (windowStart != nil) {
+                        bundle[@"windowStart"] = [GleapUIHelper getJSStringForNSDate: windowStart];
+                    }
+                    if (windowEnd != nil) {
+                        bundle[@"windowEnd"] = [GleapUIHelper getJSStringForNSDate: windowEnd];
+                    }
+                    bundle[@"platform"] = @"ios";
+                    bundle[@"sdkType"] = [GleapCaptureAPI sdkType];
+                    bundle[@"sdkVersion"] = SDK_VERSION;
+                    bundle[@"deviceId"] = [GleapCaptureAPI deviceId];
+                } @catch (NSException *exception) {
+                    NSLog(@"[GLEAP_SDK] Collecting logs failed: %@", exception.reason);
                 }
-                bundle[@"platform"] = @"ios";
-                bundle[@"sdkType"] = [GleapCaptureAPI sdkType];
-                bundle[@"sdkVersion"] = SDK_VERSION;
-                bundle[@"deviceId"] = [GleapCaptureAPI deviceId];
                 completion(bundle);
-            }];
+            };
+            @try {
+                [bundle addEntriesFromDictionary: collected];
+                [self addReplay: collect[@"replays"].boolValue to: bundle completion: finish];
+            } @catch (NSException *exception) {
+                NSLog(@"[GLEAP_SDK] Collecting logs failed: %@", exception.reason);
+                finish();
+            }
         });
     });
 }
@@ -166,9 +181,11 @@ static NSTimeInterval const kGleapUnifiedLogDeadline = 5.0;
     }
     NSNumber *interval = @(replays.timerInterval * 1000);
     [GleapUploadManager uploadStepImages: steps andCompletion:^(bool success, NSArray * _Nonnull fileUrls) {
-        if (success && fileUrls.count > 0) {
-            bundle[@"replay"] = @{ @"interval": interval, @"frames": fileUrls };
-        }
+        @try {
+            if (success && fileUrls.count > 0) {
+                bundle[@"replay"] = @{ @"interval": interval, @"frames": fileUrls };
+            }
+        } @catch (NSException *exception) {}
         completion();
     }];
 }

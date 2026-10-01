@@ -61,14 +61,18 @@ GLEAP_INTERNAL
                 return;
             }
             self.bodyURL = bodyURL;
-            NSMutableURLRequest *request = [GleapAPIClient requestWithMethod: @"POST" path: @"/uploads/attachments" identity: GleapRequestIdentityCurrentSession];
-            request.cachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
-            request.HTTPShouldHandleCookies = NO;
-            request.timeoutInterval = 120;
-            [request setValue: [NSString stringWithFormat: @"multipart/form-data; boundary=%@", boundary] forHTTPHeaderField: @"Content-Type"];
-            [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
-            self.request = request;
-            [self send];
+            @try {
+                NSMutableURLRequest *request = [GleapAPIClient requestWithMethod: @"POST" path: @"/uploads/attachments" identity: GleapRequestIdentityCurrentSession];
+                request.cachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
+                request.HTTPShouldHandleCookies = NO;
+                request.timeoutInterval = 120;
+                [request setValue: [NSString stringWithFormat: @"multipart/form-data; boundary=%@", boundary] forHTTPHeaderField: @"Content-Type"];
+                [request setValue: @"application/json" forHTTPHeaderField: @"Accept"];
+                self.request = request;
+                [self send];
+            } @catch (NSException *exception) {
+                [self finishWithFileUrl: nil statusCode: 0 error: [NSError errorWithDomain: kGleapCaptureAPIErrorDomain code: 5 userInfo: @{ NSLocalizedDescriptionKey: exception.reason ?: @"The upload could not start." }]];
+            }
         });
     });
 }
@@ -122,26 +126,42 @@ GLEAP_INTERNAL
     void (^completion)(NSString *, NSInteger, NSError *) = self.completion;
     self.completion = nil;
     self.progress = nil;
-    if (completion != nil) {
-        completion(fileUrl, statusCode, error);
+    @try {
+        if (completion != nil) {
+            completion(fileUrl, statusCode, error);
+        }
+    } @catch (NSException *exception) {
+        NSLog(@"[GLEAP_SDK] Handling the upload result failed: %@", exception.reason);
     }
 }
 
 #pragma mark NSURLSession delegate (main queue)
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didSendBodyData:(int64_t)bytesSent totalBytesSent:(int64_t)totalBytesSent totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend {
-    if (self.progress != nil && totalBytesExpectedToSend > 0 && !self.cancelled) {
-        self.progress(MIN(1.0, MAX(0.0, (double)totalBytesSent / (double)totalBytesExpectedToSend)));
-    }
+    @try {
+        if (self.progress != nil && totalBytesExpectedToSend > 0 && !self.cancelled) {
+            self.progress(MIN(1.0, MAX(0.0, (double)totalBytesSent / (double)totalBytesExpectedToSend)));
+        }
+    } @catch (NSException *exception) {}
 }
 
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data {
-    if (self.responseData.length + data.length <= kGleapMaxUploadResponseBytes) {
-        [self.responseData appendData: data];
-    }
+    @try {
+        if (self.responseData.length + data.length <= kGleapMaxUploadResponseBytes) {
+            [self.responseData appendData: data];
+        }
+    } @catch (NSException *exception) {}
 }
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
+    @try {
+        [self session: session task: task didCompleteWithError: error];
+    } @catch (NSException *exception) {
+        [self finishWithFileUrl: nil statusCode: 0 error: [NSError errorWithDomain: kGleapCaptureAPIErrorDomain code: 6 userInfo: @{ NSLocalizedDescriptionKey: exception.reason ?: @"The upload failed." }]];
+    }
+}
+
+- (void)session:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
     [session finishTasksAndInvalidate];
     if (session == self.session) {
         self.session = nil;
@@ -155,7 +175,11 @@ GLEAP_INTERNAL
         self.retried = YES;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             if (!self.cancelled && !self.finished) {
-                [self send];
+                @try {
+                    [self send];
+                } @catch (NSException *exception) {
+                    [self finishWithFileUrl: nil statusCode: 0 error: nil];
+                }
             }
         });
         return;
@@ -256,8 +280,12 @@ GLEAP_INTERNAL
                 }
             } @catch (NSException *exception) {}
         }
-        if (completion) {
-            completion(statusCode, json, error);
+        @try {
+            if (completion) {
+                completion(statusCode, json, error);
+            }
+        } @catch (NSException *exception) {
+            NSLog(@"[GLEAP_SDK] Handling a capture request answer failed: %@", exception.reason);
         }
     }];
 }
