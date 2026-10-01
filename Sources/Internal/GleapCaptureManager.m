@@ -751,7 +751,7 @@ GLEAP_INTERNAL
     session.uploadedFileUrl = nil;
     session.state = GleapCaptureSessionStatePreview;
     [session.overlay setBarHidden: YES animated: YES completion: nil];
-    [session.overlay presentPreviewWithFileURL: result.fileURL];
+    [session.overlay presentPreviewWithFileURL: result.fileURL videoSize: CGSizeMake(result.width, result.height)];
     [self sendState: @"preview" requestId: session.requestId extra: nil];
 }
 

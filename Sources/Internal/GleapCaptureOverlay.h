@@ -2,10 +2,11 @@
 //  GleapCaptureOverlay.h
 //  Gleap
 //
-//  The capture UI on top of the app while the widget is minimized: a bar in a window of its own
-//  ("Go to the screen you want to show" · Capture · Cancel, "Ready to record" · Start · Cancel, then
-//  the recording indicator with timer and Stop) and the recording preview (Send / Retake / Cancel).
-//  Every text comes from capture-start.labels with an English fallback. Main thread only.
+//  The capture UI on top of the app while the widget is minimized, in a window of its own: a small dark bar
+//  the customer can drag anywhere (Capture or Start recording, then the recording timer with Stop; the
+//  instruction shows briefly as a caption above it) and a dark full-screen preview of the recording
+//  (Send / Retake / close). Every text comes from capture-start.labels with an English fallback. Main thread
+//  only.
 //
 
 #import <UIKit/UIKit.h>
@@ -26,6 +27,7 @@ typedef NS_ENUM(NSInteger, GleapCaptureBarMode) {
     GleapCaptureBarModeScreenshot,
     GleapCaptureBarModeRecordReady,
     GleapCaptureBarModeRecording,
+    /// The bar as it is, with a spinner in its main button (Capture, Start or Stop), which waits meanwhile.
     GleapCaptureBarModeBusy,
 };
 
@@ -45,7 +47,8 @@ typedef NS_ENUM(NSInteger, GleapCaptureBarMode) {
 GLEAP_INTERNAL
 @interface GleapCaptureOverlay : NSObject
 
-/// Shows nothing yet; the window appears with the first showBarMode:.
+/// Shows nothing yet; the window appears with the first showBarMode:. `accentColor` is the widget's color (the main
+/// buttons); without one they are white.
 - (nullable instancetype)initWithScene:(UIWindowScene *)scene
                                 labels:(GleapCaptureLabels *)labels
                            accentColor:(nullable UIColor *)accentColor
@@ -55,8 +58,9 @@ GLEAP_INTERNAL
 - (void)setBarHidden:(BOOL)hidden animated:(BOOL)animated completion:(nullable void (^)(void))completion;
 - (void)updateElapsed:(NSTimeInterval)elapsed maxDuration:(NSTimeInterval)maxDuration;
 
-- (void)presentPreviewWithFileURL:(NSURL *)fileURL;
-/// Shows the upload progress (0…1) in the preview and disables its buttons except Cancel.
+/// The recording (`videoSize` in pixels, for its frame on screen) to send, retake or drop.
+- (void)presentPreviewWithFileURL:(NSURL *)fileURL videoSize:(CGSize)videoSize;
+/// Shows the upload progress (0…1) on Send and disables the preview except its close button (which cancels).
 - (void)setPreviewUploadProgress:(double)progress;
 /// Ends the uploading look; shows `message` (nil clears it) and enables the buttons again.
 - (void)setPreviewErrorMessage:(nullable NSString *)message;
