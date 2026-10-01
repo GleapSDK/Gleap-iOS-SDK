@@ -23,8 +23,18 @@ static CGFloat const kGleapScreenshotJPEGQuality = 0.85;
 static NSUInteger const kGleapMaxLogsBytes = 20 * 1024 * 1024;
 static NSTimeInterval const kGleapLogFlushTimeout = 0.5;
 static NSUInteger const kGleapMaxRememberedRequests = 200;
-static NSUInteger const kGleapMaxLogsRetries = 3;
+// A logs request that keeps failing for network reasons (offline, 408, 429, 5xx) is tried this often in all...
+static NSUInteger const kGleapMaxLogsAttempts = 3;
+// ...waiting this long before the second and the third try (about ten minutes in all). Then it is reported `failed`.
+static NSTimeInterval const kGleapLogsRetryDelays[] = { 120, 480 };
 static NSString * const kGleapRecordingFileName = @"screen-recording.mp4";
+
+// The step of a logs request an answer belongs to.
+typedef NS_ENUM(NSInteger, GleapLogsStep) {
+    GleapLogsStepUnsupported,
+    GleapLogsStepClaim,
+    GleapLogsStepUpload,
+};
 
 typedef NS_ENUM(NSInteger, GleapCaptureSessionState) {
     GleapCaptureSessionStateMinimizing,
@@ -917,49 +927,81 @@ GLEAP_INTERNAL
     if (!self.remoteLogCollectionEnabled || [self backgroundLogsDisabledByProject]) {
         NSString *reason = self.remoteLogCollectionEnabled ? @"background-logs-disabled" : @"remote-log-collection-disabled";
         [GleapCaptureAPI postEventType: @"unsupported" reason: reason requestId: requestId completion:^(NSInteger statusCode, NSDictionary * _Nullable body, NSError * _Nullable error) {
-            [weakSelf logsRequest: requestId didFinishWithStatus: statusCode options: options reportFailure: NO];
+            [weakSelf logsRequest: requestId step: GleapLogsStepUnsupported didFinishWithStatus: statusCode options: options];
         }];
         return;
     }
 
     [GleapCaptureAPI claimRequest: requestId completion:^(NSInteger statusCode, NSDictionary * _Nullable body, NSError * _Nullable error) {
-        if (statusCode < 200 || statusCode >= 300) {
-            [weakSelf logsRequest: requestId didFinishWithStatus: statusCode options: options reportFailure: NO];
-            return;
-        }
-        [weakSelf flushWrapperLogsThen:^{
-            [GleapLogsBundle collectWithInclude: options[@"include"] windowStart: nil windowEnd: nil completion:^(NSDictionary * _Nonnull bundle) {
-                [weakSelf postLogsBundle: bundle requestId: requestId completion:^(NSInteger logsStatus) {
-                    [weakSelf logsRequest: requestId didFinishWithStatus: logsStatus options: options reportFailure: YES];
+        [weakSelf logsRequest: requestId guarded:^{
+            if (statusCode < 200 || statusCode >= 300) {
+                [weakSelf logsRequest: requestId step: GleapLogsStepClaim didFinishWithStatus: statusCode options: options];
+                return;
+            }
+            [weakSelf flushWrapperLogsThen:^{
+                [weakSelf logsRequest: requestId guarded:^{
+                    [GleapLogsBundle collectWithInclude: options[@"include"] windowStart: nil windowEnd: nil completion:^(NSDictionary * _Nonnull bundle) {
+                        [weakSelf logsRequest: requestId guarded:^{
+                            [weakSelf postLogsBundle: bundle requestId: requestId completion:^(NSInteger logsStatus) {
+                                [weakSelf logsRequest: requestId step: GleapLogsStepUpload didFinishWithStatus: logsStatus options: options];
+                            }];
+                        }];
+                    }];
                 }];
             }];
         }];
     }];
 }
 
-- (void)logsRequest:(NSString *)requestId didFinishWithStatus:(NSInteger)statusCode options:(NSDictionary *)options reportFailure:(BOOL)reportFailure {
-    [self.runningLogRequests removeObject: requestId];
-    BOOL success = statusCode >= 200 && statusCode < 300;
-    BOOL transient = statusCode == 0 || statusCode == 408 || statusCode == 429 || statusCode >= 500;
-    if (success || !transient) {
+// A step of a logs request that throws ends the attempt (it is not left running forever).
+- (void)logsRequest:(NSString *)requestId guarded:(dispatch_block_t)block {
+    @try {
+        block();
+    } @catch (NSException *exception) {
+        NSLog(@"[GLEAP_SDK] Collecting logs for capture request %@ failed: %@", requestId, exception.reason);
+        [self.runningLogRequests removeObject: requestId];
+        [self rememberRequest: requestId in: self.finishedLogRequests];
+        [GleapCaptureAPI postEventType: @"failed" reason: @"exception" requestId: requestId completion: nil];
+    }
+}
+
+- (void)logsRequest:(NSString *)requestId step:(GleapLogsStep)step didFinishWithStatus:(NSInteger)statusCode options:(NSDictionary *)options {
+    @try {
+        [self.runningLogRequests removeObject: requestId];
+        BOOL success = statusCode >= 200 && statusCode < 300;
+        BOOL transient = statusCode == 0 || statusCode == 408 || statusCode == 429 || statusCode >= 500;
+        if (!success && transient) {
+            NSUInteger attempts = self.logRequestAttempts[requestId].unsignedIntegerValue + 1;
+            if (attempts < kGleapMaxLogsAttempts) {
+                // Offline or the server is busy: again a little later (a delivery before then is ignored).
+                self.logRequestAttempts[requestId] = @(attempts);
+                NSTimeInterval delay = kGleapLogsRetryDelays[MIN(attempts, (NSUInteger)(sizeof(kGleapLogsRetryDelays) / sizeof(kGleapLogsRetryDelays[0]))) - 1];
+                self.logRequestRetryAt[requestId] = [NSDate dateWithTimeIntervalSinceNow: delay];
+                __weak typeof(self) weakSelf = self;
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    [weakSelf logsRequest: requestId guarded:^{
+                        [weakSelf startLogsRequest: requestId options: options];
+                    }];
+                });
+                return;
+            }
+        }
+        // Final: answered, refused, or out of tries. Never again from this device.
         [self rememberRequest: requestId in: self.finishedLogRequests];
         [self.logRequestAttempts removeObjectForKey: requestId];
         [self.logRequestRetryAt removeObjectForKey: requestId];
-        if (!success && reportFailure && statusCode != 409 && statusCode != 410) {
-            [GleapCaptureAPI postEventType: @"failed" reason: [NSString stringWithFormat: @"logs-%ld", (long)statusCode] requestId: requestId completion: nil];
+        if (success || step == GleapLogsStepUnsupported || statusCode == 409 || statusCode == 410) {
+            return;
         }
-        return;
-    }
-    // Offline or the server is busy: again a little later, a few times; later pushes and pings retry too.
-    NSUInteger attempts = self.logRequestAttempts[requestId].unsignedIntegerValue + 1;
-    self.logRequestAttempts[requestId] = @(attempts);
-    NSTimeInterval delay = MIN(300.0, 30.0 * attempts);
-    self.logRequestRetryAt[requestId] = [NSDate dateWithTimeIntervalSinceNow: delay];
-    if (attempts <= kGleapMaxLogsRetries) {
-        __weak typeof(self) weakSelf = self;
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [weakSelf startLogsRequest: requestId options: options];
-        });
+        if (step == GleapLogsStepClaim && !transient) {
+            // Not this device's to answer (gone, or no access).
+            return;
+        }
+        // The server ends the request with this, instead of handing it out again.
+        NSString *reason = transient ? [NSString stringWithFormat: @"logs-unreachable-%ld", (long)statusCode] : [NSString stringWithFormat: @"logs-%ld", (long)statusCode];
+        [GleapCaptureAPI postEventType: @"failed" reason: reason requestId: requestId completion: nil];
+    } @catch (NSException *exception) {
+        NSLog(@"[GLEAP_SDK] Could not finish capture request %@: %@", requestId, exception.reason);
     }
 }
 
