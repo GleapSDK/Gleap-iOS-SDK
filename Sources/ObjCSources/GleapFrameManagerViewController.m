@@ -513,7 +513,9 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 }
 
 - (void)createWebView {
-    WKWebViewConfiguration *webConfig = [GleapWebViewSupport configurationWithMessageHandler: self name: @"gleapCallback" allowsInlineMediaPlayback: NO];
+    // Videos in the conversation (screen recordings, video attachments) play inline, as in the banner and modal;
+    // playback still needs a tap (WebKit's default: media requires a user action).
+    WKWebViewConfiguration *webConfig = [GleapWebViewSupport configurationWithMessageHandler: self name: @"gleapCallback" allowsInlineMediaPlayback: YES];
     self.webView = [[WKWebView alloc] initWithFrame:self.view.frame configuration: webConfig];
     [GleapWebViewSupport makeWebViewTransparent: self.webView];
     [GleapWebViewSupport disableScrollingInWebView: self.webView];
