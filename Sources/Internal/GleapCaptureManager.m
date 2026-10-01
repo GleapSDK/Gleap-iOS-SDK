@@ -336,6 +336,10 @@ GLEAP_INTERNAL
 - (void)widgetDidMinimize:(BOOL)minimized scene:(UIWindowScene *)scene session:(GleapCaptureSession *)session {
     @try {
         if (self.session != session || session.state != GleapCaptureSessionStateMinimizing) {
+            // The capture ended while the widget was on its way down: it comes back, unless another capture runs.
+            if (minimized && self.session == nil) {
+                [self restoreWidgetThen: nil];
+            }
             return;
         }
         if (!minimized) {
@@ -386,6 +390,10 @@ GLEAP_INTERNAL
 - (BOOL)isRecording {
     GleapCaptureSession *session = self.session;
     return session != nil && (session.state == GleapCaptureSessionStateRecording || session.state == GleapCaptureSessionStateFinishing);
+}
+
+- (BOOL)hasActiveCapture {
+    return self.session != nil;
 }
 
 #pragma mark - Ending a session
@@ -444,12 +452,13 @@ GLEAP_INTERNAL
 - (void)restoreWidgetThen:(void (^)(BOOL restored))completion {
     GleapWidgetManager *widgetManager = [GleapWidgetManager sharedInstance];
     // Not while another capture starts: the widget stays down for it.
-    if (!widgetManager.widgetMinimized || self.session != nil) {
+    if (self.session != nil) {
         if (completion) {
             completion(widgetManager.widgetOpened);
         }
         return;
     }
+    // Queued behind a minimize still under way, so a widget on its way down comes back too.
     [widgetManager restoreWidgetWithCompletion:^(BOOL restored) {
         if (completion) {
             completion(restored);

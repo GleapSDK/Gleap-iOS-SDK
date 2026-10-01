@@ -547,6 +547,8 @@
     }
     
     if ([[GleapWidgetManager sharedInstance] isOpened]) {
+        // Minimized for a capture that has ended without bringing it back: it comes back instead of staying away.
+        [[GleapWidgetManager sharedInstance] restoreWidgetIfNoCaptureRuns];
         return NO;
     }
     

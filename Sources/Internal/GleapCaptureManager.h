@@ -59,6 +59,8 @@ GLEAP_INTERNAL
 
 /// YES while a recording runs (the replays pause meanwhile).
 - (BOOL)isRecording;
+/// YES from capture-start until the capture has ended (main thread).
+- (BOOL)hasActiveCapture;
 
 @end
 
