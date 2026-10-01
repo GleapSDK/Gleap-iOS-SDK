@@ -90,6 +90,10 @@ GLEAP_INTERNAL
 @property (nonatomic, strong) NSMutableDictionary<NSString *, NSDate *> *logRequestRetryAt;
 @property (nonatomic, strong) NSMutableOrderedSet<NSString *> *attachedLogRequests;
 @property (nonatomic, assign) BOOL removedStaleFiles;
+// The last capture-image (until the widget is done with its request) and the last capture-state for the widget. They
+// go to the widget again when its page had to be loaded again (its web content process ended).
+@property (nonatomic, copy, nullable) NSDictionary *pendingImageMessage;
+@property (nonatomic, copy, nullable) NSDictionary *lastStateMessage;
 @end
 
 @implementation GleapCaptureManager
@@ -249,7 +253,25 @@ GLEAP_INTERNAL
     if (extra != nil) {
         [data addEntriesFromDictionary: extra];
     }
+    self.lastStateMessage = data;
     [self sendToWidget: @"capture-state" data: data];
+}
+
+// The widget's page was loaded again (its web content process had ended): what it was told about the current
+// request goes to it once more. A freshly loaded Messenger fetches the request and opens the editor for an image.
+- (void)widgetPageDidReload {
+    @try {
+        NSDictionary *image = self.pendingImageMessage;
+        NSDictionary *state = self.lastStateMessage;
+        if (image != nil) {
+            [self sendToWidget: @"capture-image" data: image];
+        }
+        if (state != nil && (image == nil || [state[@"requestId"] isEqual: image[@"requestId"]])) {
+            [self sendToWidget: @"capture-state" data: state];
+        }
+    } @catch (NSException *exception) {
+        NSLog(@"[GLEAP_SDK] Could not update the reloaded widget: %@", exception.reason);
+    }
 }
 
 - (BOOL)handleWidgetMessage:(NSString *)name data:(id)data {
@@ -257,6 +279,7 @@ GLEAP_INTERNAL
         return NO;
     }
     @try {
+        [self widgetMessageEndsPendingMessages: name data: data];
         if ([name isEqualToString: @"capture-start"]) {
             [self handleCaptureStart: data];
         } else if ([name isEqualToString: @"capture-cancel"]) {
@@ -276,6 +299,22 @@ GLEAP_INTERNAL
         }
     }
     return YES;
+}
+
+// What waits for a reload of the widget's page is dropped once the widget is done with its request (done, cancel)
+// or starts a capture (again).
+- (void)widgetMessageEndsPendingMessages:(NSString *)name data:(id)data {
+    BOOL starts = [name isEqualToString: @"capture-start"];
+    if (!starts && ![name isEqualToString: @"capture-done"] && ![name isEqualToString: @"capture-cancel"]) {
+        return;
+    }
+    id requestId = [data isKindOfClass: [NSDictionary class]] ? data[@"requestId"] : nil;
+    if (starts || [self.pendingImageMessage[@"requestId"] isEqual: requestId]) {
+        self.pendingImageMessage = nil;
+    }
+    if (!starts && [self.lastStateMessage[@"requestId"] isEqual: requestId]) {
+        self.lastStateMessage = nil;
+    }
 }
 
 - (void)handleCaptureStart:(id)data {
@@ -389,6 +428,8 @@ GLEAP_INTERNAL
 - (void)widgetWillClose {
     [self onMainQueue:^{
         @try {
+            self.pendingImageMessage = nil;
+            self.lastStateMessage = nil;
             GleapCaptureSession *session = self.session;
             if (session != nil) {
                 [self finishSession: session widgetState: nil error: @"widget-closed" eventType: @"released" restore: NO];
@@ -558,7 +599,7 @@ GLEAP_INTERNAL
                 [GleapCaptureAPI postEventType: @"released" reason: @"widget-unavailable" requestId: requestId completion: nil];
                 return;
             }
-            [weakSelf sendToWidget: @"capture-image" data: @{
+            NSDictionary *image = @{
                 @"requestId": requestId,
                 @"dataUrl": dataUrl,
                 @"width": @((NSInteger)size.width),
@@ -567,7 +608,10 @@ GLEAP_INTERNAL
                 @"platform": @"ios",
                 @"sdkType": [GleapCaptureAPI sdkType],
                 @"sdkVersion": SDK_VERSION,
-            }];
+            };
+            // Kept until the widget is done with the request, in case its page has to be loaded again.
+            weakSelf.pendingImageMessage = image;
+            [weakSelf sendToWidget: @"capture-image" data: image];
             [weakSelf sendState: @"preview" requestId: requestId extra: nil];
             if (attachLogs) {
                 [weakSelf uploadLogsForCaptureRequest: requestId include: include windowStart: startedAt windowEnd: capturedAt];

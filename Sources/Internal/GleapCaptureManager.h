@@ -49,6 +49,9 @@ GLEAP_INTERNAL
 - (void)sendCapabilitiesToWidget;
 /// The widget closes for good (not minimized): ends a running capture and gives the request back.
 - (void)widgetWillClose;
+/// The widget's page was loaded again after its web content process ended: the current request's image and state
+/// are sent to it once more.
+- (void)widgetPageDidReload;
 
 #pragma mark Background logs (any thread)
 

@@ -72,6 +72,10 @@ GLEAP_INTERNAL
 @property (retain, nonatomic) WKWebView *webView;
 @property (retain, nonatomic) UIView *loadingView;
 @property (retain, nonatomic) UIActivityIndicatorView *loadingActivityView;
+// The page's web content process ended while the widget was off screen: it loads again once the widget is back.
+@property (assign, nonatomic) BOOL needsReload;
+// Loaded again after its web content process ended: the next ping brings the capture state back.
+@property (assign, nonatomic) BOOL reloadedAfterTermination;
 
 @end
 
@@ -184,6 +188,14 @@ GLEAP_INTERNAL
 - (void)viewWillDisappear:(BOOL)animated {
     [super viewWillDisappear: animated];
     [self invalidateTimeout];
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear: animated];
+    if (self.needsReload) {
+        self.needsReload = NO;
+        [self reloadWidgetPage];
+    }
 }
 
 - (void)closeWidget: (void (^)(void))completion {
@@ -353,6 +365,8 @@ GLEAP_INTERNAL
 - (void)widgetDidConnect {
     [self invalidateTimeout];
     self.connected = YES;
+    BOOL reloaded = self.reloadedAfterTermination;
+    self.reloadedAfterTermination = NO;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
         [self stopLoading];
     });
@@ -364,6 +378,9 @@ GLEAP_INTERNAL
     [self sendPreFillData];
     [self sendScreenshotUpdate];
     [self sendCaptureCapabilities];
+    if (reloaded) {
+        [[GleapCaptureManager sharedInstance] widgetPageDidReload];
+    }
     
     if (self.delegate != nil && [self.delegate respondsToSelector:@selector(connected)]) {
         [self.delegate connected];
@@ -621,6 +638,41 @@ GLEAP_INTERNAL
 
 - (void)webView:(WKWebView *)webView didFailNavigation:(WKNavigation *)navigation withError:(NSError *)error {
     [self loadingFailed: error];
+}
+
+// iOS ends a web content process under memory pressure (likely while the widget is minimized for a capture): the
+// page is gone and the widget would stay blank.
+- (void)webViewWebContentProcessDidTerminate:(WKWebView *)webView {
+    @try {
+        NSLog(@"[GLEAP_SDK] The widget page stopped (its web content process ended); it loads again.");
+        self.connected = NO;
+        if (self.view.window == nil) {
+            self.needsReload = YES;
+            return;
+        }
+        [self reloadWidgetPage];
+    } @catch (NSException *exception) {}
+}
+
+- (void)reloadWidgetPage {
+    self.reloadedAfterTermination = YES;
+    self.connected = NO;
+    self.view.userInteractionEnabled = NO;
+    if (self.loadingView != nil) {
+        self.loadingView.hidden = NO;
+        self.loadingView.alpha = 1.0;
+        [self.view bringSubviewToFront: self.loadingView];
+    }
+    [self invalidateTimeout];
+    self.timeoutTimer = [NSTimer scheduledTimerWithTimeInterval: 15
+                                         target: self
+                                       selector: @selector(requestTimedOut:)
+                                       userInfo: nil
+                                        repeats: NO];
+    NSURL *url = [NSURL URLWithString: Gleap.sharedInstance.frameUrl];
+    if (url != nil) {
+        [self.webView loadRequest: [NSURLRequest requestWithURL: url]];
+    }
 }
 
 - (void)requestTimedOut:(id)sender {
