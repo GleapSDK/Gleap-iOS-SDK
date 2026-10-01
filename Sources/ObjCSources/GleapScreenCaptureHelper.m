@@ -181,8 +181,9 @@
             if ([self isViewSafeToRender:view] && 
                 CGRectIntersectsRect(keyWindow.bounds, view.frame)) {
                 
-                // Use bounds instead of frame for drawing
-                CGRect drawRect = view.bounds;
+                // Each view at its real place in the window: drawn at its bounds origin, every view smaller
+                // than the window ended up in the top left corner.
+                CGRect drawRect = [view convertRect:view.bounds toView:keyWindow];
                 if (!CGRectIsEmpty(drawRect) && !CGRectIsInfinite(drawRect)) {
                     [view drawViewHierarchyInRect:drawRect afterScreenUpdates:NO];
                 }
