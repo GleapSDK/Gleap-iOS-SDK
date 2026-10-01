@@ -23,12 +23,49 @@
 #import "GleapPreFillHelper.h"
 #import "GleapAgentToolHelper.h"
 #import "GleapCaptureManager.h"
+#import <objc/runtime.h>
 
 // How long we may take to answer the widget's `collect-ticket-data` request.
 // The widget drops the whole payload once its own timeout elapses, so this stays
 // comfortably below it (see CommunicationManager.sendMessageWithResolver in the
 // messenger).
 static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
+
+static char kGleapPanelCompletionKey;
+
+/// Calls the completion handler of a JavaScript panel exactly once: when it is answered, when it cannot be shown,
+/// or at the latest when the panel goes away unanswered (WebKit throws when a handler is never called).
+GLEAP_INTERNAL
+@interface GleapPanelCompletion : NSObject
+- (instancetype)initWithHandler:(void (^)(void))handler;
+- (void)call;
+@end
+
+@implementation GleapPanelCompletion {
+    void (^_handler)(void);
+}
+
+- (instancetype)initWithHandler:(void (^)(void))handler {
+    self = [super init];
+    if (self) {
+        _handler = [handler copy];
+    }
+    return self;
+}
+
+- (void)call {
+    void (^handler)(void) = _handler;
+    _handler = nil;
+    if (handler != nil) {
+        handler();
+    }
+}
+
+- (void)dealloc {
+    [self call];
+}
+
+@end
 
 @interface GleapFrameManagerViewController ()
 
@@ -490,21 +527,45 @@ static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 
 - (void)webView:(WKWebView *)webView runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))completionHandler
 {
-    if (self.view.window == nil) {
-        // Off screen (minimized for a capture): nothing to present the alert on, and WebKit requires the
-        // completion handler to be called.
-        completionHandler();
-        return;
+    // Shown when possible; otherwise (off screen, or while the widget is on its way in or out, when UIKit refuses to
+    // present) the page goes on at once.
+    GleapPanelCompletion *completion = [[GleapPanelCompletion alloc] initWithHandler: completionHandler];
+    @try {
+        if (![self canPresentPanel]) {
+            [completion call];
+            return;
+        }
+        UIAlertController *alertController = [UIAlertController alertControllerWithTitle:message
+                                                                                 message:nil
+                                                                          preferredStyle:UIAlertControllerStyleAlert];
+        [alertController addAction:[UIAlertAction actionWithTitle:@"OK"
+                                                            style:UIAlertActionStyleCancel
+                                                          handler:^(UIAlertAction *action) {
+                                                              [completion call];
+                                                          }]];
+        // Dismissed without a tap (the widget minimized or closed under it): the handler runs when the alert goes.
+        objc_setAssociatedObject(alertController, &kGleapPanelCompletionKey, completion, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        [self presentViewController:alertController animated:YES completion:^{}];
+        // A refused presentation reports nothing.
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            if (alertController.presentingViewController == nil && !alertController.isBeingPresented) {
+                [completion call];
+            }
+        });
+    } @catch (NSException *exception) {
+        [completion call];
     }
-    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:message
-                                                                             message:nil
-                                                                      preferredStyle:UIAlertControllerStyleAlert];
-    [alertController addAction:[UIAlertAction actionWithTitle:@"OK"
-                                                        style:UIAlertActionStyleCancel
-                                                      handler:^(UIAlertAction *action) {
-                                                          completionHandler();
-                                                      }]];
-    [self presentViewController:alertController animated:YES completion:^{}];
+}
+
+// The widget is on screen and settled, with nothing presented over it.
+- (BOOL)canPresentPanel {
+    UIViewController *container = self.navigationController ?: self;
+    return self.view.window != nil
+        && ![GleapWidgetManager sharedInstance].widgetMinimized
+        && container.presentingViewController != nil
+        && !container.isBeingPresented
+        && !container.isBeingDismissed
+        && self.presentedViewController == nil;
 }
 
 - (WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures {
