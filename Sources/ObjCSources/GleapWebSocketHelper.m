@@ -7,6 +7,7 @@
 
 #import "GleapWebSocketHelper.h"
 #import "GleapEventLogHelper.h"
+#import "GleapCaptureManager.h"
 
 @interface GleapWebSocketHelper ()
 // One session for all connections; a session per connection was never invalidated. Messages
@@ -102,6 +103,9 @@
                         NSString *eventName = [parsedData objectForKey: @"name"];
                         if ([eventName isEqualToString: @"update"]) {
                             [[GleapEventLogHelper sharedInstance] parseUpdate: [parsedData objectForKey: @"data"]];
+                        } else if ([eventName isEqualToString: @"capture-request"]) {
+                            // A background log request; handled whether the widget is open or not.
+                            [[GleapCaptureManager sharedInstance] handleCaptureRequests: [parsedData objectForKey: @"data"]];
                         }
                     }
                 }
