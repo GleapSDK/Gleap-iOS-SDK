@@ -76,6 +76,8 @@ GLEAP_INTERNAL
 @property (assign, nonatomic) BOOL needsReload;
 // Loaded again after its web content process ended: the next ping brings the capture state back.
 @property (assign, nonatomic) BOOL reloadedAfterTermination;
+// Card surveys: dims what shows through the translucent keyboard (see setUpKeyboardScrim).
+@property (retain, nonatomic) UIView *keyboardScrimView;
 
 @end
 
@@ -134,6 +136,47 @@ GLEAP_INTERNAL
     self.view.userInteractionEnabled = NO;
     [self createWebView];
     [self setupLoadingView];
+    if (self.isCardSurvey) {
+        [self setUpKeyboardScrim];
+    }
+}
+
+// A card survey's view is clear: the page dims the app itself (rgba(0,0,0,0.25) on its body).
+// While the keyboard is up, WebKit scrolls the focused field into view and the strip it uncovers
+// at the bottom is not page, so the translucent keyboard showed the app undimmed. A scrim behind
+// the web view covers exactly the keyboard's part of the screen; elsewhere the page's own dim
+// stays the only one, so nothing is dimmed twice.
+- (void)setUpKeyboardScrim {
+    UIView *scrim = [[UIView alloc] initWithFrame: CGRectMake(0, CGRectGetMaxY(self.view.bounds), CGRectGetWidth(self.view.bounds), 0)];
+    scrim.backgroundColor = [UIColor colorWithRed: 10.0 / 255.0 green: 12.0 / 255.0 blue: 16.0 / 255.0 alpha: 0.25];
+    scrim.userInteractionEnabled = NO;
+    [self.view insertSubview: scrim atIndex: 0];
+    self.keyboardScrimView = scrim;
+
+    [[NSNotificationCenter defaultCenter] addObserver: self selector: @selector(keyboardWillChangeFrame:) name: UIKeyboardWillChangeFrameNotification object: nil];
+    [[NSNotificationCenter defaultCenter] addObserver: self selector: @selector(keyboardWillChangeFrame:) name: UIKeyboardWillHideNotification object: nil];
+}
+
+- (void)keyboardWillChangeFrame:(NSNotification *)notification {
+    UIView *scrim = self.keyboardScrimView;
+    if (scrim == nil || self.view.window == nil) {
+        return;
+    }
+    CGRect bounds = self.view.bounds;
+    CGFloat top = CGRectGetMaxY(bounds);
+    if (![notification.name isEqualToString: UIKeyboardWillHideNotification]) {
+        CGRect keyboard = [[notification.userInfo objectForKey: UIKeyboardFrameEndUserInfoKey] CGRectValue];
+        CGRect overlap = CGRectIntersection(bounds, [self.view convertRect: keyboard fromCoordinateSpace: self.view.window.screen.coordinateSpace]);
+        if (!CGRectIsNull(overlap) && overlap.size.height > 0) {
+            top = CGRectGetMinY(overlap);
+        }
+    }
+    CGRect frame = CGRectMake(0, top, CGRectGetWidth(bounds), CGRectGetMaxY(bounds) - top);
+    NSTimeInterval duration = [[notification.userInfo objectForKey: UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+    UIViewAnimationCurve curve = [[notification.userInfo objectForKey: UIKeyboardAnimationCurveUserInfoKey] integerValue];
+    [UIView animateWithDuration: duration delay: 0 options: (UIViewAnimationOptions)(curve << 16) | UIViewAnimationOptionBeginFromCurrentState animations:^{
+        scrim.frame = frame;
+    } completion: nil];
 }
 
 - (void)setupLoadingView {
@@ -175,6 +218,7 @@ GLEAP_INTERNAL
 }
 
 - (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver: self];
     [GleapWebViewSupport removeMessageHandlerNamed: @"gleapCallback" fromWebView: _webView];
 }
 
@@ -359,6 +403,10 @@ GLEAP_INTERNAL
     } else if ([name hasPrefix: @"capture-"]) {
         // capture-start, capture-cancel, capture-done, capture-editor.
         [[GleapCaptureManager sharedInstance] handleWidgetMessage: name data: messageData];
+    } else if ([name hasPrefix: @"survey-"] || [name isEqualToString: @"sheet-viewport"] || [name isEqualToString: @"height-update"]) {
+        // Surveys 2.0 lifecycle (survey-shown, -answered, -completed, -closed, -legacy) and the
+        // shell's layout messages: the shell page handles them; completion reaches the app
+        // through notify-event outbound-sent.
     }
 }
 
@@ -485,11 +533,57 @@ GLEAP_INTERNAL
     
     if ([eventType isEqualToString: @"flow-started"]) {
         [GleapScreenshotManager sharedInstance].updatedScreenshot = nil;
-        
+
         if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackFlowStarted:)]) {
             [Gleap.sharedInstance.delegate feedbackFlowStarted: eventData];
         }
+    } else if ([eventType isEqualToString: @"outbound-sent"]) {
+        [self surveyCompleted: eventData];
     }
+}
+
+// A Surveys 2.0 survey was completed. Its answers are saved by the messenger itself (no
+// send-feedback), so the callbacks and the outbound-<id>-submitted event a legacy survey gets
+// after sending come from here, in the legacy shape.
+- (void)surveyCompleted:(NSDictionary *)eventData {
+    @try {
+        if (![eventData isKindOfClass: [NSDictionary class]]) {
+            return;
+        }
+        id outboundId = [eventData objectForKey: @"outboundId"];
+        id outbound = [eventData objectForKey: @"outbound"];
+        id formData = [eventData objectForKey: @"formData"];
+        if (![formData isKindOfClass: [NSDictionary class]]) {
+            formData = @{};
+        }
+
+        if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSent:)]) {
+            [Gleap.sharedInstance.delegate feedbackSent: formData];
+        }
+
+        if (![outboundId isKindOfClass: [NSString class]] || [outboundId length] == 0) {
+            return;
+        }
+
+        [Gleap trackEvent: [NSString stringWithFormat: @"outbound-%@-submitted", outboundId] withData: formData];
+
+        if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(outboundSent:)]) {
+            NSMutableDictionary *sent = [[NSMutableDictionary alloc] initWithDictionary: @{
+                @"outboundId": outboundId,
+                @"outbound": GleapObjectOrNull(outbound),
+                @"formData": formData,
+            }];
+            id responseId = [eventData objectForKey: @"responseId"];
+            if (responseId != nil) {
+                [sent setObject: responseId forKey: @"responseId"];
+            }
+            id endingId = [eventData objectForKey: @"endingId"];
+            if (endingId != nil) {
+                [sent setObject: endingId forKey: @"endingId"];
+            }
+            [Gleap.sharedInstance.delegate outboundSent: sent];
+        }
+    } @catch (id exception) {}
 }
 
 - (void)sendFeedbackFromWidget:(NSDictionary *)messageData {
