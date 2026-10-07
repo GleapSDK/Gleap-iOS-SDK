@@ -288,6 +288,9 @@ GLEAP_INTERNAL
             @"actions": GleapConfigHelper.sharedInstance.projectActions,
             @"overrideLanguage": GleapTranslationHelper.sharedInstance.language,
             @"isApp": @(YES),
+            // Surveys 2.0: this SDK fires the survey callbacks from notify-event outbound-sent
+            // (surveyCompleted:), so the messenger sends no legacy send-feedback after a completion.
+            @"surveyCallbacks": @(YES),
         }
     }];
 }
@@ -544,21 +547,38 @@ GLEAP_INTERNAL
 
 // A Surveys 2.0 survey was completed. Its answers are saved by the messenger itself (no
 // send-feedback), so the callbacks and the outbound-<id>-submitted event a legacy survey gets
-// after sending come from here, in the legacy shape.
+// after sending come from here, in the legacy shape: feedbackSent: {formData, type} with the
+// answers by key, outboundSent: {outboundId, outbound, formData} plus what the messenger adds (surveyId,
+// responseId, endingId, status). Once per response, also when the page reports it again.
 - (void)surveyCompleted:(NSDictionary *)eventData {
     @try {
         if (![eventData isKindOfClass: [NSDictionary class]]) {
             return;
         }
         id outboundId = [eventData objectForKey: @"outboundId"];
-        id outbound = [eventData objectForKey: @"outbound"];
         id formData = [eventData objectForKey: @"formData"];
         if (![formData isKindOfClass: [NSDictionary class]]) {
             formData = @{};
         }
 
+        id responseId = [eventData objectForKey: @"responseId"];
+        if ([responseId isKindOfClass: [NSString class]] && [responseId length] > 0) {
+            static NSMutableSet *reportedResponses;
+            static dispatch_once_t onceToken;
+            dispatch_once(&onceToken, ^{
+                reportedResponses = [[NSMutableSet alloc] init];
+            });
+            @synchronized (reportedResponses) {
+                if ([reportedResponses containsObject: responseId]) {
+                    return;
+                }
+                [reportedResponses addObject: responseId];
+            }
+        }
+
         if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(feedbackSent:)]) {
-            [Gleap.sharedInstance.delegate feedbackSent: formData];
+            // The shape GleapFeedback reports a sent legacy survey in.
+            [Gleap.sharedInstance.delegate feedbackSent: @{ @"formData": formData, @"type": @"SURVEY" }];
         }
 
         if (![outboundId isKindOfClass: [NSString class]] || [outboundId length] == 0) {
@@ -568,19 +588,10 @@ GLEAP_INTERNAL
         [Gleap trackEvent: [NSString stringWithFormat: @"outbound-%@-submitted", outboundId] withData: formData];
 
         if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(outboundSent:)]) {
-            NSMutableDictionary *sent = [[NSMutableDictionary alloc] initWithDictionary: @{
-                @"outboundId": outboundId,
-                @"outbound": GleapObjectOrNull(outbound),
-                @"formData": formData,
-            }];
-            id responseId = [eventData objectForKey: @"responseId"];
-            if (responseId != nil) {
-                [sent setObject: responseId forKey: @"responseId"];
-            }
-            id endingId = [eventData objectForKey: @"endingId"];
-            if (endingId != nil) {
-                [sent setObject: endingId forKey: @"endingId"];
-            }
+            NSMutableDictionary *sent = [[NSMutableDictionary alloc] initWithDictionary: eventData];
+            [sent setObject: outboundId forKey: @"outboundId"];
+            [sent setObject: GleapObjectOrNull([eventData objectForKey: @"outbound"]) forKey: @"outbound"];
+            [sent setObject: formData forKey: @"formData"];
             [Gleap.sharedInstance.delegate outboundSent: sent];
         }
     } @catch (id exception) {}
