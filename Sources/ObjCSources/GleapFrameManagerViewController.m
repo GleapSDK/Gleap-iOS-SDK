@@ -31,6 +31,10 @@
 // messenger).
 static NSTimeInterval const kGleapCollectTicketDataDeadline = 0.4;
 
+// A survey's loading view stays until its page shows something, at the latest this long after the
+// page connected (the messenger shows its own loading view 1 s after it got the survey).
+static NSTimeInterval const kGleapSurveyLoadingViewCap = 1.5;
+
 static char kGleapPanelCompletionKey;
 
 /// Calls the completion handler of a JavaScript panel exactly once: when it is answered, when it cannot be shown,
@@ -78,6 +82,8 @@ GLEAP_INTERNAL
 @property (assign, nonatomic) BOOL reloadedAfterTermination;
 // Card surveys: dims what shows through the translucent keyboard (see setUpKeyboardScrim).
 @property (retain, nonatomic) UIView *keyboardScrimView;
+// Surveys: the page has something to show (a card its height, a full screen survey itself).
+@property (assign, nonatomic) BOOL surveyContentShown;
 
 @end
 
@@ -90,6 +96,7 @@ GLEAP_INTERNAL
    {
        self.connected = NO;
        self.isCardSurvey = [format isEqualToString: @"survey"];
+       self.isSurvey = [format hasPrefix: @"survey"];
        
        // Apply preview only if not simple survey.
        if (!self.isCardSurvey) {
@@ -340,6 +347,13 @@ GLEAP_INTERNAL
 - (void)stopLoading {
     self.view.userInteractionEnabled = YES;
 
+    // A survey not on screen yet (held back until it has something to show) appears without the loading view.
+    if (self.isSurvey && self.view.window == nil) {
+        self.loadingView.hidden = YES;
+        self.webView.alpha = 1.0;
+        return;
+    }
+
     // Cross-fade: the loading background (showing the same colors/image) fades
     // out as the webview fades in, so the hand-off reads as continuous. The
     // messenger's own home entrance animations then play inside the webview.
@@ -410,6 +424,25 @@ GLEAP_INTERNAL
         // Surveys 2.0 lifecycle (survey-shown, -answered, -completed, -closed, -legacy) and the
         // shell's layout messages: the shell page handles them; completion reaches the app
         // through notify-event outbound-sent.
+        // The first sign of something to show: a card's height, a full screen survey (or the
+        // legacy form) shown.
+        if (self.isSurvey && ([name isEqualToString: @"height-update"] ||
+                              (!self.isCardSurvey && ([name isEqualToString: @"survey-shown"] || [name isEqualToString: @"survey-legacy"])))) {
+            [self showSurveyContent];
+        }
+    }
+}
+
+// A survey with nothing to ask (every question skipped as known) closes before this: it was never
+// on screen, nor was its loading view.
+- (void)showSurveyContent {
+    if (self.surveyContentShown) {
+        return;
+    }
+    self.surveyContentShown = YES;
+    [self stopLoading];
+    if (self.delegate != nil && [self.delegate respondsToSelector: @selector(surveyContentShown)]) {
+        [self.delegate surveyContentShown];
     }
 }
 
@@ -418,7 +451,9 @@ GLEAP_INTERNAL
     self.connected = YES;
     BOOL reloaded = self.reloadedAfterTermination;
     self.reloadedAfterTermination = NO;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.5 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+    // A survey's loading view goes once its page shows something (showSurveyContent).
+    NSTimeInterval loadingViewDelay = self.isSurvey ? kGleapSurveyLoadingViewCap : 0.5;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, loadingViewDelay * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
         [self stopLoading];
     });
     
@@ -788,6 +823,11 @@ GLEAP_INTERNAL
 }
 
 - (void)loadingFailed:(NSError *)error {
+    if (self.isSurvey && self.view.window == nil) {
+        // A survey held back until it has something to show: there is nothing to show the error on.
+        [self closeWidget: nil];
+        return;
+    }
     self.view.userInteractionEnabled = YES;
     UIAlertController *alertController = [UIAlertController alertControllerWithTitle: error.localizedDescription
                                                                              message: nil

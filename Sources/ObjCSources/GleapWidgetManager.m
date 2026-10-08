@@ -17,9 +17,13 @@
 
 // A transition that UIKit never reports back on ends after this long at the latest, so the ones behind it run.
 static NSTimeInterval const kGleapTransitionTimeout = 15.0;
+// A survey is held back until its page has something to show, at most this long (as in the JavaScript SDK).
+static NSTimeInterval const kGleapSurveyRevealFallback = 1.2;
 
 typedef NS_ENUM(NSInteger, GleapWidgetTransitionKind) {
     GleapWidgetTransitionOpen,
+    // Shows a survey held back by its open.
+    GleapWidgetTransitionReveal,
     GleapWidgetTransitionMinimize,
     GleapWidgetTransitionRestore,
     GleapWidgetTransitionClose,
@@ -91,6 +95,7 @@ GLEAP_INTERNAL
             [self finishClosed];
             break;
         case GleapWidgetTransitionOpen:
+        case GleapWidgetTransitionReveal:
             break;
     }
 }
@@ -105,6 +110,11 @@ GLEAP_INTERNAL
 // Main queue.
 @property (nonatomic, strong) NSMutableArray<GleapWidgetTransition *> *pendingTransitions;
 @property (nonatomic, strong, nullable) GleapWidgetTransition *currentTransition;
+// An open survey not presented yet: shown once its page has something to show (or after
+// kGleapSurveyRevealFallback), so one that closes before (nothing to ask) is never seen.
+@property (nonatomic, strong, nullable) UINavigationController *heldController;
+// The widget was presented (and the app heard widgetOpened): only then does it hear widgetClosed.
+@property (nonatomic, assign) BOOL widgetShown;
 @end
 
 @implementation GleapWidgetManager
@@ -201,15 +211,18 @@ GLEAP_INTERNAL
 }
 
 - (void)didCloseWidgetWithCompletion:(void (^)(void))completion {
+    BOOL shown = self.widgetShown;
+    self.widgetShown = NO;
     self.widgetOpened = NO;
     self.gleapWidget = nil;
+    self.heldController = nil;
     if (completion != nil) {
         completion();
     }
 
     [GleapUIOverlayHelper updateUI];
 
-    if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetClosed)]) {
+    if (shown && Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetClosed)]) {
         [Gleap.sharedInstance.delegate widgetClosed];
     }
 }
@@ -290,6 +303,7 @@ GLEAP_INTERNAL
                 pointless = pending.kind == GleapWidgetTransitionMinimize;
                 break;
             case GleapWidgetTransitionOpen:
+            case GleapWidgetTransitionReveal:
                 break;
         }
         if (pointless) {
@@ -336,6 +350,9 @@ GLEAP_INTERNAL
         switch (transition.kind) {
             case GleapWidgetTransitionOpen:
                 [self runOpenTransition: transition end: end];
+                break;
+            case GleapWidgetTransitionReveal:
+                [self runRevealTransition: transition end: end];
                 break;
             case GleapWidgetTransitionMinimize:
                 [self runMinimizeTransition: transition end: end];
@@ -398,10 +415,6 @@ GLEAP_INTERNAL
     self.gleapWidget = widget;
     self.gleapWidget.delegate = self;
 
-    // Clear all notifications.
-    [GleapUIOverlayHelper clear];
-    [GleapUIOverlayHelper updateUI];
-
     UINavigationController * navController = [[UINavigationController alloc] initWithRootViewController: self.gleapWidget];
     navController.navigationBar.barStyle = UIBarStyleBlack;
     [navController.navigationBar setTranslucent: NO];
@@ -424,6 +437,51 @@ GLEAP_INTERNAL
         self.gleapWidget.view.backgroundColor = [UIColor clearColor];
     }
 
+    if (widget.isSurvey) {
+        // Its page loads and gets the survey off screen; nothing (no dim, no loading view, no sheet)
+        // shows until the survey has something to show.
+        self.heldController = navController;
+        __weak typeof(self) weakSelf = self;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kGleapSurveyRevealFallback * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [weakSelf revealSurvey: widget];
+        });
+        end();
+        return;
+    }
+
+    [self presentWidget: widget in: navController end: end];
+}
+
+- (void)surveyContentShown {
+    [self revealSurvey: self.gleapWidget];
+}
+
+- (void)revealSurvey:(GleapFrameManagerViewController *)widget {
+    if (widget == nil || self.gleapWidget != widget || self.heldController == nil) {
+        return;
+    }
+    GleapWidgetTransition *transition = [[GleapWidgetTransition alloc] init];
+    transition.kind = GleapWidgetTransitionReveal;
+    [self enqueueTransition: transition];
+}
+
+- (void)runRevealTransition:(GleapWidgetTransition *)transition end:(dispatch_block_t)end {
+    UINavigationController *navController = self.heldController;
+    self.heldController = nil;
+    GleapFrameManagerViewController *widget = self.gleapWidget;
+    if (navController == nil || !self.widgetOpened || widget == nil || navController.viewControllers.firstObject != widget) {
+        end();
+        return;
+    }
+    // Animated now also for a card: it fades in (and its page slides the card up).
+    [self presentWidget: widget in: navController end: end];
+}
+
+- (void)presentWidget:(GleapFrameManagerViewController *)widget in:(UINavigationController *)navController end:(dispatch_block_t)end {
+    // Clear all notifications.
+    [GleapUIOverlayHelper clear];
+    [GleapUIOverlayHelper updateUI];
+
     // Show on top of all viewcontrollers.
     UIViewController *topMostViewController = [GleapUIHelper getTopMostViewController];
     if (topMostViewController == nil) {
@@ -445,12 +503,15 @@ GLEAP_INTERNAL
             // UIKit did not present it (another presentation was running): closed, so a later open can succeed.
             NSLog(@"[GLEAP_SDK] The widget could not be opened: its presentation was refused.");
             [self widgetDidNotOpen: widget];
-        } else if (self.gleapWidget == widget && Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetOpened)]) {
-            [Gleap.sharedInstance.delegate widgetOpened];
+        } else if (self.gleapWidget == widget) {
+            self.widgetShown = YES;
+            if (Gleap.sharedInstance.delegate && [Gleap.sharedInstance.delegate respondsToSelector: @selector(widgetOpened)]) {
+                [Gleap.sharedInstance.delegate widgetOpened];
+            }
         }
         end();
     };
-    [topMostViewController presentViewController: navController animated: ![type isEqualToString: @"survey"] completion: landed];
+    [topMostViewController presentViewController: navController animated: YES completion: landed];
     [self afterTransitionOf: navController attempt: 0 run: landed];
 }
 
@@ -460,6 +521,7 @@ GLEAP_INTERNAL
     }
     self.gleapWidget = nil;
     self.widgetOpened = NO;
+    self.heldController = nil;
     @synchronized (self) {
         [self.messageQueue removeAllObjects];
     }
