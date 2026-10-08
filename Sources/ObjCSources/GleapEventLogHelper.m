@@ -29,6 +29,7 @@ static NSUInteger const kGleapMaxPingBytes = 256 * 1024;
 // The ping waiting for its answer, 0 when none is: never more than one at a time.
 @property (nonatomic, assign) NSUInteger pingInFlight;
 @property (nonatomic, assign) NSUInteger lastPingId;
++ (NSDictionary *)surveyStartOptionsForAction:(NSDictionary *)action;
 @end
 
 @implementation GleapEventLogHelper
@@ -388,12 +389,9 @@ static NSUInteger const kGleapMaxPingBytes = 256 * 1024;
                     } else {
                         // FEEDBACK FORMS
                         if ([action objectForKey: @"actionType"] != nil) {
+                            NSDictionary *options = [GleapEventLogHelper surveyStartOptionsForAction: action];
                             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-                                [Gleap.sharedInstance startFeedbackFlow: [action objectForKey: @"actionType"] withOptions: @{
-                                    @"isSurvey": @YES,
-                                    @"format": [action objectForKey: @"format"],
-                                    @"hideBackButton": @YES
-                                }];
+                                [Gleap.sharedInstance startFeedbackFlow: [action objectForKey: @"actionType"] withOptions: options];
                             });
                         }
                     }
@@ -405,6 +403,34 @@ static NSUInteger const kGleapMaxPingBytes = 256 * 1024;
         [GleapUIOverlayHelper updateNotificationCount: unreadCount];
     }
     @catch(id exception) {}
+}
+
+/// The start-survey options for a survey the server triggered, as the JavaScript SDK sends them:
+/// the format, and for Surveys 2.0 the outbound action that delivered it (the response's source)
+/// and, for a resume reminder, the server's copy of the response so far (`resumeData`).
++ (NSDictionary *)surveyStartOptionsForAction:(NSDictionary *)action {
+    NSMutableDictionary *options = [[NSMutableDictionary alloc] initWithDictionary: @{
+        @"isSurvey": @YES,
+        @"hideBackButton": @YES
+    }];
+    id format = [action objectForKey: @"format"];
+    [options setObject: [format isKindOfClass: [NSString class]] ? format : @"survey" forKey: @"format"];
+
+    BOOL resume = [[action objectForKey: @"resume"] isKindOfClass: [NSNumber class]] && [[action objectForKey: @"resume"] boolValue];
+    [options setObject: @(resume) forKey: @"resume"];
+    id resumeData = [action objectForKey: @"data"];
+    if (resume && [resumeData isKindOfClass: [NSDictionary class]]) {
+        [options setObject: resumeData forKey: @"resumeData"];
+    }
+
+    id outboundAction = [action objectForKey: @"_id"];
+    if (![outboundAction isKindOfClass: [NSString class]] || [outboundAction length] == 0) {
+        outboundAction = [action objectForKey: @"id"];
+    }
+    if ([outboundAction isKindOfClass: [NSString class]] && [outboundAction length] > 0) {
+        [options setObject: outboundAction forKey: @"outboundAction"];
+    }
+    return options;
 }
 
 - (NSString *)getCurrentJSDate {

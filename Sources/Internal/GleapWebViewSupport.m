@@ -37,8 +37,30 @@ GLEAP_INTERNAL
     if (allowsInlineMediaPlayback) {
         configuration.allowsInlineMediaPlayback = YES;
     }
-    configuration.websiteDataStore = [WKWebsiteDataStore nonPersistentDataStore];
+    configuration.websiteDataStore = [self sharedDataStore];
     return configuration;
+}
+
+// One non-persistent store for all of the SDK's web views while the app runs: nothing is written
+// to disk, but a survey reopened in the same app session finds its localStorage (its answers so
+// far) again. A fresh store per web view forgot it on every close. Replaced when the Gleap user
+// changes (resetSharedDataStore), so nothing one user left behind reaches the next.
+static WKWebsiteDataStore *gleapSharedDataStore = nil;
+
++ (WKWebsiteDataStore *)sharedDataStore {
+    @synchronized (self) {
+        if (gleapSharedDataStore == nil) {
+            gleapSharedDataStore = [WKWebsiteDataStore nonPersistentDataStore];
+        }
+        return gleapSharedDataStore;
+    }
+}
+
++ (void)resetSharedDataStore {
+    @synchronized (self) {
+        // The next web view gets a new store; open ones keep theirs until they close.
+        gleapSharedDataStore = nil;
+    }
 }
 
 + (void)removeMessageHandlerNamed:(NSString *)name fromWebView:(WKWebView *)webView {

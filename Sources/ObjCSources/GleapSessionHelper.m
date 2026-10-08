@@ -15,6 +15,7 @@
 #import "GleapEventLogHelper.h"
 #import "GleapTranslationHelper.h"
 #import "GleapMetaDataHelper.h"
+#import "GleapWebViewSupport.h"
 
 // The file access token is renewed this long before it expires (it lives 15 minutes).
 static NSTimeInterval const kGleapFileAccessRenewBefore = 5 * 60;
@@ -44,8 +45,16 @@ static NSTimeInterval const kGleapFileAccessForegroundInterval = 60;
 }
 
 - (void)setCurrentSession:(GleapSession *)currentSession {
+    BOOL userChanged = NO;
     @synchronized (self) {
+        NSString *previousId = _currentSession.gleapId;
+        userChanged = previousId != nil && ![previousId isEqualToString: currentSession.gleapId ?: @""];
         _currentSession = currentSession;
+    }
+    if (userChanged) {
+        // The web views share their localStorage (form drafts, survey answers) while the app
+        // runs: never with the next user.
+        [GleapWebViewSupport resetSharedDataStore];
     }
 }
 

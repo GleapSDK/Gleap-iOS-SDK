@@ -8,6 +8,7 @@ import WebKit
 final class GleapWebContentTrustTests: XCTestCase {
     private typealias AcceptsMessage = @convention(c) (AnyClass, Selector, Bool, NSString?, NSString?) -> Bool
     private typealias MediaCaptureDecision = @convention(c) (AnyClass, Selector, NSString?, NSString?) -> Int
+    private typealias MakeConfiguration = @convention(c) (AnyClass, Selector, AnyObject, NSString, Bool) -> WKWebViewConfiguration
 
     private func webViewSupport() throws -> AnyClass {
         try XCTUnwrap(NSClassFromString("GleapWebViewSupport"))
@@ -51,5 +52,45 @@ final class GleapWebContentTrustTests: XCTestCase {
         XCTAssertEqual(decision("www.youtube.com"), .prompt)
         XCTAssertEqual(decision("outboundmedia.gleap.io.example.com"), .prompt)
         XCTAssertEqual(decision(nil), .prompt)
+    }
+
+    /// The web views share one private store while the app runs (a survey reopened in the same
+    /// session keeps its answers), but never across Gleap users.
+    func testWebViewsShareTheirStoreUntilTheGleapUserChanges() throws {
+        let support: AnyClass = try webViewSupport()
+        let selector = NSSelectorFromString("configurationWithMessageHandler:name:allowsInlineMediaPlayback:")
+        let method = try XCTUnwrap(class_getClassMethod(support, selector))
+        let function = unsafeBitCast(method_getImplementation(method), to: MakeConfiguration.self)
+        final class Handler: NSObject, WKScriptMessageHandler {
+            func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {}
+        }
+        let handler = Handler()
+        let store = { function(support, selector, handler, "gleapCallback", false).websiteDataStore }
+
+        let sessions = GleapSessionHelper.sharedInstance()
+        let previous = sessions.currentSession
+        defer { sessions.currentSession = previous }
+        let session = { (gleapId: String) -> GleapSession in
+            let session = GleapSession()
+            session.gleapId = gleapId
+            session.gleapHash = "hash-" + gleapId
+            return session
+        }
+
+        sessions.currentSession = session("user-a")
+        let first = store()
+        XCTAssertFalse(first.isPersistent)
+        XCTAssertTrue(first === store(), "one store for every web view")
+
+        sessions.currentSession = session("user-a")
+        XCTAssertTrue(first === store(), "the same user refreshed keeps it")
+
+        sessions.currentSession = session("user-b")
+        let second = store()
+        XCTAssertFalse(first === second, "another user gets a new store")
+        XCTAssertFalse(second.isPersistent)
+
+        sessions.currentSession = nil
+        XCTAssertFalse(second === store(), "a cleared identity gets a new store")
     }
 }

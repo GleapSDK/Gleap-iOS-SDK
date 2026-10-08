@@ -15,12 +15,17 @@ NS_ASSUME_NONNULL_BEGIN
 GLEAP_INTERNAL
 @interface GleapWebViewSupport : NSObject
 
-/// A private (non-persistent) website data store and `handler` registered as
+/// A private (non-persistent) website data store, shared by all web views until the Gleap user
+/// changes, and `handler` registered as
 /// `window.webkit.messageHandlers.<name>`. The configuration only keeps a weak reference to
 /// `handler`, so a web view does not keep its owner alive.
 + (WKWebViewConfiguration *)configurationWithMessageHandler:(id<WKScriptMessageHandler>)handler
                                                        name:(NSString *)name
                                   allowsInlineMediaPlayback:(BOOL)allowsInlineMediaPlayback;
+
+/// Forgets the website data (localStorage, cookies) the SDK's web views shared so far: the next
+/// web view starts with an empty store. Called when the Gleap user changes.
++ (void)resetSharedDataStore;
 
 /// Unregisters the message handler `name` of `webView`; call it when the web view's owner goes away.
 + (void)removeMessageHandlerNamed:(NSString *)name fromWebView:(nullable WKWebView *)webView;
