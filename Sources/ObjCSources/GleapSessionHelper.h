@@ -36,6 +36,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)clearSession;
 - (BOOL)openProtectedFileFromURL:(NSURL *)url;
 - (BOOL)refreshFileAccessIfNeeded;
+// Runs `block` (main queue) once the identify and contact updates on their way are answered; NO when none is.
+- (BOOL)runWhenContactSettled:(dispatch_block_t)block;
 - (NSString *)getSessionName;
 
 @property (nonatomic, retain, nullable) GleapSession* currentSession;

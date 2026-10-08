@@ -538,9 +538,23 @@
  Starts the bug reporting flow, when a SDK key has been assigned.
  */
 - (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options {
+    return [self startFeedbackFlow: feedbackFlow withOptions: options waitForContact: YES];
+}
+
+- (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options waitForContact:(BOOL)waitForContact {
     if (Gleap.sharedInstance.token == nil || Gleap.sharedInstance.token.length == 0) {
         NSLog(@"[GLEAP_SDK] Please provide a valid Gleap project TOKEN!");
         return NO;
+    }
+
+    bool isSurvey = options != nil && [options objectForKey: @"isSurvey"] != nil && [[options objectForKey: @"isSurvey"] boolValue];
+
+    // A survey starts with the contact the app just identified or updated, not the one before it
+    // (once: after the wait it starts with the session there is).
+    if (isSurvey && waitForContact && [GleapSessionHelper.sharedInstance runWhenContactSettled:^{
+        [self startFeedbackFlow: feedbackFlow withOptions: options waitForContact: NO];
+    }]) {
+        return YES;
     }
 
     if (GleapSessionHelper.sharedInstance.currentSession == nil) {
@@ -555,8 +569,6 @@
         return NO;
     }
     
-    bool isSurvey = options != nil && [options objectForKey: @"isSurvey"] != nil && [[options objectForKey: @"isSurvey"] boolValue];
-
     if (isSurvey) {
         NSString *surveyFormat = [options objectForKey: @"format"];
         if (surveyFormat == nil) {

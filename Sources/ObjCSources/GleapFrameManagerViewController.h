@@ -19,6 +19,9 @@ NS_ASSUME_NONNULL_BEGIN
 @optional
 - (void) connected;
 - (void) failedToConnect;
+// A survey's page has something to show: a card its first height-update, a full screen survey survey-shown,
+// survey-legacy or height-update.
+- (void) surveyContentShown;
 @required
 @end
 
@@ -32,6 +35,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, retain, nullable) NSTimer* timeoutTimer;
 @property (nonatomic, assign) bool isCardSurvey;
+// A survey (card or full screen), not the messenger.
+@property (nonatomic, assign) bool isSurvey;
 @property (nonatomic, assign) bool connected;
 @property (nonatomic, weak) id <GleapFrameManagerDelegate> delegate;
 
