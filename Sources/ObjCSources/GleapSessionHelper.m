@@ -21,6 +21,8 @@
 static NSTimeInterval const kGleapFileAccessRenewBefore = 5 * 60;
 // Returning to the foreground renews at most this often.
 static NSTimeInterval const kGleapFileAccessForegroundInterval = 60;
+// A survey waits at most this long for an identify or contact update on its way.
+static NSTimeInterval const kGleapContactSettleTimeout = 5;
 
 @interface GleapSessionHelper ()
 @property (atomic, assign) BOOL identifyInFlight;
@@ -29,6 +31,9 @@ static NSTimeInterval const kGleapFileAccessForegroundInterval = 60;
 // Bumped on each new session and on logout: only the latest scheduled renewal runs.
 @property (nonatomic, assign) NSUInteger fileAccessRenewal;
 @property (nonatomic, retain, nullable) NSDate *lastForegroundRenewal;
+// Identify and contact update requests on their way, and what waits for their answers (main queue).
+@property (nonatomic, assign) NSUInteger contactRequestsInFlight;
+@property (nonatomic, strong, nullable) NSMutableArray<dispatch_block_t> *waitingForContact;
 @end
 
 @implementation GleapSessionHelper
@@ -280,6 +285,7 @@ static NSTimeInterval const kGleapFileAccessForegroundInterval = 60;
         NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions/partialupdate" identity: GleapRequestIdentityStored];
         [request setHTTPBody: jsonBodyData];
         
+        [self contactRequestStarted];
         [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
                                                           NSURLResponse * _Nullable response,
                                                           NSError * _Nullable error) {
@@ -289,6 +295,7 @@ static NSTimeInterval const kGleapFileAccessForegroundInterval = 60;
                 [self updateLocalSessionWith: sessionData andCompletion:^(bool success) {}];
                 [self refreshFileAccessIfNeeded];
             }
+            [self contactRequestEnded];
         }];
     } @catch (id exp) {}
 }
@@ -353,11 +360,13 @@ static NSTimeInterval const kGleapFileAccessForegroundInterval = 60;
     NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions/identify" identity: GleapRequestIdentityStored];
     [request setHTTPBody: jsonBodyData];
     
-    self.identifyInFlight = YES;
-    [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
-                                                      NSURLResponse * _Nullable response,
-                                                      NSError * _Nullable error) {
-        self.identifyInFlight = NO;
+    // A renewal of the file access alone changes nothing a survey reads.
+    if (needsUpdate) {
+        [self contactRequestStarted];
+    }
+    GleapAPICompletion handleAnswer = ^(NSData * _Nullable data,
+                                        NSURLResponse * _Nullable response,
+                                        NSError * _Nullable error) {
         @synchronized (self) {
             // The user logged out while this identify was on its way.
             if (epoch != self.sessionEpoch) {
@@ -388,7 +397,72 @@ static NSTimeInterval const kGleapFileAccessForegroundInterval = 60;
             [self clearSession];
         }
         // Anything else (overloaded, a server failure, an answer without a session) keeps the identity.
+    };
+    self.identifyInFlight = YES;
+    [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
+                                                      NSURLResponse * _Nullable response,
+                                                      NSError * _Nullable error) {
+        self.identifyInFlight = NO;
+        handleAnswer(data, response, error);
+        if (needsUpdate) {
+            [self contactRequestEnded];
+        }
     }];
+}
+
+#pragma mark - Waiting for the contact
+
+/*
+ A survey reads the contact (user id, email, name, phone) once, when it starts, to skip the contact
+ questions it already knows. Started while an identify is on its way it would ask the user for what
+ the app just gave, or be torn down when the identified session (a new gleapId) reaches the widget.
+ Runs `block` on the main queue once the identify and contact updates on their way are answered, at
+ the latest after kGleapContactSettleTimeout. NO (and `block` does not run) when none is on its way.
+ */
+- (BOOL)runWhenContactSettled:(dispatch_block_t)block {
+    __block BOOL ran = NO;
+    dispatch_block_t once = ^{
+        if (ran) {
+            return;
+        }
+        ran = YES;
+        block();
+    };
+    @synchronized (self) {
+        if (self.contactRequestsInFlight == 0) {
+            return NO;
+        }
+        if (self.waitingForContact == nil) {
+            self.waitingForContact = [[NSMutableArray alloc] init];
+        }
+        [self.waitingForContact addObject: once];
+    }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kGleapContactSettleTimeout * NSEC_PER_SEC)), dispatch_get_main_queue(), once);
+    return YES;
+}
+
+- (void)contactRequestStarted {
+    @synchronized (self) {
+        self.contactRequestsInFlight++;
+    }
+}
+
+// After the answer is applied: the waiting survey starts with the session it brought.
+- (void)contactRequestEnded {
+    NSArray<dispatch_block_t> *waiting;
+    @synchronized (self) {
+        if (self.contactRequestsInFlight > 0) {
+            self.contactRequestsInFlight--;
+        }
+        if (self.contactRequestsInFlight > 0) {
+            return;
+        }
+        waiting = self.waitingForContact;
+        self.waitingForContact = nil;
+    }
+    for (dispatch_block_t block in waiting) {
+        dispatch_async(dispatch_get_main_queue(), block);
+    }
 }
 
 - (BOOL)isCustomData:(NSDictionary *)customDataSubset aSubsetOf:(NSDictionary *)customData {
