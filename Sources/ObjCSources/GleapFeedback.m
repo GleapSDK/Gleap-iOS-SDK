@@ -20,6 +20,9 @@
 #import "GleapTagHelper.h"
 #import "GleapAPIClient.h"
 
+// How long a report waits for the unified log before it is sent without it.
+static NSTimeInterval const kGleapReportConsoleLogDeadline = 1.0;
+
 @implementation GleapFeedback
 
 - (id)init {
@@ -282,11 +285,22 @@
 }
 
 - (void)prepareDataAndSend: (void (^)(bool success, NSDictionary *data))completion {
-    [self prepareData];
-    
-    // Sending report to server.
-    return [self sendReportToServer:^(bool success, NSDictionary *data) {
-        completion(success, data);
+    // The upload callbacks before this run on the main queue. Reading the unified log there
+    // (OSLogStore, seconds on a busy React Native app) froze the app and the widget with it:
+    // no loading state after Submit, then the thank-you screen many seconds later. The log
+    // is collected off the main thread and left out when it misses the deadline.
+    if (![NSThread isMainThread]) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self prepareDataAndSend: completion];
+        });
+        return;
+    }
+
+    [self prepareDataWithDeadline: kGleapReportConsoleLogDeadline completion:^{
+        // Sending report to server.
+        [self sendReportToServer:^(bool success, NSDictionary *data) {
+            completion(success, data);
+        }];
     }];
 }
 
