@@ -1,3 +1,6 @@
+## 19.2.2
+Form reports no longer freeze the app: the report's console log (the unified log, read through OSLogStore, which can take seconds in a busy app such as a React Native one) was collected on the main thread after the screenshot upload. The widget froze with no loading state after Submit and the thank-you screen came seconds later. The unified log is now read in the background and left out when it is not ready within 1 second; the captured stdout/stderr, `Gleap.log` and wrapper logs are always included. Applies to widget reports and `sendSilentCrashReport`.
+
 ## 19.2.1
 Surveys: questions asking for the email, name or phone of an identified contact are skipped (with the Surveys 2.0 "Skip when known" option). Surveys started while an `identify` or `updateContact` request is in flight wait for it (at most 5 seconds), so they start with the identified contact.
 Surveys load off screen and are presented once they have something to show, at the latest 1.2 seconds after they start. A survey with nothing left to ask closes without anything ever being visible, and fires neither `widgetOpened` nor `widgetClosed`. Card surveys now fade in when presented. A survey page that fails to load before it is shown closes silently. Other widget opens are unchanged.
