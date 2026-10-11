@@ -1,3 +1,6 @@
+## 19.2.4
+No iOS changes; released to keep the native SDK versions in sync (Android 19.2.4 fixes how the realtime socket connects and closes).
+
 ## 19.2.3
 The realtime socket opens and closes far less often and closes cleanly. The SDK closed it without a close code (the server saw 1005) and reconnected on every session start and every identify, even for the same user, so an app start opened and dropped several sockets. It now closes with 1000 when it replaces a socket and 1001 when the app stays in the background, and opens a socket only when the session's channel changes, 1.5 seconds after the last request, so a session start followed by an identify opens one. After an error it reconnects with backoff (2 s doubling to 60 s, ±20 %) instead of every 5 seconds, and waits while the device is offline. In the background the socket closes after a 10 second grace and reconnects when the app returns to the foreground; an app launched in the background opens none. The ping timer only runs while a socket is open. The podspec and `Package.swift` now link the `Network` framework. No public API changes.
 
