@@ -28,6 +28,8 @@ let package = Package(
            linkerSettings: [
               // gzip for the logs sent for capture requests.
               .linkedLibrary("z"),
+              // NWPathMonitor: the realtime socket waits while the device is offline.
+              .linkedFramework("Network"),
            ]
         ),
         .testTarget(
