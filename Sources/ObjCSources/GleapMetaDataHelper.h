@@ -12,7 +12,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-#define SDK_VERSION @"19.2.3"
+#define SDK_VERSION @"19.2.4"
 
 NS_ASSUME_NONNULL_BEGIN
 
