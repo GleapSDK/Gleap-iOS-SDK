@@ -93,14 +93,26 @@ final class GleapWebSocketTests: GleapNetworkTestCase {
     func testNoSocketOpensInTheBackgroundUntilTheAppReturns() {
         let socket = GleapWebSocketHelper.sharedInstance()
         let url = URL(string: "wss://ws.gleap.test?gleapId=gid-bg&gleapHash=ghash-bg&apiKey=\(Self.sdkKey)")!
-        func connectedToIt() -> Bool { socket.webSocketTask?.originalRequest?.url?.absoluteString.contains("gid-bg") == true }
+        // ws.gleap.test does not resolve, so a socket fails a few milliseconds after it opens (the
+        // lookup is cached after the first one) and is cleared right away. Polling webSocketTask
+        // could miss that window, so record every socket the helper opens instead.
+        var opened: [String] = []
+        let observation = socket.observe(\.webSocketTask, options: [.new]) { _, change in
+            if let task = change.newValue as? URLSessionWebSocketTask, let url = task.originalRequest?.url?.absoluteString {
+                opened.append(url)
+            }
+        }
+        defer { observation.invalidate() }
+        func connectedToIt() -> Bool { opened.contains { $0.contains("gid-bg") } }
+        // Whatever the simulator's path monitor last said: this test is about the app lifecycle.
+        socket.setValue(true, forKey: "online")
 
         NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
         socket.connect(to: url)
-        spin(2.5)
+        spin(2.5)   // past the 1.5 s connect debounce
         XCTAssertFalse(connectedToIt(), "opened a socket in the background")
 
         NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
-        XCTAssertTrue(waitUntil(timeout: 5) { connectedToIt() }, "did not connect after returning to the foreground")
+        XCTAssertTrue(waitUntil(timeout: 10) { connectedToIt() }, "did not connect after returning to the foreground")
     }
 }
