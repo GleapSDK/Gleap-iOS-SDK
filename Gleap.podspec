@@ -21,6 +21,6 @@ Pod::Spec.new do |s|
   s.public_header_files = 'Sources/ObjCSources/*.h'
   s.resource_bundles = {"Gleap" => ["Sources/PrivacyInfo.xcprivacy"]}
   
-  s.frameworks   = 'UIKit', 'Foundation', 'AVFoundation', 'CoreMedia', 'CoreVideo'
+  s.frameworks   = 'UIKit', 'Foundation', 'AVFoundation', 'CoreMedia', 'CoreVideo', 'Network'
   s.libraries    = 'z'
 end
