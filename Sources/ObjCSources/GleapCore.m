@@ -7,6 +7,7 @@
 //
 
 #import "GleapCore.h"
+#import "GleapBanner.h"
 #import "GleapInternal.h"
 #import "GleapFrameManagerViewController.h"
 #import "GleapReplayHelper.h"
@@ -309,6 +310,10 @@
 
 + (BOOL)isOpened {
     return [[GleapWidgetManager sharedInstance] isOpened];
+}
+
++ (CGFloat)bannerHeight {
+    return [GleapBanner currentBannerHeight];
 }
 
 + (Boolean)open {

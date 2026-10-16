@@ -43,6 +43,13 @@ typedef void (^GleapLogFlushHandler)(void (^done)(void));
 - (void) unregisterPushMessageGroup: (NSString *)pushMessageGroup;
 - (void) onToolExecution: (NSDictionary *)toolExecution;
 - (void) openExternalLink: (NSURL *)url;
+/**
+ * The space an inline banner takes at the top of the window changed, in points from the top of the
+ * window (the banner covers the status bar, so this includes the safe area). Called with the height
+ * when an inline banner is shown or resized and with 0 when it closes. Floating banners report 0:
+ * they float above the app by design. Move your content down by this height to keep it uncovered.
+ */
+- (void) bannerHeightChanged: (CGFloat)height;
 @required
 @end
 
@@ -596,6 +603,13 @@ typedef void (^GleapLogFlushHandler)(void (^done)(void));
  * @author Gleap
  */
 + (BOOL)isOpened;
+
+/**
+ * The space the shown inline banner takes at the top of the window, in points (0 when none is
+ * shown). The same value bannerHeightChanged: reports, for code that starts listening later.
+ * @author Gleap
+ */
++ (CGFloat)bannerHeight;
 
 /**
  * Starts network recording. Logs every NSURLSession request of the app: completion handler,

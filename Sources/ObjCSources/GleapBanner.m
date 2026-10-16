@@ -15,7 +15,31 @@
 #import "GleapOutboundActions.h"
 #import <math.h>
 
+// Last height the app was told about, so it only hears changes.
+static CGFloat lastReportedBannerHeight = 0;
+
+@interface GleapBanner ()
+// The banner page has its data and the banner is shown (until it closes).
+@property (nonatomic, assign) BOOL shown;
+@end
+
 @implementation GleapBanner
+
++ (CGFloat)currentBannerHeight {
+    return lastReportedBannerHeight;
+}
+
++ (void)reportBannerHeight:(CGFloat)height {
+    if (fabs(height - lastReportedBannerHeight) < 0.5) {
+        return;
+    }
+    lastReportedBannerHeight = height;
+
+    id<GleapDelegate> delegate = Gleap.sharedInstance.delegate;
+    if (delegate && [delegate respondsToSelector: @selector(bannerHeightChanged:)]) {
+        [delegate bannerHeightChanged: height];
+    }
+}
 
 - (id)initWithFrame:(CGRect)aRect
 {
@@ -28,6 +52,20 @@
 
 - (void)dealloc {
     [GleapWebViewSupport removeMessageHandlerNamed: @"gleapBannerCallback" fromWebView: _webView];
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    // Also catches the safe area changing, for example on rotation.
+    [self reportHeight];
+}
+
+// The inline banner sits at the top of the window, so its height is what it covers.
+- (void)reportHeight {
+    if (!self.shown || self.superview == nil || [[self.bannerData valueForKeyPath: @"format"] isEqualToString: @"floating"]) {
+        return;
+    }
+    [GleapBanner reportBannerHeight: self.frame.size.height];
 }
 
 - (void)setupWithData:(NSDictionary *)bannerData {
@@ -103,6 +141,13 @@
         
         if ([name isEqualToString: @"banner-data-set"]) {
             // Show banner.
+            self.shown = YES;
+            if ([[self.bannerData valueForKeyPath: @"format"] isEqualToString: @"floating"]) {
+                [GleapBanner reportBannerHeight: 0];
+            } else {
+                [self layoutIfNeeded];
+                [self reportHeight];
+            }
             [UIView animateWithDuration:0.3f animations:^{
                 self.alpha = 1.0;
             } completion:^(BOOL finished) {}];
@@ -117,6 +162,11 @@
         }
         
         if ([name isEqualToString: @"banner-close"]) {
+            // The app moves its content back up while the banner fades out.
+            if (self.shown && self.uiOverlayViewController.banner == self) {
+                [GleapBanner reportBannerHeight: 0];
+            }
+            self.shown = NO;
             [UIView animateWithDuration:0.3f animations:^{
                 self.alpha = 0.0;
             } completion:^(BOOL finished) {
