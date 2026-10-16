@@ -1,3 +1,6 @@
+## Unreleased
+Inline banners can push the app content down instead of covering it. The new `GleapDelegate` method `bannerHeightChanged:` reports the space an inline banner takes at the top of the window, in points from the top edge (the banner covers the status bar, so the safe area is included): the height when the banner is shown or resized (also on rotation) and 0 when it closes or is replaced. Floating banners report 0. `Gleap.bannerHeight` returns the current value for code that starts listening later. The Flutter SDK uses it for `GleapBannerArea`.
+
 ## 19.2.4
 No iOS changes; released to keep the native SDK versions in sync (Android 19.2.4 fixes how the realtime socket connects and closes).
 

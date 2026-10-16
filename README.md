@@ -146,6 +146,18 @@ Gleap.setColorScheme("dark", lightBackgroundColor: nil, darkBackgroundColor: "#1
 
 Light mode uses the widget colors from the dashboard, dark mode the dark colors set in the dashboard (header colors, UI color and background); a dark color that is not set keeps the normal one. Dark mode also uses the dark logo, header background image and composer glow set in the dashboard. Without dark colors the widget keeps its normal colors, also in dark mode. The `lightBackgroundColor` / `darkBackgroundColor` parameters (#rrggbb) override the background of the respective scheme. Button colors are unchanged. Can be called before or after `initialize`.
 
+## Inline banners
+
+Inline banners (the banner style set in the Gleap dashboard) are shown at the top of the window and cover the status bar. To keep your content below them, implement `bannerHeightChanged:` in your `GleapDelegate` and move your content down by the height (points from the top of the window, status bar included; 0 when no inline banner is shown, floating banners stay at 0). `Gleap.bannerHeight` returns the current value.
+
+```swift
+func bannerHeightChanged(_ height: CGFloat) {
+    contentTopConstraint.constant = max(height - view.safeAreaInsets.top, 0)
+}
+```
+
+Without it nothing changes: banners overlay the app as before.
+
 ## Protected conversation files
 
 With "Require authenticated file access" (Project settings → User identity), conversation files can only be opened by agents and by the verified customer the conversation belongs to. The SDK supports it without extra setup, as long as the app identifies the customer with a user hash on every app start (the hash is created on your server with the project's identity verification secret):

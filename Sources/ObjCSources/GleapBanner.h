@@ -20,6 +20,13 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)setupWithData:(NSDictionary *)bannerData;
 
+/// Tells the app (GleapDelegate bannerHeightChanged:) how much of the top of the window the inline
+/// banner covers. Only reports changes.
++ (void)reportBannerHeight:(CGFloat)height;
+
+/// The height last reported to the app.
++ (CGFloat)currentBannerHeight;
+
 @property (nonatomic, strong) NSLayoutConstraint *heightConstraint;
 @property (nonatomic, retain) WKWebView *webView;
 @property (nonatomic, retain) NSDictionary *bannerData;

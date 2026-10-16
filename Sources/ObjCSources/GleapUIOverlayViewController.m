@@ -180,6 +180,8 @@
         if (self.banner != nil) {
             [self.banner removeFromSuperview];
             self.banner = nil;
+            // The new banner reports its own height once it is shown.
+            [GleapBanner reportBannerHeight: 0];
         }
 
         self.banner = [[GleapBanner alloc] initWithFrame: CGRectMake(0, 0, keyWindow.frame.size.width, 70.0)];
