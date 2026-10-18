@@ -30,6 +30,9 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)handlePushNotification:(NSDictionary *)notificationData;
 
 - (void)startSessionWith:(void (^)(bool success))completion;
+// Switches to the session the widget handed over (a guest verified as another contact). Ignored
+// when the app identified its own user; adopted only when the server confirms the pair.
+- (void)adoptSessionWithId:(nullable NSString *)gleapId hash:(nullable NSString *)gleapHash;
 - (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString * _Nullable)userHash;
 - (void)updateContact:(nullable GleapUserProperty *)data;
 - (void)processOpenPushAction;
