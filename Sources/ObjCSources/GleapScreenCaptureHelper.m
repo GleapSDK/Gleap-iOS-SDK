@@ -1,6 +1,8 @@
 #import "GleapScreenCaptureHelper.h"
 #import "GleapWindowChecker.h"
 #import "GleapCore.h"
+#import "GleapCaptureManager.h"
+#import "GleapCaptureRenderer.h"
 
 @implementation GleapScreenCaptureHelper
 
@@ -126,6 +128,7 @@
                 } else {
                     [self drawStandardViewInWindow:keyWindow withContext:rendererContext];
                 }
+                [self fillMasksInWindow:keyWindow context:rendererContext.CGContext];
             } @catch (NSException *innerException) {
                 NSLog(@"Gleap: Exception during view drawing: %@", innerException.reason);
                 // Fill with a solid color as fallback
@@ -156,6 +159,7 @@
         @try {
             // Try to render the layer instead of the view hierarchy
             [keyWindow.layer renderInContext:context];
+            [self fillMasksInWindow:keyWindow context:context];
         } @catch (NSException *exception) {
             NSLog(@"Gleap: Exception in alternative capture: %@", exception.reason);
             // Fill with placeholder
@@ -171,6 +175,12 @@
         NSLog(@"Gleap: Exception in alternative capture method: %@", exception.reason);
         return nil;
     }
+}
+
+// The views masked with Gleap.maskView and the secure / one-time-code / card text fields are blacked out in bug
+// report screenshots and app replay frames too, as in the screenshots and recordings of capture requests.
++ (void)fillMasksInWindow:(UIWindow *)keyWindow context:(CGContextRef)context {
+    [GleapCaptureRenderer fillMasksInWindow:keyWindow maskedViews:[[GleapCaptureManager sharedInstance] maskedViews] context:context];
 }
 
 + (void)drawFlutterViewsInWindow:(UIWindow *)keyWindow withContext:(UIGraphicsImageRendererContext *)rendererContext {

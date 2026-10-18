@@ -343,6 +343,35 @@ static CGFloat const kGleapMaskPadding = 3.0;
     CGContextRestoreGState(context);
 }
 
++ (void)fillMasksInWindow:(UIWindow *)window
+              maskedViews:(NSArray<UIView *> *)maskedViews
+                  context:(CGContextRef)context {
+    if (context == NULL || window == nil) {
+        return;
+    }
+    CGRect bounds = window.bounds;
+    CGRect windowFrame = CGRectMake(0, 0, bounds.size.width, bounds.size.height);
+    NSArray<UIView *> *targets = nil;
+    NSArray<NSValue *> *now = nil;
+    @try {
+        targets = [self maskTargetsInWindow: window maskedViews: maskedViews ?: @[]];
+        now = [self presentationRectsOfViews: targets inWindow: window];
+    } @catch (NSException *exception) {
+        // Without knowing what to mask, nothing of the window is shown.
+        NSLog(@"[GLEAP_SDK] Could not find the masks of a window: %@", exception.reason);
+        CGContextSaveGState(context);
+        CGContextSetFillColorWithColor(context, [UIColor blackColor].CGColor);
+        CGContextFillRect(context, windowFrame);
+        CGContextRestoreGState(context);
+        return;
+    }
+    if (targets.count == 0) {
+        return;
+    }
+    // The window is its own coordinate space here: the masks go where the views are in the window.
+    [self fillMasksOfViews: targets inWindow: window windowFrame: windowFrame before: now after: nil space: window canvas: bounds context: context];
+}
+
 + (BOOL)isSensitiveTextInput:(UIView *)view {
     if ([view isKindOfClass: [UITextField class]]) {
         UITextField *field = (UITextField *)view;

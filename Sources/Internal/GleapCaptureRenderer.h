@@ -39,6 +39,13 @@ GLEAP_INTERNAL
         maskedViews:(NSArray<UIView *> *)maskedViews
             context:(CGContextRef)context;
 
+/// Blacks out the masked views and secure / one-time-code / card text fields of `window` in `context`, whose user
+/// space is the window's bounds (a snapshot of that one window, as the screenshots of bug reports and the frames of
+/// app replays are). When the masks cannot be placed, the whole window is blacked out. Main thread.
++ (void)fillMasksInWindow:(UIWindow *)window
+              maskedViews:(NSArray<UIView *> *)maskedViews
+                  context:(CGContextRef)context;
+
 /// A screenshot of the scene with a long edge of at most `maxLongEdge` pixels (never above the screen's own
 /// resolution), opaque sRGB. Main thread; nil when nothing could be drawn.
 + (nullable UIImage *)screenshotOfScene:(UIWindowScene *)scene

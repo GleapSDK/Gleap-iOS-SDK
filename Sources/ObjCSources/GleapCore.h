@@ -715,8 +715,9 @@ typedef void (^GleapLogFlushHandler)(void (^done)(void));
 + (void)setRemoteLogCollectionEnabled:(BOOL)enabled;
 
 /**
- * Blacks out a view in screenshots and screen recordings for capture requests (for example one that shows
- * personal data). Secure text fields, one-time code and card number fields are masked automatically.
+ * Blacks out a view (for example one that shows personal data) in bug report screenshots, app replays, and the
+ * screenshots and screen recordings of capture requests. Secure text fields, one-time code and card number fields
+ * are masked automatically.
  * The SDK keeps a weak reference: the mask ends with the view, or with unmaskView:.
  * @author Gleap
  *
