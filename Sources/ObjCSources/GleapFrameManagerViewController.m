@@ -268,7 +268,9 @@ GLEAP_INTERNAL
     NSMutableDictionary *sessionUpdateData = [[NSMutableDictionary alloc] initWithDictionary: @{
         @"sessionData": currentSession,
         @"apiUrl": Gleap.sharedInstance.apiUrl,
-        @"sdkKey": Gleap.sharedInstance.token
+        @"sdkKey": Gleap.sharedInstance.token,
+        // Lets the widget hand a verified contact's session over (adopt-session).
+        @"capabilities": @{ @"adoptSession": @(YES) }
     }];
     
     // Pass the realtime host (region) to the widget.
@@ -407,6 +409,10 @@ GLEAP_INTERNAL
         [GleapScreenshotManager sharedInstance].updatedScreenshot = nil;
     } else if ([name isEqualToString: @"close-widget"]) {
         [self closeWidget: nil];
+    } else if ([name isEqualToString: @"adopt-session"]) {
+        if ([messageData isKindOfClass: [NSDictionary class]]) {
+            [[GleapSessionHelper sharedInstance] adoptSessionWithId: [messageData objectForKey: @"gleapId"] hash: [messageData objectForKey: @"gleapHash"]];
+        }
     } else if ([name isEqualToString: @"screenshot-updated"]) {
         [self updateScreenshotFromDataURL: messageData];
     } else if ([name isEqualToString: @"run-custom-action"]) {

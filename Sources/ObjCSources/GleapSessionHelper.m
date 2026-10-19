@@ -183,6 +183,55 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
     }];
 }
 
+- (BOOL)hasIdentifiedUser {
+    NSString *identifiedUserId = self.lastIdentifyAction[@"userId"] ?: self.openIdentityAction[@"userId"];
+    if ([identifiedUserId isKindOfClass: [NSString class]] && identifiedUserId.length > 0) {
+        return YES;
+    }
+    return self.currentSession.userId != nil && self.currentSession.userId.length > 0;
+}
+
+- (void)adoptSessionWithId:(nullable NSString *)gleapId hash:(nullable NSString *)gleapHash {
+    if (![gleapId isKindOfClass: [NSString class]] || gleapId.length == 0 || ![gleapHash isKindOfClass: [NSString class]] || gleapHash.length == 0) {
+        return;
+    }
+    // The app's own identify always wins: an identified user is never swapped by the widget.
+    if ([self hasIdentifiedUser]) {
+        return;
+    }
+    if ([self.currentSession.gleapId isEqualToString: gleapId]) {
+        return;
+    }
+
+    // The server answers with the handed-over session only when the hash signs that id.
+    NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions" identity: GleapRequestIdentityNone];
+    [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
+    [request setValue: gleapId forHTTPHeaderField: @"Gleap-Id"];
+    [request setValue: gleapHash forHTTPHeaderField: @"Gleap-Hash"];
+
+    NSString *lang = [GleapTranslationHelper sharedInstance].language;
+    NSData *jsonBodyData = [NSJSONSerialization dataWithJSONObject: @{
+        @"lang": lang ?: @"en",
+        @"platform": @"iOS",
+        @"deviceType": [GleapSessionHelper getDeviceType],
+    } options: kNilOptions error: nil];
+    if (jsonBodyData != nil) {
+        [request setHTTPBody: jsonBodyData];
+    }
+
+    [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
+                                                      NSURLResponse * _Nullable response,
+                                                      NSError * _Nullable error) {
+        NSDictionary *sessionData = error == nil ? [GleapSessionHelper sessionDataInResponse: response data: data] : nil;
+        // The app may have identified its user while the request was out.
+        if (sessionData == nil || ![sessionData[@"gleapId"] isEqual: gleapId] || [self hasIdentifiedUser]) {
+            return;
+        }
+        [self updateLocalSessionWith: sessionData andCompletion:^(bool success) {}];
+        [self refreshFileAccessIfNeeded];
+    }];
+}
+
 - (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString * _Nullable)userHash {
     if (userId == nil) {
         NSLog(@"[GLEAP_SDK] identify needs a user id.");
