@@ -1,3 +1,6 @@
+## 19.3.1
+The widget can switch the user to another contact after the "Verify email" workflow step confirmed their email (`adopt-session`). The SDK first asks the server to confirm the handed-over session, adopts it only when the server answers with that session, and never replaces a user your app identified. The session update to the widget now announces this capability. No public API changes.
+
 ## 19.3.0
 Inline banners can push the app content down instead of covering it. The new `GleapDelegate` method `bannerHeightChanged:` reports the space an inline banner takes at the top of the window, in points from the top edge (the banner covers the status bar, so the safe area is included): the height when the banner is shown or resized (also on rotation) and 0 when it closes or is replaced. Floating banners report 0. `Gleap.bannerHeight` returns the current value for code that starts listening later. The Flutter SDK uses it for `GleapBannerArea`.
 
