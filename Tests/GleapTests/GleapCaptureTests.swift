@@ -150,6 +150,48 @@ final class GleapCaptureTests: XCTestCase {
         XCTAssertEqual(rect(of: fading), CGRect(x: 0, y: 300, width: 100, height: 50))
     }
 
+    /// Bug report screenshots and app replay frames (GleapScreenCaptureHelper) black out the views masked with
+    /// Gleap.maskView and secure text fields, as capture requests do; the rest of the window stays visible.
+    func testBugReportScreenshotsAndReplayFramesAreMasked() throws {
+        typealias CaptureWindow = @convention(c) (AnyClass, Selector, UIWindow, CGSize) -> UIImage?
+        let (cls, selector, capture): (AnyClass, Selector, CaptureWindow) = try implementation("GleapScreenCaptureHelper", "performPrimaryCaptureForWindow:withSize:", as: CaptureWindow.self)
+
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 200, height: 400))
+        window.backgroundColor = .white
+        window.isHidden = false
+        defer { window.isHidden = true }
+        let masked = UIView(frame: CGRect(x: 20, y: 20, width: 100, height: 50))
+        masked.backgroundColor = .red
+        let password = UITextField(frame: CGRect(x: 20, y: 200, width: 150, height: 40))
+        password.isSecureTextEntry = true
+        password.backgroundColor = .red
+        let plain = UIView(frame: CGRect(x: 20, y: 300, width: 100, height: 50))
+        plain.backgroundColor = .red
+        [masked, password, plain].forEach { window.addSubview($0) }
+        Gleap.maskView(masked)
+        defer { Gleap.unmaskView(masked) }
+
+        let image = try XCTUnwrap(capture(cls, selector, window, window.bounds.size))
+        let cgImage = try XCTUnwrap(image.cgImage)
+        func pixel(_ point: CGPoint) -> (r: UInt8, g: UInt8, b: UInt8) {
+            var data = [UInt8](repeating: 0, count: 4)
+            let context = CGContext(data: &data, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                                    space: CGColorSpaceCreateDeviceRGB(),
+                                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+            let scale = image.scale
+            // CoreGraphics' origin is at the bottom left.
+            context.draw(cgImage, in: CGRect(x: -point.x * scale, y: -(image.size.height - point.y) * scale + 1,
+                                             width: CGFloat(cgImage.width), height: CGFloat(cgImage.height)))
+            return (data[0], data[1], data[2])
+        }
+        func isBlack(_ point: CGPoint) -> Bool { let p = pixel(point); return p.r < 10 && p.g < 10 && p.b < 10 }
+
+        XCTAssertTrue(isBlack(CGPoint(x: 70, y: 45)), "a view masked with Gleap.maskView is blacked out")
+        XCTAssertTrue(isBlack(CGPoint(x: 95, y: 220)), "a secure text field is blacked out")
+        XCTAssertFalse(isBlack(CGPoint(x: 70, y: 325)), "an unmasked view stays visible")
+        XCTAssertFalse(isBlack(CGPoint(x: 180, y: 150)), "the rest of the window stays visible")
+    }
+
     // MARK: - Recording upload (multipart streamed from a file)
 
     func testMultipartBodyWrapsTheFileUnchanged() throws {
