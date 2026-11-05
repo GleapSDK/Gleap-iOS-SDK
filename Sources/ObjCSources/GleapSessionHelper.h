@@ -13,6 +13,7 @@
 #import <UIKit/UIKit.h>
 #import "GleapSession.h"
 #import "GleapUserProperty.h"
+#import "GleapCore.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -35,6 +36,11 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)adoptSessionWithId:(nullable NSString *)gleapId hash:(nullable NSString *)gleapHash;
 - (void)identifySessionWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString * _Nullable)userHash;
 - (void)updateContact:(nullable GleapUserProperty *)data;
+// Gleap.setUserJwt: identifies with the token's user id and the token as the user hash, nothing else.
+- (void)setUserJwt:(NSString *)token;
+- (void)setUserJwtProvider:(nullable GleapUserJwtProvider)provider;
+// Gleap.setAuthTokens: values are NSString, or NSNull to remove a token.
+- (void)setAuthTokens:(NSDictionary<NSString *, id> *)tokens;
 - (void)processOpenPushAction;
 - (void)clearSession;
 - (BOOL)openProtectedFileFromURL:(NSURL *)url;

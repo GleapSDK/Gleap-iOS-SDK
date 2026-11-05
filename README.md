@@ -158,6 +158,27 @@ func bannerHeightChanged(_ height: CGFloat) {
 
 Without it nothing changes: banners overlay the app as before.
 
+## Customer identity (JWT)
+
+Sign the user in with one HS256 JWT your backend signs with an identity key (Settings → Security → Customer identity). The token's `userId` names the user; everything else on the contact comes from the token. The SDK keeps it in memory only. See [Customer identity](https://docs.gleap.ai/documentation/guides/customer-identity).
+
+**Swift**
+
+```swift
+// After login and on every app start of a logged-in user
+Gleap.setUserJwt(token)
+
+// Called when the token has expired or is about to; pass nil when it failed
+Gleap.setUserJwtProvider { completion in
+    MyBackend.fetchGleapToken { token in
+        completion(token)
+    }
+}
+
+// Optional: tokens API tools may use to call your backend as this user (NSNull() removes one)
+Gleap.setAuthTokens(["backend": accessToken])
+```
+
 ## Protected conversation files
 
 With "Require authenticated file access" (Project settings → User identity), conversation files can only be opened by agents and by the verified customer the conversation belongs to. The SDK supports it without extra setup, as long as the app identifies the customer with a user hash on every app start (the hash is created on your server with the project's identity verification secret):

@@ -25,6 +25,8 @@ typedef enum surveyFormat { SURVEY, SURVEY_FULL } GleapSurveyFormat;
  * attachExternalData:) and then call `done`, from any thread. The SDK waits at most 500 ms for `done`.
  */
 typedef void (^GleapLogFlushHandler)(void (^done)(void));
+// Fetches a fresh identity token (see setUserJwtProvider:) and passes it to `completion`, or nil when that failed.
+typedef void (^GleapUserJwtProvider)(void (^completion)(NSString * _Nullable token));
 
 @protocol GleapDelegate <NSObject>
 @optional
@@ -352,6 +354,44 @@ typedef void (^GleapLogFlushHandler)(void (^done)(void));
 + (void)identifyContact:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString *)userHash;
 
 /**
+ * Identifies the user with an identity token: an HS256 JWT your backend signs with an identity key.
+ * The token is the whole identify: its `userId` (or `user_id`) claim names the user and every other
+ * claim lands on the contact as signed data; no other contact field is sent. Call it after login and
+ * on every app start. The token is kept in memory only and sent again whenever it changes.
+ * A token that is not a JWT (three base64url parts), has no user id or is longer than 4096 characters
+ * is refused with a log line and nothing is sent.
+ * @author Gleap
+ *
+ * @param token The identity token (JWT) from your backend.
+ */
++ (void)setUserJwt:(NSString *)token;
+
+/**
+ * Sets the function that fetches a fresh identity token from your backend. Gleap calls it when the
+ * server answers that the token expired (and retries once with the new token), and before it renews
+ * the file access or replays the identify when the token expires within 5 minutes. One call at a time;
+ * a call that does not answer within 10 seconds counts as failed, and after a failure Gleap waits
+ * 30 seconds before it asks again. Pass nil to the completion when fetching failed. `clearIdentity`
+ * keeps the provider. Pass nil to remove it.
+ * @author Gleap
+ *
+ * @param provider Fetches the token and calls the completion with it (or nil).
+ */
++ (void)setUserJwtProvider:(nullable GleapUserJwtProvider)provider;
+
+/**
+ * Stores per-user tokens on the signed contact that your API tools may send to your backend on this
+ * user's behalf (`{{session.authTokens.<name>}}`). Each call replaces the named tokens; `NSNull` as the
+ * value removes a token. Names start with a letter and use letters, digits, `_` and `-` (at most 40
+ * characters). Needs a signed identity (`setUserJwt`). Kept in memory only and sent again after the
+ * next signed identify on a new session; `clearIdentity` drops them.
+ * @author Gleap
+ *
+ * @param tokens The tokens by name: an NSString, or NSNull to remove one.
+ */
++ (void)setAuthTokens:(NSDictionary<NSString *, id> *)tokens;
+
+/**
  * Updates the current contact data.
  * @author Gleap
  *
@@ -360,7 +400,7 @@ typedef void (^GleapLogFlushHandler)(void (^done)(void));
 + (void)updateContact:(nullable GleapUserProperty *)data;
 
 /**
- * Clears a user session.
+ * Clears a user session, its identity token and auth tokens. The JWT provider stays set.
  * @author Gleap
  */
 + (void)clearIdentity;
