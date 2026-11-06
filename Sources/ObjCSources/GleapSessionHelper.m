@@ -714,8 +714,12 @@ static NSUInteger const kGleapIdentifyRetries = 2;
             [self retryUnansweredIdentify: identityAction epoch: epoch];
             return;
         }
+        NSDictionary *sessionData = [GleapSessionHelper sessionDataInResponse: response data: data];
         @synchronized (self) {
-            if (signedGrantGleapId != nil) {
+            // Answered without a grant for that session (a refusal, or the server issued none): no
+            // second request this launch. An answer with a grant leaves it unmarked, so a grant the
+            // server later rejects (a session answer without a grant) is asked for once more.
+            if (signedGrantGleapId != nil && ![GleapSessionHelper answer: sessionData hasGrantFor: signedGrantGleapId]) {
                 self.signedGrantRequestedFor = signedGrantGleapId;
             }
             if (self.unansweredIdentifyAction != nil && self.unansweredIdentifyEpoch == epoch) {
@@ -723,7 +727,6 @@ static NSUInteger const kGleapIdentifyRetries = 2;
             }
         }
         
-        NSDictionary *sessionData = [GleapSessionHelper sessionDataInResponse: response data: data];
         if (sessionData != nil) {
             // Send unregister of previous group.
             if (![[sessionData objectForKey: @"gleapHash"] isEqual: self.currentSession.gleapHash]) {
@@ -1034,7 +1037,9 @@ static NSUInteger const kGleapIdentifyRetries = 2;
 
 /*
  YES when the project runs Signed (`identity.mode`), `session` is identified (has a userId) and has
- no grant, and no signed identify was sent for it yet in this app launch. Holds the lock.
+ no grant, and no signed identify for it was answered without a grant in this app launch. A session
+ answer without a grant (the server rejected the held one: secret rotation, region move, revoked
+ key) has already dropped it in applySessionAnswer, so this asks for a new one. Holds the lock.
  */
 - (BOOL)signedGrantMissingFor:(nullable GleapSession *)session {
     @synchronized (self) {
@@ -1076,6 +1081,16 @@ static NSUInteger const kGleapIdentifyRetries = 2;
         }
         [self processOpenIdentityAction];
     }];
+}
+
+// YES when a session answer carries a grant (`identity.grant`) for `gleapId`.
++ (BOOL)answer:(nullable NSDictionary *)sessionData hasGrantFor:(NSString *)gleapId {
+    id identity = [sessionData objectForKey: @"identity"];
+    if (![identity isKindOfClass: [NSDictionary class]]) {
+        return NO;
+    }
+    id grant = [identity objectForKey: @"grant"];
+    return [grant isKindOfClass: [NSString class]] && [grant length] > 0 && [[sessionData objectForKey: @"gleapId"] isEqual: gleapId];
 }
 
 /*
