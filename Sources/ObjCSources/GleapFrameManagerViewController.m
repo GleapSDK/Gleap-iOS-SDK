@@ -23,6 +23,7 @@
 #import "GleapPreFillHelper.h"
 #import "GleapAgentToolHelper.h"
 #import "GleapCaptureManager.h"
+#import "GleapGrant.h"
 #import <objc/runtime.h>
 
 // How long we may take to answer the widget's `collect-ticket-data` request.
@@ -272,6 +273,10 @@ GLEAP_INTERNAL
         // Lets the widget hand a verified contact's session over (adopt-session).
         @"capabilities": @{ @"adoptSession": @(YES) }
     }];
+    
+    // The grant of a signed identify: the Messenger sends it as Gleap-Grant on its own requests.
+    NSString *grant = [[GleapGrant sharedInstance] grantForGleapId: GleapSessionHelper.sharedInstance.currentSession.gleapId];
+    [sessionUpdateData setObject: GleapObjectOrNull(grant) forKey: @"grant"];
     
     // Pass the realtime host (region) to the widget.
     NSString *realtimeHost = Gleap.sharedInstance.realtimeHost;

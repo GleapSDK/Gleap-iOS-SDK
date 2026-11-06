@@ -56,6 +56,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, retain, nullable) NSString* lastRegisterGleapHash;
 // The app's latest identify (userId, userHash, data), in memory only: replayed to renew the file access token.
 @property (nonatomic, retain, nullable) NSDictionary* lastIdentifyAction;
+// Gleap.setSessionDuration (milliseconds), sent with every identify; nil leaves the project's maximum.
+@property (atomic, retain, nullable) NSNumber* sessionDuration;
 // A protected file from an emailed link, opened once the session has file access.
 @property (nonatomic, retain, nullable) NSString* pendingProtectedFileId;
 

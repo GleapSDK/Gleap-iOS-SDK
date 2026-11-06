@@ -269,6 +269,10 @@
     [GleapSessionHelper.sharedInstance setAuthTokens: tokens];
 }
 
++ (void)setSessionDuration:(NSInteger)milliseconds {
+    GleapSessionHelper.sharedInstance.sessionDuration = milliseconds > 0 ? @(milliseconds) : nil;
+}
+
 + (void)updateContact:(nullable GleapUserProperty *)data {
     [GleapSessionHelper.sharedInstance updateContact: data];
 }

@@ -32,6 +32,10 @@ GLEAP_INTERNAL
 /// code), nil for anything else.
 + (nullable NSString *)refusalCodeForStatus:(NSInteger)status body:(nullable NSData *)body;
 
+/// YES for an identify refused because the session belongs to another user: HTTP 400 whose body
+/// names `identity_mismatch`.
++ (BOOL)isIdentityMismatchForStatus:(NSInteger)status body:(nullable NSData *)body;
+
 @end
 
 /*

@@ -392,6 +392,16 @@ typedef void (^GleapUserJwtProvider)(void (^completion)(NSString * _Nullable tok
 + (void)setAuthTokens:(NSDictionary<NSString *, id> *)tokens;
 
 /**
+ * Caps how long a signed session lasts: the grant a signed identify returns expires after this many
+ * milliseconds, or at the project's session maximum when that is shorter. Sent with every identify;
+ * set it before `setUserJwt`. Pass 0 to use the project's maximum.
+ * @author Gleap
+ *
+ * @param milliseconds The session duration in milliseconds.
+ */
++ (void)setSessionDuration:(NSInteger)milliseconds;
+
+/**
  * Updates the current contact data.
  * @author Gleap
  *

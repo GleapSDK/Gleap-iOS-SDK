@@ -91,6 +91,14 @@ static NSUInteger const kGleapUserJwtMaxLength = 4096;
     return nil;
 }
 
++ (BOOL)isIdentityMismatchForStatus:(NSInteger)status body:(NSData *)body {
+    if (status != 400 || body == nil) {
+        return NO;
+    }
+    NSString *text = [[NSString alloc] initWithData: body encoding: NSUTF8StringEncoding];
+    return [text containsString: @"identity_mismatch"];
+}
+
 @end
 
 @interface GleapUserJwtProviderGate ()
