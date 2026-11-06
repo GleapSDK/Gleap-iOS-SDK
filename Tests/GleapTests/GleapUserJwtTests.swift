@@ -138,19 +138,35 @@ final class GleapUserJwtTests: GleapNetworkTestCase {
         assertNoRequest("/sessions/identify")
     }
 
+    func testTheFingerprintIgnoresMintTimeClaims() throws {
+        let cls: AnyObject = try jwtClass()
+        func fingerprint(_ token: String) -> String? {
+            cls.perform(NSSelectorFromString("identityFingerprintOf:"), with: token)?.takeUnretainedValue() as? String
+        }
+        let base = fingerprint(Self.jwt(["userId": "user-1", "plan": "pro", "iat": 1, "exp": 3601]))
+        XCTAssertNotNil(base)
+        XCTAssertEqual(fingerprint(Self.jwt(["userId": "user-1", "plan": "pro", "iat": 99, "exp": 9999, "jti": "n2"])), base)
+        XCTAssertNotEqual(fingerprint(Self.jwt(["userId": "user-1", "plan": "enterprise", "exp": 3601])), base)
+        XCTAssertNil(fingerprint("not-a-jwt"))
+    }
+
     func testTheSameTokenIsSentOnceAndANewTokenAgain() throws {
         installSession(gleapId: "gid-guest", gleapHash: "ghash-guest")
         let lang = GleapTranslationHelper.sharedInstance().language
         GleapStubURLProtocol.stub("POST", "/sessions/identify",
                                   Self.sessionReply(gleapId: "gid-user", gleapHash: "ghash-user", extra: ["userId": "user-1", "lang": lang]))
-        let first = Self.jwt(["userId": "user-1", "exp": Date().timeIntervalSince1970 + 3600])
-        let second = Self.jwt(["userId": "user-1", "exp": Date().timeIntervalSince1970 + 7200])
+        let first = Self.jwt(["userId": "user-1", "plan": "pro", "exp": Date().timeIntervalSince1970 + 3600])
+        let reminted = Self.jwt(["userId": "user-1", "plan": "pro", "exp": Date().timeIntervalSince1970 + 7200])
+        let second = Self.jwt(["userId": "user-1", "plan": "enterprise", "exp": Date().timeIntervalSince1970 + 7200])
 
         Gleap.setUserJwt(first)
         XCTAssertTrue(waitUntil { self.sessions.currentSession?.gleapId == "gid-user" })
         Gleap.setUserJwt(first)
         spin(0.5)
         XCTAssertEqual(GleapStubURLProtocol.requests(path: "/sessions/identify").count, 1, "an unchanged token is not sent again")
+        Gleap.setUserJwt(reminted)
+        spin(0.5)
+        XCTAssertEqual(GleapStubURLProtocol.requests(path: "/sessions/identify").count, 1, "a token re-minted with the same claims is not sent again")
 
         Gleap.setUserJwt(second)
         XCTAssertTrue(waitUntil { GleapStubURLProtocol.requests(path: "/sessions/identify").count == 2 })

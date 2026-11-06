@@ -28,6 +28,15 @@ GLEAP_INTERNAL
 /// YES when the token carries an `exp` that lies less than `window` seconds after `now`.
 + (BOOL)token:(nullable id)token expiresWithin:(NSTimeInterval)window of:(NSDate *)now;
 
+/// What the token says, for "was this identify sent already": its `kid` and its claims without
+/// iat/exp/nbf/jti, as sorted JSON. A token re-minted for the same user and data gives the same
+/// value; a changed claim or key does not. Nil when the token is not a JWT.
++ (nullable NSString *)identityFingerprintOf:(nullable id)token;
+
+/// YES for an identify refused because the project enforces identity verification and the
+/// identify had no valid signature: HTTP 401 whose body names `signature_required`.
++ (BOOL)isSignatureRequiredForStatus:(NSInteger)status body:(nullable NSData *)body;
+
 /// `token_expired` or `token_invalid` for an identify refusal (HTTP 401 whose body names the
 /// code), nil for anything else.
 + (nullable NSString *)refusalCodeForStatus:(NSInteger)status body:(nullable NSData *)body;

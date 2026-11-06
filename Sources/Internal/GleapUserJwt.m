@@ -28,10 +28,15 @@ static NSUInteger const kGleapUserJwtMaxLength = 4096;
 }
 
 + (nullable NSDictionary *)payloadOf:(id)token {
+    return [self segment: 1 of: token];
+}
+
+// The decoded JSON object of the token's header (0) or payload (1).
++ (nullable NSDictionary *)segment:(NSUInteger)index of:(id)token {
     if (![self isUserJwt: token]) {
         return nil;
     }
-    NSString *segment = [[token componentsSeparatedByString: @"."] objectAtIndex: 1];
+    NSString *segment = [[token componentsSeparatedByString: @"."] objectAtIndex: index];
     NSMutableString *base64 = [[[segment stringByReplacingOccurrencesOfString: @"-" withString: @"+"]
                                 stringByReplacingOccurrencesOfString: @"_" withString: @"/"] mutableCopy];
     while (base64.length % 4 != 0) {
@@ -75,6 +80,28 @@ static NSUInteger const kGleapUserJwtMaxLength = 4096;
 + (BOOL)token:(id)token expiresWithin:(NSTimeInterval)window of:(NSDate *)now {
     NSNumber *exp = [self expirationOf: token];
     return exp != nil && [exp doubleValue] - [now timeIntervalSince1970] < window;
+}
+
++ (nullable NSString *)identityFingerprintOf:(id)token {
+    NSDictionary *payload = [self payloadOf: token];
+    if (payload == nil) {
+        return nil;
+    }
+    NSMutableDictionary *claims = [payload mutableCopy];
+    [claims removeObjectsForKeys: @[@"iat", @"exp", @"nbf", @"jti"]];
+    id kid = [[self segment: 0 of: token] objectForKey: @"kid"] ?: [NSNull null];
+    NSData *data = [NSJSONSerialization dataWithJSONObject: @{ @"kid": kid, @"claims": claims }
+                                                   options: NSJSONWritingSortedKeys
+                                                     error: nil];
+    return data != nil ? [[NSString alloc] initWithData: data encoding: NSUTF8StringEncoding] : token;
+}
+
++ (BOOL)isSignatureRequiredForStatus:(NSInteger)status body:(NSData *)body {
+    if (status != 401 || body == nil) {
+        return NO;
+    }
+    NSString *text = [[NSString alloc] initWithData: body encoding: NSUTF8StringEncoding];
+    return [text containsString: @"signature_required"];
 }
 
 + (nullable NSString *)refusalCodeForStatus:(NSInteger)status body:(NSData *)body {

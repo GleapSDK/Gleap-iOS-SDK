@@ -44,7 +44,7 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
 @property (nonatomic, strong) GleapUserJwtProviderGate *userJwtGate;
 // The identity token the server last accepted, and for which session (memory only): a new token is
 // sent even when nothing else changed.
-@property (nonatomic, copy, nullable) NSString *sentUserJwt;
+@property (nonatomic, copy, nullable) NSString *sentUserJwt; // identityFingerprintOf: the last token sent
 @property (nonatomic, copy, nullable) NSString *sentUserJwtGleapId;
 // Gleap.setAuthTokens (memory only): the tokens, names removed but not yet sent, and the session
 // that has them all (nil while a change waits).
@@ -630,7 +630,9 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
     BOOL isUserJwt = [GleapUserJwt isUserJwt: userHash];
     BOOL needsUserJwt;
     @synchronized (self) {
-        needsUserJwt = isUserJwt && !([self.sentUserJwt isEqualToString: userHash] && [self.sentUserJwtGleapId isEqualToString: session.gleapId]);
+        // Compared by what the token says, so a token re-minted per launch or login for the same
+        // user and data is not sent again.
+        needsUserJwt = isUserJwt && !([self.sentUserJwt isEqualToString: [GleapUserJwt identityFingerprintOf: userHash]] && [self.sentUserJwtGleapId isEqualToString: session.gleapId]);
     }
     if (!needsUpdate && !needsFileAccess && !needsUserJwt && !needsGrant) {
         [self sendAuthTokensIfNeeded];
@@ -695,7 +697,7 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
             
             if (isUserJwt) {
                 @synchronized (self) {
-                    self.sentUserJwt = userHash;
+                    self.sentUserJwt = [GleapUserJwt identityFingerprintOf: userHash];
                     self.sentUserJwtGleapId = [sessionData objectForKey: @"gleapId"];
                 }
             }
@@ -717,6 +719,9 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
                            forIdentify: identityAction
                                  epoch: epoch];
         } else if ([GleapSessionHelper isErrorAnswerInResponse: response data: data]) {
+            if ([GleapUserJwt isSignatureRequiredForStatus: [GleapAPIClient statusCodeOfResponse: response] body: data]) {
+                NSLog(@"[GLEAP_SDK] Gleap: this project enforces identity verification and the identify had no valid signature (signature_required). Pass a token from your backend to setUserJwt.");
+            }
             // The server refused this identity (for example a wrong user hash): start over as a guest.
             [self clearSession];
         }
