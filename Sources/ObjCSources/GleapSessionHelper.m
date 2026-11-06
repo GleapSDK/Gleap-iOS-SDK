@@ -29,6 +29,11 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
 static NSTimeInterval const kGleapUserJwtRefreshWindow = 5 * 60;
 // The grant is renewed (the app's last signed identify replayed) this long before it expires.
 static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
+// A grant renewal that did not bring a new grant is tried again after this long while the app is active.
+static NSTimeInterval const kGleapGrantRenewRetry = 60;
+// An identify that got no answer (offline, a server failure) is sent again after 1 and 2 seconds,
+// then once more when the app returns to the foreground.
+static NSUInteger const kGleapIdentifyRetries = 2;
 
 @interface GleapSessionHelper ()
 @property (atomic, assign) BOOL identifyInFlight;
@@ -61,6 +66,9 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
 // The session a signed identify was sent for while it had no grant (memory only): a returning user
 // on a project that switched to Signed gets one identify per app launch and session, never a loop.
 @property (nonatomic, copy, nullable) NSString *signedGrantRequestedFor;
+// An identify whose retries all got no answer: sent again on return to the foreground (main queue).
+@property (nonatomic, strong, nullable) NSDictionary *unansweredIdentifyAction;
+@property (nonatomic, assign) NSUInteger unansweredIdentifyEpoch;
 @end
 
 @implementation GleapSessionHelper
@@ -651,13 +659,9 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
     }
     // Sent only to get the grant: a refusal keeps the session it was sent for.
     BOOL signedGrantOnly = needsSignedGrant && !needsUpdate && !needsFileAccess && !needsUserJwt && !needsGrant;
-    if (hasHash) {
-        @synchronized (self) {
-            if ([self signedGrantMissingFor: session]) {
-                self.signedGrantRequestedFor = session.gleapId;
-            }
-        }
-    }
+    // Marked once the server answers (success or a refusal), never before: an identify that got no
+    // answer (offline, a server failure) leaves the session unmarked, so it is asked for again.
+    NSString *signedGrantGleapId = needsSignedGrant ? session.gleapId : nil;
     
     // If update is needed, also append all the custom data fields.
     @try {
@@ -704,8 +708,19 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
                 return;
             }
         }
-        if (error != nil) {
+        NSInteger status = [GleapAPIClient statusCodeOfResponse: response];
+        if (error != nil || status >= 500 || status == 408 || status == 429) {
+            // No answer: the identify stays pending and is sent again.
+            [self retryUnansweredIdentify: identityAction epoch: epoch];
             return;
+        }
+        @synchronized (self) {
+            if (signedGrantGleapId != nil) {
+                self.signedGrantRequestedFor = signedGrantGleapId;
+            }
+            if (self.unansweredIdentifyAction != nil && self.unansweredIdentifyEpoch == epoch) {
+                self.unansweredIdentifyAction = nil;
+            }
         }
         
         NSDictionary *sessionData = [GleapSessionHelper sessionDataInResponse: response data: data];
@@ -754,7 +769,7 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
             // The server refused this identity (for example a wrong user hash): start over as a guest.
             [self clearSession];
         }
-        // Anything else (overloaded, a server failure, an answer without a session) keeps the identity.
+        // Anything else (an answer without a session) keeps the identity.
     };
     self.identifyInFlight = YES;
     [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
@@ -1064,6 +1079,66 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
 }
 
 /*
+ An identify that got no answer (a network error, 5xx, 408 or 429) is sent again after 1 and 2
+ seconds, like the Android SDK; after that it waits for the app's return to the foreground. Grant
+ and file access renewals are left to their own schedules. A newer identify or a logout wins.
+ */
+- (void)retryUnansweredIdentify:(NSDictionary *)identityAction epoch:(NSUInteger)epoch {
+    if ([[identityAction objectForKey: @"renewGrant"] boolValue] || [[identityAction objectForKey: @"renewFileAccess"] boolValue]) {
+        return;
+    }
+    NSUInteger attempt = [[identityAction objectForKey: @"retryAttempt"] unsignedIntegerValue];
+    NSMutableDictionary *retry = [identityAction mutableCopy];
+    if (attempt >= kGleapIdentifyRetries) {
+        [retry removeObjectForKey: @"retryAttempt"];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            @synchronized (self) {
+                if (epoch != self.sessionEpoch) {
+                    return;
+                }
+                self.unansweredIdentifyAction = retry;
+                self.unansweredIdentifyEpoch = epoch;
+            }
+        });
+        return;
+    }
+    [retry setObject: @(attempt + 1) forKey: @"retryAttempt"];
+    NSTimeInterval delay = (NSTimeInterval)(1 << attempt);
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        @synchronized (self) {
+            if (epoch != self.sessionEpoch || self.openIdentityAction != nil) {
+                return;
+            }
+            self.openIdentityAction = retry;
+        }
+        [self processOpenIdentityAction];
+    });
+}
+
+/*
+ Sends the identify whose retries got no answer once more (on return to the foreground), unless a
+ newer identify or a logout came first.
+ */
+- (void)resendUnansweredIdentify {
+    @synchronized (self) {
+        NSDictionary *pending = self.unansweredIdentifyAction;
+        if (pending == nil) {
+            return;
+        }
+        if (self.unansweredIdentifyEpoch != self.sessionEpoch) {
+            self.unansweredIdentifyAction = nil;
+            return;
+        }
+        if (self.openIdentityAction != nil || self.identifyInFlight || self.currentSession == nil) {
+            return;
+        }
+        self.unansweredIdentifyAction = nil;
+        self.openIdentityAction = pending;
+    }
+    [self processOpenIdentityAction];
+}
+
+/*
  The server answered identity_mismatch: the session belongs to another user. Drops the local
  session (the grant, the stored gleapId / gleapHash; the identify, the JWT provider and the auth
  tokens stay), starts a fresh visitor session and sends the identify once more on it. A second
@@ -1158,7 +1233,46 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
         }
         [self processOpenIdentityAction];
     }];
+    [self retryGrantRenewalLater];
     return YES;
+}
+
+/*
+ A renewal that brings a new grant reschedules (scheduleGrantRenewal). One that failed (offline, a
+ server failure, a refusal, the JWT provider failing) is tried again after kGleapGrantRenewRetry
+ while the app is active, so the grant does not lapse mid-session; in the background the return to
+ the foreground renews it.
+ */
+- (void)retryGrantRenewalLater {
+    NSUInteger renewal;
+    @synchronized (self) {
+        renewal = self.grantRenewal;
+    }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kGleapGrantRenewRetry * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        GleapSession *session;
+        @synchronized (self) {
+            if (renewal != self.grantRenewal) {
+                return;
+            }
+            session = self.currentSession;
+        }
+        if ([UIApplication sharedApplication].applicationState != UIApplicationStateActive) {
+            return;
+        }
+        if (![[GleapGrant sharedInstance] needsRenewalForGleapId: session.gleapId within: kGleapGrantRenewBefore]) {
+            return;
+        }
+        if (![self refreshGrantIfNeeded]) {
+            BOOL busy;
+            @synchronized (self) {
+                busy = self.identifyInFlight || self.openIdentityAction != nil;
+            }
+            if (busy) {
+                // Another identify is on its way: look again later.
+                [self retryGrantRenewalLater];
+            }
+        }
+    });
 }
 
 - (void)scheduleGrantRenewal {
@@ -1219,6 +1333,8 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
 }
 
 - (void)applicationDidBecomeActive {
+    // An identify that got no answer (for example launched offline) is sent again.
+    [self resendUnansweredIdentify];
     // Timers do not run while the app is suspended: an expired grant is renewed on return.
     [self refreshGrantIfNeeded];
     @synchronized (self) {
