@@ -25,6 +25,9 @@ GLEAP_INTERNAL
 /// The payload's `exp` (seconds since 1970), or nil without one.
 + (nullable NSNumber *)expirationOf:(nullable id)token;
 
+/// The payload's `iat` (seconds since 1970), or nil without one.
++ (nullable NSNumber *)issuedAtOf:(nullable id)token;
+
 /// YES when the token carries an `exp` that lies less than `window` seconds after `now`.
 + (BOOL)token:(nullable id)token expiresWithin:(NSTimeInterval)window of:(NSDate *)now;
 
@@ -50,7 +53,8 @@ GLEAP_INTERNAL
 /*
  Asks the app's JWT provider for a fresh token: one call at a time (later requests wait for the
  running one), given up after `timeout` (10 s), and after a failure (nil, not a JWT with a user id,
- or the timeout) no new call for `pauseAfterFailure` (30 s). Used on the main queue.
+ an expired token, a token the server already refused, or the timeout) no new call for
+ `pauseAfterFailure` (30 s). Used on the main queue.
  */
 GLEAP_INTERNAL
 @interface GleapUserJwtProviderGate : NSObject
@@ -65,6 +69,10 @@ GLEAP_INTERNAL
 /// Runs `completion` on the main queue with a fresh token, or nil (no provider, failure, timeout,
 /// or still pausing after a failure).
 - (void)requestToken:(void (^)(NSString * _Nullable token))completion;
+
+/// The server refused `token` (token_expired / token_invalid): the provider handing back this
+/// exact token counts as a failure.
+- (void)rememberRefusedToken:(nullable NSString *)token;
 
 @end
 

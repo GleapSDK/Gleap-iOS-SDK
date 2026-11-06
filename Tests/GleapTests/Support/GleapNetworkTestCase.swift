@@ -111,6 +111,8 @@ class GleapNetworkTestCase: XCTestCase {
         sessions.lastRegisterGleapHash = nil
         sessions.lastIdentifyAction = nil
         sessions.pendingProtectedFileId = nil
+        sessions.setValue(nil, forKey: "identityMode")
+        sessions.setValue(nil, forKey: "signedGrantRequestedFor")
 
         let events = GleapEventLogHelper.sharedInstance()
         events.stop()

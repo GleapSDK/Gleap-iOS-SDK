@@ -55,6 +55,12 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
 @property (nonatomic, assign) NSUInteger grantRenewal;
 // The last grant renewal started: at most one a minute (an expired token without a provider).
 @property (nonatomic, retain, nullable) NSDate *lastGrantRenewal;
+// `identity.mode` of the last session answer that carried `identity` ('signed' or nil): Classic
+// projects send no `identity`.
+@property (nonatomic, copy, nullable) NSString *identityMode;
+// The session a signed identify was sent for while it had no grant (memory only): a returning user
+// on a project that switched to Signed gets one identify per app launch and session, never a loop.
+@property (nonatomic, copy, nullable) NSString *signedGrantRequestedFor;
 @end
 
 @implementation GleapSessionHelper
@@ -629,14 +635,28 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
     // A new identity token is sent even when the contact data is the same.
     BOOL isUserJwt = [GleapUserJwt isUserJwt: userHash];
     BOOL needsUserJwt;
+    BOOL hasHash = [userHash isKindOfClass: [NSString class]] && [userHash length] > 0;
+    BOOL needsSignedGrant;
     @synchronized (self) {
         // Compared by what the token says, so a token re-minted per launch or login for the same
         // user and data is not sent again.
         needsUserJwt = isUserJwt && !([self.sentUserJwt isEqualToString: [GleapUserJwt identityFingerprintOf: userHash]] && [self.sentUserJwtGleapId isEqualToString: session.gleapId]);
+        // The project switched to Signed and this identified session has no grant yet: the held
+        // hash or token is sent once, even unchanged, so a returning user gets one.
+        needsSignedGrant = hasHash && [self signedGrantMissingFor: session];
     }
-    if (!needsUpdate && !needsFileAccess && !needsUserJwt && !needsGrant) {
+    if (!needsUpdate && !needsFileAccess && !needsUserJwt && !needsGrant && !needsSignedGrant) {
         [self sendAuthTokensIfNeeded];
         return;
+    }
+    // Sent only to get the grant: a refusal keeps the session it was sent for.
+    BOOL signedGrantOnly = needsSignedGrant && !needsUpdate && !needsFileAccess && !needsUserJwt && !needsGrant;
+    if (hasHash) {
+        @synchronized (self) {
+            if ([self signedGrantMissingFor: session]) {
+                self.signedGrantRequestedFor = session.gleapId;
+            }
+        }
     }
     
     // If update is needed, also append all the custom data fields.
@@ -715,12 +735,21 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
             [self restartForIdentify: identityAction];
         } else if ([GleapUserJwt refusalCodeForStatus: [GleapAPIClient statusCodeOfResponse: response] body: data] != nil) {
             // A refused identity token keeps the identity and the session (contract §3).
+            NSString *refusedToken = [userHash isKindOfClass: [NSString class]] ? userHash : nil;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self.userJwtGate rememberRefusedToken: refusedToken];
+            });
             [self handleUserJwtRefusal: [GleapUserJwt refusalCodeForStatus: [GleapAPIClient statusCodeOfResponse: response] body: data]
                            forIdentify: identityAction
                                  epoch: epoch];
         } else if ([GleapSessionHelper isErrorAnswerInResponse: response data: data]) {
             if ([GleapUserJwt isSignatureRequiredForStatus: [GleapAPIClient statusCodeOfResponse: response] body: data]) {
                 NSLog(@"[GLEAP_SDK] Gleap: this project enforces identity verification and the identify had no valid signature (signature_required). Pass a token from your backend to setUserJwt.");
+            }
+            if (signedGrantOnly) {
+                // Only asked for the grant of a session the server already identified: it stays.
+                NSLog(@"[GLEAP_SDK] The signed identify for this session was refused; the session stays unsigned. Pass a token from your backend to setUserJwt.");
+                return;
             }
             // The server refused this identity (for example a wrong user hash): start over as a guest.
             [self clearSession];
@@ -909,6 +938,13 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
     // The grant of a signed identify; a grant for another session never rides along.
     GleapGrant *grants = [GleapGrant sharedInstance];
     [grants applySessionAnswer: data];
+    id identity = [data objectForKey: @"identity"];
+    if ([identity isKindOfClass: [NSDictionary class]]) {
+        id mode = [identity objectForKey: @"mode"];
+        @synchronized (self) {
+            self.identityMode = [mode isKindOfClass: [NSString class]] ? mode : nil;
+        }
+    }
     if ([grants expiresAt] != nil && [grants grantForGleapId: gleapSession.gleapId] == nil) {
         [grants clear];
     }
@@ -920,6 +956,7 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
     
     // Process any open identity actions.
     [self processOpenIdentityAction];
+    [self requestSignedGrantIfNeeded];
     [self processOpenPushAction];
     [self processOpenUpdateAction];
     
@@ -961,6 +998,7 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
         [self.authTokens removeAllObjects];
         [self.removedAuthTokens removeAllObjects];
         self.authTokensSentFor = nil;
+        self.identityMode = nil;
         self.sessionEpoch++;
         self.fileAccessRenewal++;
         self.grantRenewal++;
@@ -978,6 +1016,52 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
 }
 
 #pragma mark - Grant
+
+/*
+ YES when the project runs Signed (`identity.mode`), `session` is identified (has a userId) and has
+ no grant, and no signed identify was sent for it yet in this app launch. Holds the lock.
+ */
+- (BOOL)signedGrantMissingFor:(nullable GleapSession *)session {
+    @synchronized (self) {
+        if (session.gleapId.length == 0 || session.userId.length == 0 || ![self.identityMode isEqualToString: @"signed"]) {
+            return NO;
+        }
+        if ([self.signedGrantRequestedFor isEqualToString: session.gleapId]) {
+            return NO;
+        }
+        return [[GleapGrant sharedInstance] grantForGleapId: session.gleapId] == nil;
+    }
+}
+
+/*
+ A returning user on a project that switched to Signed: the session is identified but has no grant,
+ and the app's identify of this launch (its hash or token) was skipped as unchanged. Sends it once
+ (through the JWT provider when the token is about to expire); processOpenIdentityAction marks the
+ session so it never repeats.
+ */
+- (void)requestSignedGrantIfNeeded {
+    NSDictionary *identify;
+    @synchronized (self) {
+        GleapSession *session = self.currentSession;
+        identify = self.lastIdentifyAction;
+        if (identify == nil || self.openIdentityAction != nil || self.identifyInFlight || ![self signedGrantMissingFor: session]) {
+            return;
+        }
+        id userHash = [identify objectForKey: @"userHash"];
+        if (![userHash isKindOfClass: [NSString class]] || [userHash length] == 0 || ![[identify objectForKey: @"userId"] isEqual: session.userId]) {
+            return;
+        }
+    }
+    [self withFreshUserJwt: identify send:^(NSDictionary *fresh) {
+        @synchronized (self) {
+            if (self.openIdentityAction != nil) {
+                return;
+            }
+            self.openIdentityAction = fresh;
+        }
+        [self processOpenIdentityAction];
+    }];
+}
 
 /*
  The server answered identity_mismatch: the session belongs to another user. Drops the local
@@ -1039,11 +1123,29 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
     if (![[GleapGrant sharedInstance] needsRenewalForGleapId: session.gleapId within: kGleapGrantRenewBefore]) {
         return NO;
     }
+    NSTimeInterval throttled = 0;
+    NSUInteger renewal = 0;
     @synchronized (self) {
-        if (self.lastGrantRenewal != nil && [[NSDate date] timeIntervalSinceDate: self.lastGrantRenewal] < kGleapFileAccessForegroundInterval) {
-            return NO;
+        NSTimeInterval since = self.lastGrantRenewal != nil ? [[NSDate date] timeIntervalSinceDate: self.lastGrantRenewal] : kGleapFileAccessForegroundInterval;
+        if (since < kGleapFileAccessForegroundInterval) {
+            throttled = kGleapFileAccessForegroundInterval - since;
+            renewal = self.grantRenewal;
+        } else {
+            self.lastGrantRenewal = [NSDate date];
         }
-        self.lastGrantRenewal = [NSDate date];
+    }
+    if (throttled > 0) {
+        // At most one renewal a minute: try again once the minute is over (a short grant renewed
+        // at half its lifetime would otherwise lapse), unless a newer grant reschedules first.
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((throttled + 1) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            @synchronized (self) {
+                if (renewal != self.grantRenewal) {
+                    return;
+                }
+            }
+            [self refreshGrantIfNeeded];
+        });
+        return NO;
     }
     [self withFreshUserJwt: identify send:^(NSDictionary *fresh) {
         @synchronized (self) {
@@ -1068,7 +1170,8 @@ static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
     if (expiresAt == nil || [[GleapGrant sharedInstance] grantForGleapId: self.currentSession.gleapId] == nil) {
         return;
     }
-    NSTimeInterval delay = MAX(0, [expiresAt timeIntervalSinceNow] - kGleapGrantRenewBefore);
+    // min(5 minutes, half the grant's lifetime) before it expires.
+    NSTimeInterval delay = MAX(0, [expiresAt timeIntervalSinceNow] - [[GleapGrant sharedInstance] renewBefore: kGleapGrantRenewBefore]);
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         @synchronized (self) {
             if (renewal != self.grantRenewal) {

@@ -1,4 +1,5 @@
 import XCTest
+import ObjectiveC
 @testable import Gleap
 
 /// The grant a signed identify returns (`identity.grant`): sent as `Gleap-Grant` on the session's
@@ -87,5 +88,57 @@ final class GleapGrantTests: GleapNetworkTestCase {
 
         let identify = try XCTUnwrap(waitForRequest("/sessions/identify"))
         XCTAssertEqual(identify.json?["sessionDuration"] as? Int, 3_600_000)
+    }
+
+    private func signedWithoutGrant(gleapId: String) -> GleapStubReply {
+        Self.sessionReply(gleapId: gleapId, gleapHash: "ghash-\(gleapId)", extra: [
+            "userId": "user-1",
+            "lang": GleapTranslationHelper.sharedInstance().language as Any,
+            "identity": ["signed": false, "grant": NSNull(), "mode": "signed"],
+        ])
+    }
+
+    func testAReturningUserOnASignedProjectSendsTheUnchangedIdentifyOnce() throws {
+        GleapStubURLProtocol.stub("POST", "/sessions", signedWithoutGrant(gleapId: "gid-user"))
+        // The server keeps answering without a grant: still only one identify.
+        GleapStubURLProtocol.stub("POST", "/sessions/identify", signedWithoutGrant(gleapId: "gid-user"))
+        UserDefaults.standard.set("gid-user", forKey: "gleapId")
+        UserDefaults.standard.set("ghash-gid-user", forKey: "gleapHash")
+
+        // The app identifies on launch exactly as last time, before the session is there.
+        Gleap.identifyContact("user-1", andData: nil, andUserHash: "legacy-hash")
+        sessions.startSession { _ in }
+
+        let identify = try XCTUnwrap(waitForRequest("/sessions/identify"))
+        XCTAssertEqual(identify.json?["userHash"] as? String, "legacy-hash")
+
+        Gleap.identifyContact("user-1", andData: nil, andUserHash: "legacy-hash")
+        sessions.startSession { _ in }
+        XCTAssertTrue(waitUntil { GleapStubURLProtocol.requests(path: "/sessions").count == 2 })
+        spin(0.5)
+        XCTAssertEqual(GleapStubURLProtocol.requests(path: "/sessions/identify").count, 1)
+    }
+
+    func testAClassicProjectSkipsTheUnchangedIdentify() {
+        installSession(gleapId: "gid-user", gleapHash: "ghash-user", userId: "user-1")
+        GleapStubURLProtocol.stub("POST", "/sessions/identify", Self.sessionReply(gleapId: "gid-user", gleapHash: "ghash-user", extra: ["userId": "user-1"]))
+
+        Gleap.identifyContact("user-1", andData: nil, andUserHash: "legacy-hash")
+
+        spin(0.5)
+        XCTAssertTrue(GleapStubURLProtocol.requests(path: "/sessions/identify").isEmpty)
+    }
+
+    func testAShortGrantIsRenewedAtHalfItsLifetime() throws {
+        let grants = (NSClassFromString("GleapGrant") as AnyObject).perform(NSSelectorFromString("sharedInstance")).takeUnretainedValue() as! NSObject
+        let now = Date().timeIntervalSince1970
+        _ = grants.perform(NSSelectorFromString("setGrant:forGleapId:"),
+                           with: GleapUserJwtTests.jwt(["sid": "gid-user", "iat": now, "exp": now + 120]),
+                           with: "gid-user")
+        typealias RenewBefore = @convention(c) (AnyObject, Selector, Double) -> Double
+        let selector = NSSelectorFromString("renewBefore:")
+        let method = try XCTUnwrap(class_getInstanceMethod(type(of: grants), selector))
+        let renewBefore = unsafeBitCast(method_getImplementation(method), to: RenewBefore.self)(grants, selector, 300)
+        XCTAssertEqual(renewBefore, 60, accuracy: 1)
     }
 }

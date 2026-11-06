@@ -77,6 +77,14 @@ static NSUInteger const kGleapUserJwtMaxLength = 4096;
     return nil;
 }
 
++ (nullable NSNumber *)issuedAtOf:(id)token {
+    id iat = [[self payloadOf: token] objectForKey: @"iat"];
+    if ([iat isKindOfClass: [NSNumber class]] && CFGetTypeID((__bridge CFTypeRef)iat) != CFBooleanGetTypeID()) {
+        return iat;
+    }
+    return nil;
+}
+
 + (BOOL)token:(id)token expiresWithin:(NSTimeInterval)window of:(NSDate *)now {
     NSNumber *exp = [self expirationOf: token];
     return exp != nil && [exp doubleValue] - [now timeIntervalSince1970] < window;
@@ -132,6 +140,8 @@ static NSUInteger const kGleapUserJwtMaxLength = 4096;
 @property (nonatomic, assign, readwrite) NSTimeInterval failedAt;
 @property (nonatomic, strong, nullable) NSMutableArray<void (^)(NSString * _Nullable)> *waiting;
 @property (nonatomic, assign) NSUInteger call;
+// The last token the server refused (memory only).
+@property (nonatomic, copy, nullable) NSString *refusedToken;
 @end
 
 @implementation GleapUserJwtProviderGate
@@ -153,6 +163,12 @@ static NSUInteger const kGleapUserJwtMaxLength = 4096;
     _provider = [provider copy];
     // A new provider is asked right away, even after the old one failed.
     self.failedAt = 0;
+}
+
+- (void)rememberRefusedToken:(NSString *)token {
+    if ([GleapUserJwt isUserJwt: token]) {
+        self.refusedToken = token;
+    }
 }
 
 - (void)requestToken:(void (^)(NSString * _Nullable))completion {
@@ -189,6 +205,13 @@ static NSUInteger const kGleapUserJwtMaxLength = 4096;
         gate.waiting = nil;
         if (failure == nil && [GleapUserJwt userIdOf: token] == nil) {
             failure = @"it did not return a JWT with a userId";
+        }
+        NSNumber *exp = failure == nil ? [GleapUserJwt expirationOf: token] : nil;
+        if (exp != nil && [exp doubleValue] <= [[NSDate date] timeIntervalSince1970]) {
+            failure = @"it returned an expired token";
+        }
+        if (failure == nil && gate.refusedToken != nil && [gate.refusedToken isEqualToString: token]) {
+            failure = @"it returned the token the server just refused";
         }
         if (failure != nil) {
             token = nil;

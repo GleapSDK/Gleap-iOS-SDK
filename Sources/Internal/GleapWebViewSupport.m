@@ -104,6 +104,32 @@ static WKWebsiteDataStore *gleapSharedDataStore = nil;
 }
 
 + (void)sendMessage:(NSDictionary *)data toFunction:(NSString *)function inWebView:(WKWebView *)webView {
+    [self sendMessage: data toFunction: function inWebView: webView onlyOnPage: nil];
+}
+
++ (NSInteger)portOfURL:(NSURL *)url {
+    if (url.port != nil) {
+        return url.port.integerValue;
+    }
+    return [[url.scheme lowercaseString] isEqualToString: @"https"] ? 443 : 80;
+}
+
++ (BOOL)isURL:(NSURL *)url sameOriginAsPageURL:(NSString *)pageURL {
+    NSURL *page = pageURL != nil ? [NSURL URLWithString: pageURL] : nil;
+    if (url == nil || page == nil) {
+        return NO;
+    }
+    NSString *scheme = [url.scheme lowercaseString];
+    if (!([scheme isEqualToString: @"https"] || [scheme isEqualToString: @"http"]) || ![scheme isEqualToString: [page.scheme lowercaseString]]) {
+        return NO;
+    }
+    if (url.host.length == 0 || page.host.length == 0 || [url.host caseInsensitiveCompare: page.host] != NSOrderedSame) {
+        return NO;
+    }
+    return [self portOfURL: url] == [self portOfURL: page];
+}
+
++ (void)sendMessage:(NSDictionary *)data toFunction:(NSString *)function inWebView:(WKWebView *)webView onlyOnPage:(NSString *)pageURL {
     @try {
         NSError *error;
         NSData *jsonData = [NSJSONSerialization dataWithJSONObject: data options: 0 error: &error];
@@ -114,6 +140,10 @@ static WKWebsiteDataStore *gleapSharedDataStore = nil;
         NSString *script = [NSString stringWithFormat: @"%@(%@)", function, [[NSString alloc] initWithData: jsonData encoding: NSUTF8StringEncoding]];
         dispatch_async(dispatch_get_main_queue(), ^{
             @try {
+                if (pageURL != nil && ![self isURL: webView.URL sameOriginAsPageURL: pageURL]) {
+                    // The page left the Messenger: nothing of the session is handed to it.
+                    return;
+                }
                 [webView evaluateJavaScript: script completionHandler: nil];
             }
             @catch(id exception) {}

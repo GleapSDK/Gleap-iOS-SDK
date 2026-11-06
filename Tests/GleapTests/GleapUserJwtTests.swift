@@ -289,6 +289,28 @@ final class GleapUserJwtTests: GleapNetworkTestCase {
         XCTAssertGreaterThan((gate.value(forKey: "failedAt") as? Double) ?? 0, 0)
     }
 
+    func testAProviderReturningAnExpiredOrRefusedTokenFails() {
+        let expired = Self.jwt(["userId": "user-1", "exp": Date().timeIntervalSince1970 - 1])
+        let answer = GleapBox<String>()
+        answer.value = expired
+        Gleap.setUserJwtProvider { completion in completion(answer.value) }
+        let gate = gate()
+        gate.setValue(0.0, forKey: "pauseAfterFailure")
+
+        let first = GleapBox<String>(), firstDone = GleapBox<Bool>()
+        requestToken(gate, first, firstDone)
+        XCTAssertTrue(waitUntil { firstDone.value == true })
+        XCTAssertNil(first.value, "an expired token")
+
+        let refused = Self.jwt(["userId": "user-1", "exp": Date().timeIntervalSince1970 + 3600])
+        answer.value = refused
+        gate.perform(NSSelectorFromString("rememberRefusedToken:"), with: refused)
+        let second = GleapBox<String>(), secondDone = GleapBox<Bool>()
+        requestToken(gate, second, secondDone)
+        XCTAssertTrue(waitUntil { secondDone.value == true })
+        XCTAssertNil(second.value, "the token the server just refused")
+    }
+
     // MARK: - Auth tokens
 
     func testSetAuthTokensPostsTheTokensAndNullRemovesOne() throws {

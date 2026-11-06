@@ -25,8 +25,12 @@ GLEAP_INTERNAL
 /// The grant's `exp`, or nil without a grant.
 - (nullable NSDate *)expiresAt;
 
-/// YES when `gleapId` has a grant that expires within `window` seconds. Without a grant (Classic
-/// projects, unsigned identifies) there is nothing to renew.
+/// How long before its expiry the grant is renewed: `window`, at most half the grant's lifetime
+/// (exp - iat), so a short session is not renewed the moment it arrives.
+- (NSTimeInterval)renewBefore:(NSTimeInterval)window;
+
+/// YES when `gleapId` has a grant that expires within `renewBefore:window` seconds. Without a
+/// grant (Classic projects, unsigned identifies) there is nothing to renew.
 - (BOOL)needsRenewalForGleapId:(nullable NSString *)gleapId within:(NSTimeInterval)window;
 
 /// Takes the grant from a session answer: `identity.grant` (a string) is stored for the answer's

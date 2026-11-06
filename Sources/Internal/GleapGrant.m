@@ -14,6 +14,8 @@ static NSString * const kGleapGrantExpKey = @"gleapGrantExp";
 @property (nonatomic, copy, nullable) NSString *grant;
 @property (nonatomic, copy, nullable) NSString *gleapId;
 @property (nonatomic, strong, nullable) NSDate *expiry;
+// The grant's lifetime (exp - iat, or exp - when it arrived without an iat); 0 when unknown.
+@property (nonatomic, assign) NSTimeInterval lifetime;
 @end
 
 @implementation GleapGrant
@@ -40,6 +42,7 @@ static NSString * const kGleapGrantExpKey = @"gleapGrantExp";
             if ([exp isKindOfClass: [NSNumber class]]) {
                 _expiry = [NSDate dateWithTimeIntervalSince1970: [exp doubleValue]];
             }
+            _lifetime = [GleapGrant lifetimeOf: grant receivedAt: nil];
         }
     }
     return self;
@@ -60,12 +63,31 @@ static NSString * const kGleapGrantExpKey = @"gleapGrantExp";
     }
 }
 
++ (NSTimeInterval)lifetimeOf:(NSString *)grant receivedAt:(nullable NSDate *)receivedAt {
+    NSNumber *exp = [GleapUserJwt expirationOf: grant];
+    if (exp == nil) {
+        return 0;
+    }
+    NSNumber *iat = [GleapUserJwt issuedAtOf: grant];
+    NSTimeInterval start = iat != nil ? [iat doubleValue] : (receivedAt != nil ? [receivedAt timeIntervalSince1970] : 0);
+    if (start <= 0) {
+        return 0;
+    }
+    return MAX(0, [exp doubleValue] - start);
+}
+
+- (NSTimeInterval)renewBefore:(NSTimeInterval)window {
+    @synchronized (self) {
+        return self.lifetime > 0 ? MIN(window, self.lifetime / 2) : window;
+    }
+}
+
 - (BOOL)needsRenewalForGleapId:(nullable NSString *)gleapId within:(NSTimeInterval)window {
     @synchronized (self) {
         if ([self grantForGleapId: gleapId] == nil) {
             return NO;
         }
-        return self.expiry != nil && [self.expiry timeIntervalSinceNow] < window;
+        return self.expiry != nil && [self.expiry timeIntervalSinceNow] < [self renewBefore: window];
     }
 }
 
@@ -91,6 +113,7 @@ static NSString * const kGleapGrantExpKey = @"gleapGrantExp";
             self.grant = nil;
             self.gleapId = nil;
             self.expiry = nil;
+            self.lifetime = 0;
             [defaults removeObjectForKey: kGleapGrantKey];
             [defaults removeObjectForKey: kGleapGrantIdKey];
             [defaults removeObjectForKey: kGleapGrantExpKey];
@@ -103,6 +126,7 @@ static NSString * const kGleapGrantExpKey = @"gleapGrantExp";
         self.grant = grant;
         self.gleapId = gleapId;
         self.expiry = exp != nil ? [NSDate dateWithTimeIntervalSince1970: [exp doubleValue]] : nil;
+        self.lifetime = [GleapGrant lifetimeOf: grant receivedAt: [NSDate date]];
         [defaults setObject: grant forKey: kGleapGrantKey];
         [defaults setObject: gleapId forKey: kGleapGrantIdKey];
         if (exp != nil) {

@@ -54,6 +54,13 @@ GLEAP_INTERNAL
 /// Serializes `data` and calls `function(<json>)` in the page, on the main queue.
 + (void)sendMessage:(NSDictionary *)data toFunction:(NSString *)function inWebView:(nullable WKWebView *)webView;
 
+/// `sendMessage:toFunction:inWebView:`, but only while the web view shows a page of `pageURL`'s
+/// origin: a page that navigated away from the Messenger never gets the session (grant, user).
++ (void)sendMessage:(NSDictionary *)data toFunction:(NSString *)function inWebView:(nullable WKWebView *)webView onlyOnPage:(nullable NSString *)pageURL;
+
+/// YES when `url` has the scheme, host and port of `pageURL` (http or https only).
++ (BOOL)isURL:(nullable NSURL *)url sameOriginAsPageURL:(nullable NSString *)pageURL;
+
 /// Presents `url` in an SFSafariViewController from `presenter`.
 + (void)presentURLInSafari:(nullable NSURL *)url from:(nullable UIViewController *)presenter;
 
