@@ -98,6 +98,20 @@ final class GleapGrantTests: GleapNetworkTestCase {
         ])
     }
 
+    // The session helper answers requests and decides on an identify on the main queue, and sets
+    // `identifyInFlight` before it sends one. Read on the main thread, between run-loop turns, these
+    // show what it decided without waiting for a request that may never come.
+    private var identifyInFlight: Bool { sessions.value(forKey: "identifyInFlight") as! Bool }
+    private var signedGrantRequestedFor: String? { sessions.value(forKey: "signedGrantRequestedFor") as? String }
+
+    /// Starts a session and waits until the session helper has processed the answer (its completion
+    /// runs after the open identify and the signed-grant check).
+    private func startSessionAndWaitForTheAnswer() {
+        let answered = expectation(description: "POST /sessions answered and processed")
+        sessions.startSession { _ in answered.fulfill() }
+        wait(for: [answered], timeout: 10)
+    }
+
     func testAReturningUserOnASignedProjectSendsTheUnchangedIdentifyOnce() throws {
         GleapStubURLProtocol.stub("POST", "/sessions", signedWithoutGrant(gleapId: "gid-user"))
         // The server keeps answering without a grant: still only one identify.
@@ -111,11 +125,17 @@ final class GleapGrantTests: GleapNetworkTestCase {
 
         let identify = try XCTUnwrap(waitForRequest("/sessions/identify"))
         XCTAssertEqual(identify.json?["userHash"] as? String, "legacy-hash")
+        // Its answer (no grant) marks the session as asked for this launch. Until that answer is
+        // processed, a second identify would rightly go out, so the test waits for the mark.
+        XCTAssertTrue(waitUntil { self.signedGrantRequestedFor == "gid-user" }, "the identify's answer was not processed")
+        XCTAssertFalse(identifyInFlight)
 
         Gleap.identifyContact("user-1", andData: nil, andUserHash: "legacy-hash")
-        sessions.startSession { _ in }
-        XCTAssertTrue(waitUntil { GleapStubURLProtocol.requests(path: "/sessions").count == 2 })
-        spin(0.5)
+        XCTAssertFalse(identifyInFlight, "the unchanged identify is skipped right away")
+        startSessionAndWaitForTheAnswer()
+
+        XCTAssertEqual(GleapStubURLProtocol.requests(path: "/sessions").count, 2)
+        XCTAssertFalse(identifyInFlight, "no identify after the second session answer")
         XCTAssertEqual(GleapStubURLProtocol.requests(path: "/sessions/identify").count, 1)
     }
 
@@ -125,7 +145,9 @@ final class GleapGrantTests: GleapNetworkTestCase {
 
         Gleap.identifyContact("user-1", andData: nil, andUserHash: "legacy-hash")
 
-        spin(0.5)
+        // With a session there, the identify is decided (and sent or skipped) inside the call.
+        XCTAssertFalse(identifyInFlight, "the unchanged identify is skipped")
+        XCTAssertNil(sessions.openIdentityAction, "and not left queued")
         XCTAssertTrue(GleapStubURLProtocol.requests(path: "/sessions/identify").isEmpty)
     }
 
