@@ -150,7 +150,7 @@ static NSUInteger const kGleapMaxPingBytes = 256 * 1024;
             self.webSocketEnabled = YES;
             // What the SDK can do for capture requests (the server only asks for what it lists).
             NSString *capabilities = [[[GleapCaptureManager sharedInstance] sdkCapabilities] componentsJoinedByString: @","];
-            NSString *urlToConnectTo = [NSString stringWithFormat: @"%@?gleapId=%@&gleapHash=%@&apiKey=%@&sdkVersion=%@%@", [Gleap sharedInstance].wsApiUrl, session.gleapId, session.gleapHash, [Gleap sharedInstance].token, SDK_VERSION, capabilities.length > 0 ? [@"&caps=" stringByAppendingString: capabilities] : @""];
+            NSString *urlToConnectTo = [NSString stringWithFormat: @"%@?gleapId=%@&gleapHash=%@&apiKey=%@&sdkVersion=%@%@", [Gleap sharedInstance].wsApiUrl, session.gleapId, session.gleapHash, [Gleap sharedInstance].projectId, SDK_VERSION, capabilities.length > 0 ? [@"&caps=" stringByAppendingString: capabilities] : @""];
             [[GleapWebSocketHelper sharedInstance] connectToURL: [NSURL URLWithString: urlToConnectTo]];
         }
         
@@ -210,8 +210,8 @@ static NSUInteger const kGleapMaxPingBytes = 256 * 1024;
     
     GleapSession *session = GleapSessionHelper.sharedInstance.currentSession;
     if (
-        [Gleap sharedInstance].token == NULL
-        || [[Gleap sharedInstance].token isEqualToString: @""]
+        [Gleap sharedInstance].projectId == NULL
+        || [[Gleap sharedInstance].projectId isEqualToString: @""]
         || [Gleap sharedInstance].apiUrl == NULL
         || [[Gleap sharedInstance].apiUrl isEqualToString: @""]
         || session == nil

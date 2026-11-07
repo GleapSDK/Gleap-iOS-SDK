@@ -269,7 +269,7 @@ GLEAP_INTERNAL
     NSMutableDictionary *sessionUpdateData = [[NSMutableDictionary alloc] initWithDictionary: @{
         @"sessionData": currentSession,
         @"apiUrl": Gleap.sharedInstance.apiUrl,
-        @"sdkKey": Gleap.sharedInstance.token,
+        @"sdkKey": Gleap.sharedInstance.projectId,
         // Lets the widget hand a verified contact's session over (adopt-session).
         @"capabilities": @{ @"adoptSession": @(YES) }
     }];

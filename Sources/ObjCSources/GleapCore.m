@@ -63,11 +63,23 @@
     return self;
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-implementations"
+// Deprecated alias of projectId.
+- (NSString *)token {
+    return self.projectId;
+}
+
+- (void)setToken:(NSString *)token {
+    self.projectId = token;
+}
+#pragma clang diagnostic pop
+
 /*
  Init helper.
  */
 - (void)initHelper {
-    self.token = @"";
+    self.projectId = @"";
     [self applyRegion: @"eu"];
     // Only an explicit setRegion / setRealtimeHost sends a realtime host to the
     // widget. By default the widget derives it from apiUrl, so a manually set
@@ -212,15 +224,22 @@
 }
 
 /*
- Autoconfigure with token
+ Deprecated alias of initializeWithProjectId: (the Project ID was called "SDK key" / token).
  */
 + (void)initializeWithToken: (NSString *)token {
+    [Gleap initializeWithProjectId: token];
+}
+
+/*
+ Autoconfigure with the Project ID
+ */
++ (void)initializeWithProjectId: (NSString *)projectId {
     if ([Gleap sharedInstance].initialized) {
         // Again with the same key: a reloaded JavaScript context (React Native reload or OTA update,
         // Capacitor WebView reload). The session and config stay; the new context's delegate is
         // told again that the config loaded and the SDK initialized, as it waits for that.
-        if (token != nil && [token isEqualToString: [Gleap sharedInstance].token]) {
-            NSLog(@"[GLEAP_SDK] Gleap has already been initialized with this API key.");
+        if (projectId != nil && [projectId isEqualToString: [Gleap sharedInstance].projectId]) {
+            NSLog(@"[GLEAP_SDK] Gleap has already been initialized with this Project ID.");
             [[GleapConfigHelper sharedInstance] repeatInitializeCallbacks];
             return;
         }
@@ -231,7 +250,7 @@
         [GleapCaptureManager removeLeftoverFiles];
     }
     [Gleap sharedInstance].initialized = YES;
-    [Gleap sharedInstance].token = token;
+    [Gleap sharedInstance].projectId = projectId;
     
     [[GleapConsoleLogHelper sharedInstance] start];
     [[GleapScreenshotListener sharedInstance] start];
@@ -556,14 +575,14 @@
 }
 
 /**
- Starts the bug reporting flow, when a SDK key has been assigned.
+ Starts the bug reporting flow, when a Project ID has been assigned.
  */
 - (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options {
     return [self startFeedbackFlow: feedbackFlow withOptions: options waitForContact: YES];
 }
 
 - (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options waitForContact:(BOOL)waitForContact {
-    if (Gleap.sharedInstance.token == nil || Gleap.sharedInstance.token.length == 0) {
+    if (Gleap.sharedInstance.projectId == nil || Gleap.sharedInstance.projectId.length == 0) {
         NSLog(@"[GLEAP_SDK] Please provide a valid Gleap project TOKEN!");
         return NO;
     }

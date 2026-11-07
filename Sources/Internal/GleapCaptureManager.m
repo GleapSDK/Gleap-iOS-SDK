@@ -1018,7 +1018,7 @@ GLEAP_INTERNAL
 
 - (BOOL)hasSession {
     GleapSession *session = GleapSessionHelper.sharedInstance.currentSession;
-    return session.gleapId.length > 0 && session.gleapHash.length > 0 && [Gleap sharedInstance].token.length > 0;
+    return session.gleapId.length > 0 && session.gleapHash.length > 0 && [Gleap sharedInstance].projectId.length > 0;
 }
 
 - (BOOL)backgroundLogsDisabledByProject {

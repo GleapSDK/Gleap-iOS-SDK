@@ -70,7 +70,7 @@ static NSTimeInterval const kGleapPingTotalTimeout = 30.0;
         case GleapRequestIdentityNone:
             break;
         case GleapRequestIdentityStoredIfComplete: {
-            [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
+            [request setValue: Gleap.sharedInstance.projectId forHTTPHeaderField: @"Api-Token"];
             NSString *gleapId = [[NSUserDefaults standardUserDefaults] stringForKey: @"gleapId"];
             NSString *gleapHash = [[NSUserDefaults standardUserDefaults] stringForKey: @"gleapHash"];
             if (gleapId != nil && gleapId.length > 0 && gleapHash != nil && gleapHash.length > 0) {
@@ -80,7 +80,7 @@ static NSTimeInterval const kGleapPingTotalTimeout = 30.0;
             break;
         }
         case GleapRequestIdentityStored:
-            [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
+            [request setValue: Gleap.sharedInstance.projectId forHTTPHeaderField: @"Api-Token"];
             [request setValue: [[NSUserDefaults standardUserDefaults] stringForKey: @"gleapId"] forHTTPHeaderField: @"Gleap-Id"];
             [request setValue: [[NSUserDefaults standardUserDefaults] stringForKey: @"gleapHash"] forHTTPHeaderField: @"Gleap-Hash"];
             break;

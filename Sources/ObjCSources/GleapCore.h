@@ -69,9 +69,20 @@ typedef void (^GleapUserJwtProvider)(void (^completion)(NSString * _Nullable tok
  * Auto-configures the Gleap SDK from the remote config.
  * @author Gleap
  *
- * @param token The SDK key of your project, which can be found in the Gleap dashboard.
+ * @param projectId The Project ID of your project (formerly called "SDK key" or "API key"; existing
+ * keys keep working unchanged). Find it in the Gleap dashboard on the SDK install page or under
+ * Settings → Project.
  */
-+ (void)initializeWithToken: (NSString *)token;
++ (void)initializeWithProjectId: (NSString *)projectId;
+
+/**
+ * Deprecated alias of `initializeWithProjectId:` (Swift: `initialize(withProjectId:)`); the value is
+ * the same, so it keeps working.
+ * @author Gleap
+ *
+ * @param token The Project ID of your project (formerly called "SDK key").
+ */
++ (void)initializeWithToken: (NSString *)token __attribute__((deprecated("Use initializeWithProjectId: (Swift: initialize(withProjectId:)) instead. The value is the same.")));
 
 /**
  * Shows the survey with ID.
@@ -371,8 +382,11 @@ typedef void (^GleapUserJwtProvider)(void (^completion)(NSString * _Nullable tok
  * server answers that the token expired (and retries once with the new token), and before it renews
  * the file access or replays the identify when the token expires within 5 minutes. One call at a time;
  * a call that does not answer within 10 seconds counts as failed, and after a failure Gleap waits
- * 30 seconds before it asks again. Pass nil to the completion when fetching failed. `clearIdentity`
- * keeps the provider. Pass nil to remove it.
+ * 30 seconds before it asks again. It is also asked once per app launch to sign the session again
+ * when the server reports Signed mode without a valid grant and no token was passed to `setUserJwt:`
+ * (the token is kept in memory only, so a relaunch has none); its token is then sent like one passed
+ * to `setUserJwt:`. Pass nil to the completion when fetching failed (nothing is sent). Can be set
+ * before or after `initializeWithProjectId:`. `clearIdentity` keeps the provider. Pass nil to remove it.
  * @author Gleap
  *
  * @param provider Fetches the token and calls the completion with it (or nil).
@@ -801,7 +815,10 @@ typedef void (^GleapUserJwtProvider)(void (^completion)(NSString * _Nullable tok
 + (void)setAutoActivationMethodsDisabled;
 - (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options;
 
-@property (nonatomic, retain) NSString* token;
+/// The Project ID the SDK was initialized with (formerly called "SDK key").
+@property (nonatomic, retain) NSString* projectId;
+/// Deprecated alias of `projectId`.
+@property (nonatomic, retain) NSString* token __attribute__((deprecated("Use projectId instead.")));
 @property (nonatomic, retain) NSString* apiUrl;
 @property (nonatomic, retain) NSString *wsApiUrl;
 @property (nonatomic, retain, nullable) NSString* realtimeHost;

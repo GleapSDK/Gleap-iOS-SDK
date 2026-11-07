@@ -95,7 +95,7 @@ class GleapNetworkTestCase: XCTestCase {
         Gleap.setRegion("eu")
         Gleap.setApiUrl(Self.apiUrl)
         Gleap.setWSApiUrl(Self.wsApiUrl)
-        gleap.token = Self.sdkKey
+        gleap.projectId = Self.sdkKey
 
         UserDefaults.standard.removeObject(forKey: "gleapId")
         UserDefaults.standard.removeObject(forKey: "gleapHash")
@@ -113,6 +113,7 @@ class GleapNetworkTestCase: XCTestCase {
         sessions.pendingProtectedFileId = nil
         sessions.setValue(nil, forKey: "identityMode")
         sessions.setValue(nil, forKey: "signedGrantRequestedFor")
+        sessions.setValue(false, forKey: "signedModeProviderAsked")
 
         let events = GleapEventLogHelper.sharedInstance()
         events.stop()
