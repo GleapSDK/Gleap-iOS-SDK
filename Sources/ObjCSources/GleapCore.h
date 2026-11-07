@@ -171,10 +171,10 @@ typedef void (^GleapUserJwtProvider)(void (^completion)(NSString * _Nullable tok
 
 /**
  * Opens the conversation of a protected file from an emailed file link.
- * With "Require authenticated file access", email replies link attachments to your customer
- * application URL with a `gleapFile` query parameter. Pass that URL (for example from a universal
- * link) here. The conversation opens once a signed identity (`setUserJwt:`) gave the session file
- * access; the link alone grants nothing.
+ * With "Protect new files" on (Settings → Security → Conversation files), email replies link
+ * attachments to your customer application URL with a `gleapFile` query parameter. Pass that URL
+ * (for example from a universal link) here. The conversation opens once a signed identity
+ * (`setUserJwt:`) gave the session file access; the link alone grants nothing.
  * @author Gleap
  *
  * @param url The link that opened the app.

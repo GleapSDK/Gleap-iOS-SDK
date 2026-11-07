@@ -91,7 +91,7 @@ Gleap.initialize(withProjectId: "YOUR_PROJECT_ID")
 [Gleap initializeWithProjectId: @"YOUR_PROJECT_ID"];
 ```
 
-Your Project ID is in the [Gleap dashboard](https://app.gleap.io) under **Settings → Project → General**. It used to be called "SDK key" or "API key": the value is the same, so existing keys keep working. `Gleap.initialize(withToken:)` still works too but is deprecated.
+Your Project ID is in the [Gleap dashboard](https://app.gleap.ai) under **Settings → Project → General**. It used to be called "SDK key" or "API key": the value is the same, so existing keys keep working. `Gleap.initialize(withToken:)` still works too but is deprecated.
 
 ## Data regions
 
@@ -225,7 +225,7 @@ Older integrations that pass a user hash to `identifyContact` keep working while
 
 ## Protected conversation files
 
-With "Require authenticated file access" (Project settings → User identity), conversation files can only be opened by agents and by the verified customer the conversation belongs to. The SDK supports it without extra setup, as long as the app identifies the customer with a signed identity on every app start (`Gleap.setUserJwt`; older integrations that pass a user hash work too).
+With "Protect new files" (Settings → Security → Conversation files, see [Authenticated conversation files](https://docs.gleap.ai/en/articles/710-authenticated-conversation-files)), conversation files can only be opened by agents and by the verified customer the conversation belongs to. The SDK supports it without extra setup, as long as the app identifies the customer with a signed identity on every app start (`Gleap.setUserJwt`; older integrations that pass a user hash work too).
 
 A signed identify gives the session a short-lived file access token (15 minutes). The SDK keeps it in memory only, hands it to the widget and renews it while the app is in use. `clearIdentity` revokes it. Guests and contacts identified without a signed identity see "Sign in to view" instead of the file.
 
