@@ -70,8 +70,7 @@ typedef void (^GleapUserJwtProvider)(void (^completion)(NSString * _Nullable tok
  * @author Gleap
  *
  * @param projectId The Project ID of your project (formerly called "SDK key" or "API key"; existing
- * keys keep working unchanged). Find it in the Gleap dashboard on the SDK install page or under
- * Settings → Project.
+ * keys keep working unchanged). Find it in the Gleap dashboard under Settings → Project → General.
  */
 + (void)initializeWithProjectId: (NSString *)projectId;
 
@@ -80,7 +79,7 @@ typedef void (^GleapUserJwtProvider)(void (^completion)(NSString * _Nullable tok
  * the same, so it keeps working.
  * @author Gleap
  *
- * @param token The Project ID of your project (formerly called "SDK key").
+ * @param token The Project ID of your project (formerly called "SDK key" or "API key").
  */
 + (void)initializeWithToken: (NSString *)token __attribute__((deprecated("Use initializeWithProjectId: (Swift: initialize(withProjectId:)) instead. The value is the same.")));
 
@@ -174,8 +173,8 @@ typedef void (^GleapUserJwtProvider)(void (^completion)(NSString * _Nullable tok
  * Opens the conversation of a protected file from an emailed file link.
  * With "Require authenticated file access", email replies link attachments to your customer
  * application URL with a `gleapFile` query parameter. Pass that URL (for example from a universal
- * link) here. The conversation opens once `identifyContact` with a valid user hash gave the
- * session file access; the link alone grants nothing.
+ * link) here. The conversation opens once a signed identity (`setUserJwt:`) gave the session file
+ * access; the link alone grants nothing.
  * @author Gleap
  *
  * @param url The link that opened the app.
@@ -340,13 +339,14 @@ typedef void (^GleapUserJwtProvider)(void (^completion)(NSString * _Nullable tok
  *
  * @param userId The user ID of the the user (can be an email as well)
  * @param data The updated user data.
- * @param userHash The calculated user hash to verify ownership.
+ * @param userHash The user hash of older integrations (they keep working). New integrations sign in
+ * with `setUserJwt:`.
  * @deprecated Use identifyContact instead.
  */
 + (void)identifyUserWith:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString *)userHash DEPRECATED_MSG_ATTRIBUTE("Use identifyContact instead.");
 
 /**
- * Identifies a guest as user.
+ * Identifies a guest as user, as an unsigned contact. To sign the user in, use `setUserJwt:`.
  * @author Gleap
  *
  * @param userId The user ID of the the user (can be an email as well)
@@ -355,22 +355,27 @@ typedef void (^GleapUserJwtProvider)(void (^completion)(NSString * _Nullable tok
 + (void)identifyContact:(NSString *)userId andData:(nullable GleapUserProperty *)data;
 
 /**
- * Identifies a guest as user (secure).
+ * Identifies a guest as user with a user hash. Older integrations that pass a user hash keep
+ * working; new integrations sign in with `setUserJwt:`. See Upgrade to identity tokens:
+ * https://docs.gleap.ai/en/articles/16752008-upgrade-to-identity-tokens
  * @author Gleap
  *
  * @param userId The user ID of the the user (can be an email as well)
  * @param data The updated user data.
- * @param userHash The calculated user hash to verify ownership.
+ * @param userHash The user hash created on your server (older integrations).
  */
 + (void)identifyContact:(NSString *)userId andData:(nullable GleapUserProperty *)data andUserHash:(NSString *)userHash;
 
 /**
- * Identifies the user with an identity token: an HS256 JWT your backend signs with an identity key.
+ * Signs the user in with an identity token: an HS256 JWT your backend signs with an identity key
+ * (Settings → Security → Customer identity → Identity keys).
  * The token is the whole identify: its `userId` (or `user_id`) claim names the user and every other
- * claim lands on the contact as signed data; no other contact field is sent. Call it after login and
- * on every app start. The token is kept in memory only and sent again whenever it changes.
+ * claim lands on the contact as signed data; no other contact field is sent and no separate identify
+ * call is needed. Call it after login and on every app start of a logged-in user; call
+ * `clearIdentity` on logout. The token is kept in memory only and sent again whenever it changes.
  * A token that is not a JWT (three base64url parts), has no user id or is longer than 4096 characters
  * is refused with a log line and nothing is sent.
+ * See https://docs.gleap.ai/en/articles/709-customer-identity
  * @author Gleap
  *
  * @param token The identity token (JWT) from your backend.
@@ -424,7 +429,8 @@ typedef void (^GleapUserJwtProvider)(void (^completion)(NSString * _Nullable tok
 + (void)updateContact:(nullable GleapUserProperty *)data;
 
 /**
- * Clears a user session, its identity token and auth tokens. The JWT provider stays set.
+ * Clears a user session, its identity token and auth tokens. Call it on logout. The JWT provider
+ * stays set.
  * @author Gleap
  */
 + (void)clearIdentity;
@@ -815,7 +821,7 @@ typedef void (^GleapUserJwtProvider)(void (^completion)(NSString * _Nullable tok
 + (void)setAutoActivationMethodsDisabled;
 - (Boolean)startFeedbackFlow:(NSString * _Nullable)feedbackFlow withOptions:(NSDictionary * _Nullable)options;
 
-/// The Project ID the SDK was initialized with (formerly called "SDK key").
+/// The Project ID the SDK was initialized with (formerly called "SDK key" or "API key").
 @property (nonatomic, retain) NSString* projectId;
 /// Deprecated alias of `projectId`.
 @property (nonatomic, retain) NSString* token __attribute__((deprecated("Use projectId instead.")));

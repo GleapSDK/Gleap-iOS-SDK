@@ -57,6 +57,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GleapDelegate {
         userProperty.companyName = "ACME inc.";
         userProperty.customData = ["key1": "Custom data"];
 
+        // Unsigned contact. To sign the user in, pass an identity token from your backend instead:
+        // Gleap.setUserJwt("TOKEN_FROM_YOUR_BACKEND")
         Gleap.identifyContact("user_1234", andData: userProperty)
         
         Gleap.setNetworkLogsBlacklist(["https://api.gleap.io", "..."])

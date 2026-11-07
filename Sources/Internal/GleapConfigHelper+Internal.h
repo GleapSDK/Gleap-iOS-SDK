@@ -11,7 +11,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface GleapConfigHelper ()
 
-/// For an initialize with the API key the SDK already runs with (a reloaded JavaScript context:
+/// For an initialize with the Project ID the SDK already runs with (a reloaded JavaScript context:
 /// React Native reload or OTA update, Capacitor WebView reload): once the config has loaded, tells
 /// the delegate set at that point configLoaded: (with the loaded config) and then initialized, on
 /// the main queue, without loading anything. Before the first load, the load that is still to come
