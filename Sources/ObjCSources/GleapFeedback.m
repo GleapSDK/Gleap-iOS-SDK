@@ -321,7 +321,7 @@ static NSTimeInterval const kGleapReportConsoleLogDeadline = 1.0;
  Sends a bugreport to our backend.
  */
 - (void)sendReportToServer: (void (^)(bool success, NSDictionary * data))completion {
-    if (Gleap.sharedInstance.token == NULL || [Gleap.sharedInstance.token isEqualToString: @""]) {
+    if (Gleap.sharedInstance.projectId == NULL || [Gleap.sharedInstance.projectId isEqualToString: @""]) {
         NSDictionary *errorInfo = @{ @"error": @"Token is null or empty" };
         return completion(false, errorInfo);
     }

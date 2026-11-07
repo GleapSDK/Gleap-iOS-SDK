@@ -66,7 +66,7 @@
 }
 
 - (void)loadConfig {
-    NSString *path = [NSString stringWithFormat: @"/config/%@?lang=%@", Gleap.sharedInstance.token, GleapTranslationHelper.sharedInstance.language];
+    NSString *path = [NSString stringWithFormat: @"/config/%@?lang=%@", Gleap.sharedInstance.projectId, GleapTranslationHelper.sharedInstance.language];
     NSMutableURLRequest *request = [GleapAPIClient requestWithMethod: @"GET" path: path identity: GleapRequestIdentityNone];
     // The shared API session answers on the main queue, so the config is applied and the app's
     // callbacks run there.
@@ -84,7 +84,7 @@
             }
         }
         
-        NSLog(@"[GLEAP_SDK] Gleap auto-configuration failed. Please check your API key and internet connection.");
+        NSLog(@"[GLEAP_SDK] Gleap auto-configuration failed. Please check your Project ID and internet connection.");
     }];
 }
 

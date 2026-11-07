@@ -66,6 +66,10 @@ static NSUInteger const kGleapIdentifyRetries = 2;
 // The session a signed identify was sent for while it had no grant (memory only): a returning user
 // on a project that switched to Signed gets one identify per app launch and session, never a loop.
 @property (nonatomic, copy, nullable) NSString *signedGrantRequestedFor;
+// The same answer with no token or hash at hand (setUserJwt's token lives in memory only, so a
+// relaunch has none) but a JWT provider set: the provider is asked once per app launch for a token
+// to identify with. Reset on logout.
+@property (nonatomic, assign) BOOL signedModeProviderAsked;
 // An identify whose retries all got no answer: sent again on return to the foreground (main queue).
 @property (nonatomic, strong, nullable) NSDictionary *unansweredIdentifyAction;
 @property (nonatomic, assign) NSUInteger unansweredIdentifyEpoch;
@@ -134,7 +138,7 @@ static NSUInteger const kGleapIdentifyRetries = 2;
     if (session != nil && session.gleapHash != nil) {
         [request setValue: session.gleapHash forHTTPHeaderField: @"Gleap-Hash"];
     }
-    [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
+    [request setValue: Gleap.sharedInstance.projectId forHTTPHeaderField: @"Api-Token"];
     // The grant of this session, when a signed identify issued one.
     [[GleapGrant sharedInstance] applyToRequest: request];
 }
@@ -220,6 +224,8 @@ static NSUInteger const kGleapIdentifyRetries = 2;
     
         [self updateLocalSessionWith: sessionData andCompletion: completion];
         [self refreshFileAccessIfNeeded];
+        // Signed mode without a grant and no token or hash to send: the JWT provider is asked for one.
+        [self identifyWithProviderForSignedModeIfNeeded];
     }];
 }
 
@@ -245,7 +251,7 @@ static NSUInteger const kGleapIdentifyRetries = 2;
 
     // The server answers with the handed-over session only when the hash signs that id.
     NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions" identity: GleapRequestIdentityNone];
-    [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
+    [request setValue: Gleap.sharedInstance.projectId forHTTPHeaderField: @"Api-Token"];
     [request setValue: gleapId forHTTPHeaderField: @"Gleap-Id"];
     [request setValue: gleapHash forHTTPHeaderField: @"Gleap-Hash"];
 
@@ -324,6 +330,10 @@ static NSUInteger const kGleapIdentifyRetries = 2;
 
 - (void)setUserJwtProvider:(nullable GleapUserJwtProvider)provider {
     self.userJwtGate.provider = provider;
+    // Set after the session answer arrived: a signed session can still be restored.
+    if (provider != nil) {
+        [self identifyWithProviderForSignedModeIfNeeded];
+    }
 }
 
 /*
@@ -1017,6 +1027,7 @@ static NSUInteger const kGleapIdentifyRetries = 2;
         [self.removedAuthTokens removeAllObjects];
         self.authTokensSentFor = nil;
         self.identityMode = nil;
+        self.signedModeProviderAsked = NO;
         self.sessionEpoch++;
         self.fileAccessRenewal++;
         self.grantRenewal++;
@@ -1080,6 +1091,51 @@ static NSUInteger const kGleapIdentifyRetries = 2;
             self.openIdentityAction = fresh;
         }
         [self processOpenIdentityAction];
+    }];
+}
+
+/*
+ Signed mode on the identified current session without a grant (signedGrantMissingFor:), no token or
+ hash at hand to send for one (a relaunch after setUserJwt: the token lives in memory only) and no
+ identify queued or on its way. Holds the lock.
+ */
+- (BOOL)signedModeWithoutHeldToken {
+    @synchronized (self) {
+        if (self.openIdentityAction != nil || self.identifyInFlight || ![self signedGrantMissingFor: self.currentSession]) {
+            return NO;
+        }
+        id userHash = [self.lastIdentifyAction objectForKey: @"userHash"];
+        return !([userHash isKindOfClass: [NSString class]] && [userHash length] > 0);
+    }
+}
+
+/*
+ Restores a signed session from the JWT provider alone: when the session answer says the project runs
+ Signed, the identified session has no grant and no token or hash is at hand, the provider is asked
+ once per app launch and its token is sent through setUserJwt:, like a token from the app (that
+ identify is the one signed identify of the session, see signedGrantRequestedFor). The provider's rules
+ apply (one call at a time, 10 s timeout, 30 s pause after a failure); a nil token sends nothing. A
+ logout, an identify of the app or a grant arriving meanwhile drops the token.
+ */
+- (void)identifyWithProviderForSignedModeIfNeeded {
+    NSUInteger epoch;
+    @synchronized (self) {
+        if (self.signedModeProviderAsked || self.userJwtGate.provider == nil || ![self signedModeWithoutHeldToken]) {
+            return;
+        }
+        self.signedModeProviderAsked = YES;
+        epoch = self.sessionEpoch;
+    }
+    [self.userJwtGate requestToken:^(NSString * _Nullable token) {
+        if (token == nil) {
+            return;
+        }
+        @synchronized (self) {
+            if (epoch != self.sessionEpoch || ![self signedModeWithoutHeldToken]) {
+                return;
+            }
+        }
+        [self setUserJwt: token];
     }];
 }
 
