@@ -1,3 +1,6 @@
+## 19.5.1
+Documentation only: README, package description and doc comments name the Project ID (Settings → Project → General) and sign users in with `setUserJwt`. No code changes.
+
 ## 19.5.0
 Project ID: the key the SDK is initialized with is now called the Project ID everywhere (SDK docs, README, dashboard). The value is the same, so every existing key keeps working and nothing has to change. New: `Gleap.initialize(withProjectId:)` (Objective-C `initializeWithProjectId:`) and the `projectId` property. `initialize(withToken:)` / `initializeWithToken:` and the `token` property stay as deprecated aliases (a compiler deprecation warning, no runtime log). Log lines say "Project ID" instead of "API key".
 
