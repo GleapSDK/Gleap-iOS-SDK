@@ -257,6 +257,22 @@
     [GleapSessionHelper.sharedInstance identifySessionWith: userId andData: data andUserHash: userHash];
 }
 
++ (void)setUserJwt:(NSString *)token {
+    [GleapSessionHelper.sharedInstance setUserJwt: token];
+}
+
++ (void)setUserJwtProvider:(nullable GleapUserJwtProvider)provider {
+    [GleapSessionHelper.sharedInstance setUserJwtProvider: provider];
+}
+
++ (void)setAuthTokens:(NSDictionary<NSString *, id> *)tokens {
+    [GleapSessionHelper.sharedInstance setAuthTokens: tokens];
+}
+
++ (void)setSessionDuration:(NSInteger)milliseconds {
+    GleapSessionHelper.sharedInstance.sessionDuration = milliseconds > 0 ? @(milliseconds) : nil;
+}
+
 + (void)updateContact:(nullable GleapUserProperty *)data {
     [GleapSessionHelper.sharedInstance updateContact: data];
 }

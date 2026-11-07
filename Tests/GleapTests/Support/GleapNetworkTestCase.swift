@@ -99,6 +99,10 @@ class GleapNetworkTestCase: XCTestCase {
 
         UserDefaults.standard.removeObject(forKey: "gleapId")
         UserDefaults.standard.removeObject(forKey: "gleapHash")
+        // The grant store is internal to the SDK.
+        if let grants = (NSClassFromString("GleapGrant") as AnyObject?)?.perform(NSSelectorFromString("sharedInstance"))?.takeUnretainedValue() {
+            _ = grants.perform(NSSelectorFromString("clear"))
+        }
         let sessions = GleapSessionHelper.sharedInstance()
         sessions.currentSession = nil
         sessions.openIdentityAction = nil
@@ -107,6 +111,8 @@ class GleapNetworkTestCase: XCTestCase {
         sessions.lastRegisterGleapHash = nil
         sessions.lastIdentifyAction = nil
         sessions.pendingProtectedFileId = nil
+        sessions.setValue(nil, forKey: "identityMode")
+        sessions.setValue(nil, forKey: "signedGrantRequestedFor")
 
         let events = GleapEventLogHelper.sharedInstance()
         events.stop()

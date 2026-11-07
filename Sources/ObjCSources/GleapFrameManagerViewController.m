@@ -23,6 +23,7 @@
 #import "GleapPreFillHelper.h"
 #import "GleapAgentToolHelper.h"
 #import "GleapCaptureManager.h"
+#import "GleapGrant.h"
 #import <objc/runtime.h>
 
 // How long we may take to answer the widget's `collect-ticket-data` request.
@@ -273,6 +274,10 @@ GLEAP_INTERNAL
         @"capabilities": @{ @"adoptSession": @(YES) }
     }];
     
+    // The grant of a signed identify: the Messenger sends it as Gleap-Grant on its own requests.
+    NSString *grant = [[GleapGrant sharedInstance] grantForGleapId: GleapSessionHelper.sharedInstance.currentSession.gleapId];
+    [sessionUpdateData setObject: GleapObjectOrNull(grant) forKey: @"grant"];
+    
     // Pass the realtime host (region) to the widget.
     NSString *realtimeHost = Gleap.sharedInstance.realtimeHost;
     if (realtimeHost != nil && realtimeHost.length > 0) {
@@ -343,7 +348,8 @@ GLEAP_INTERNAL
 }
 
 - (void)sendMessageWithData:(NSDictionary *)data {
-    [GleapWebViewSupport sendMessage: data toFunction: @"sendMessage" inWebView: self.webView];
+    // Only the Messenger page gets messages (the session, the grant), as on Android.
+    [GleapWebViewSupport sendMessage: data toFunction: @"sendMessage" inWebView: self.webView onlyOnPage: Gleap.sharedInstance.frameUrl];
 }
 
 - (void)stopLoading {
@@ -849,6 +855,17 @@ GLEAP_INTERNAL
 - (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
     if (navigationAction.navigationType == WKNavigationTypeLinkActivated) {
         [GleapWebViewSupport openTappedLink: navigationAction.request.URL from: self];
+        return decisionHandler(WKNavigationActionPolicyCancel);
+    }
+    
+    // The Messenger web view never leaves the Messenger (as on Android): any other main frame
+    // navigation (a script redirect, a form) opens outside, http(s) in Safari, the rest nowhere.
+    NSURL *url = navigationAction.request.URL;
+    if (navigationAction.targetFrame.isMainFrame && ![GleapWebViewSupport isURL: url sameOriginAsPageURL: Gleap.sharedInstance.frameUrl]) {
+        NSString *scheme = [url.scheme lowercaseString];
+        if ([scheme isEqualToString: @"https"] || [scheme isEqualToString: @"http"] || [scheme isEqualToString: @"mailto"]) {
+            [GleapWebViewSupport openTappedLink: url from: self];
+        }
         return decisionHandler(WKNavigationActionPolicyCancel);
     }
     

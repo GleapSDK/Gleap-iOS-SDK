@@ -16,6 +16,8 @@
 #import "GleapTranslationHelper.h"
 #import "GleapMetaDataHelper.h"
 #import "GleapWebViewSupport.h"
+#import "GleapUserJwt.h"
+#import "GleapGrant.h"
 
 // The file access token is renewed this long before it expires (it lives 15 minutes).
 static NSTimeInterval const kGleapFileAccessRenewBefore = 5 * 60;
@@ -23,6 +25,15 @@ static NSTimeInterval const kGleapFileAccessRenewBefore = 5 * 60;
 static NSTimeInterval const kGleapFileAccessForegroundInterval = 60;
 // A survey waits at most this long for an identify or contact update on its way.
 static NSTimeInterval const kGleapContactSettleTimeout = 5;
+// An identity token that expires within this window is renewed through the JWT provider before a replay.
+static NSTimeInterval const kGleapUserJwtRefreshWindow = 5 * 60;
+// The grant is renewed (the app's last signed identify replayed) this long before it expires.
+static NSTimeInterval const kGleapGrantRenewBefore = 5 * 60;
+// A grant renewal that did not bring a new grant is tried again after this long while the app is active.
+static NSTimeInterval const kGleapGrantRenewRetry = 60;
+// An identify that got no answer (offline, a server failure) is sent again after 1 and 2 seconds,
+// then once more when the app returns to the foreground.
+static NSUInteger const kGleapIdentifyRetries = 2;
 
 @interface GleapSessionHelper ()
 @property (atomic, assign) BOOL identifyInFlight;
@@ -34,6 +45,30 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
 // Identify and contact update requests on their way, and what waits for their answers (main queue).
 @property (nonatomic, assign) NSUInteger contactRequestsInFlight;
 @property (nonatomic, strong, nullable) NSMutableArray<dispatch_block_t> *waitingForContact;
+// Gleap.setUserJwtProvider: one call at a time, a pause after a failure.
+@property (nonatomic, strong) GleapUserJwtProviderGate *userJwtGate;
+// The identity token the server last accepted, and for which session (memory only): a new token is
+// sent even when nothing else changed.
+@property (nonatomic, copy, nullable) NSString *sentUserJwt; // identityFingerprintOf: the last token sent
+@property (nonatomic, copy, nullable) NSString *sentUserJwtGleapId;
+// Gleap.setAuthTokens (memory only): the tokens, names removed but not yet sent, and the session
+// that has them all (nil while a change waits).
+@property (nonatomic, strong) NSMutableDictionary<NSString *, NSString *> *authTokens;
+@property (nonatomic, strong) NSMutableSet<NSString *> *removedAuthTokens;
+@property (nonatomic, copy, nullable) NSString *authTokensSentFor;
+// Bumped whenever a grant is stored or dropped: only the latest scheduled renewal runs.
+@property (nonatomic, assign) NSUInteger grantRenewal;
+// The last grant renewal started: at most one a minute (an expired token without a provider).
+@property (nonatomic, retain, nullable) NSDate *lastGrantRenewal;
+// `identity.mode` of the last session answer that carried `identity` ('signed' or nil): Classic
+// projects send no `identity`.
+@property (nonatomic, copy, nullable) NSString *identityMode;
+// The session a signed identify was sent for while it had no grant (memory only): a returning user
+// on a project that switched to Signed gets one identify per app launch and session, never a loop.
+@property (nonatomic, copy, nullable) NSString *signedGrantRequestedFor;
+// An identify whose retries all got no answer: sent again on return to the foreground (main queue).
+@property (nonatomic, strong, nullable) NSDictionary *unansweredIdentifyAction;
+@property (nonatomic, assign) NSUInteger unansweredIdentifyEpoch;
 @end
 
 @implementation GleapSessionHelper
@@ -100,6 +135,8 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
         [request setValue: session.gleapHash forHTTPHeaderField: @"Gleap-Hash"];
     }
     [request setValue: Gleap.sharedInstance.token forHTTPHeaderField: @"Api-Token"];
+    // The grant of this session, when a signed identify issued one.
+    [[GleapGrant sharedInstance] applyToRequest: request];
 }
 
 /*
@@ -139,6 +176,9 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
 - (id)init {
     self = [super init];
     if (self) {
+        _userJwtGate = [[GleapUserJwtProviderGate alloc] init];
+        _authTokens = [[NSMutableDictionary alloc] init];
+        _removedAuthTokens = [[NSMutableSet alloc] init];
         // Timers do not run while the app is suspended; renew an expired file access on return.
         [[NSNotificationCenter defaultCenter] addObserver: self
                                                  selector: @selector(applicationDidBecomeActive)
@@ -260,6 +300,218 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
     [self processOpenUpdateAction];
 }
 
+#pragma mark - Identity token
+
+- (void)setUserJwt:(NSString *)token {
+    NSString *userId = [GleapUserJwt userIdOf: token];
+    if (userId == nil) {
+        NSLog(@"[GLEAP_SDK] setUserJwt expects a JWT (three base64url parts, at most 4096 characters) whose payload has a userId (or user_id). Nothing was sent.");
+        return;
+    }
+    @synchronized (self) {
+        // The token is the whole identify: no contact fields are sent next to it.
+        self.openIdentityAction = @{
+            @"userId": userId,
+            @"userHash": token,
+            @"data": [[GleapUserProperty alloc] init],
+            @"jwtOnly": @(YES),
+        };
+        self.lastIdentifyAction = self.openIdentityAction;
+    }
+    [self processOpenIdentityAction];
+    [self processOpenPushAction];
+}
+
+- (void)setUserJwtProvider:(nullable GleapUserJwtProvider)provider {
+    self.userJwtGate.provider = provider;
+}
+
+/*
+ Runs `send` with the identify action, or with a copy carrying a fresh token when the action's
+ identity token expires within 5 minutes and a JWT provider is set. Synchronous otherwise. A logout
+ or another identify while the provider runs wins.
+ */
+- (void)withFreshUserJwt:(NSDictionary *)identify send:(void (^)(NSDictionary *identify))send {
+    id userHash = [identify objectForKey: @"userHash"];
+    if (self.userJwtGate.provider == nil || ![GleapUserJwt token: userHash expiresWithin: kGleapUserJwtRefreshWindow of: [NSDate date]]) {
+        send(identify);
+        return;
+    }
+    NSUInteger epoch;
+    @synchronized (self) {
+        epoch = self.sessionEpoch;
+    }
+    [self.userJwtGate requestToken:^(NSString * _Nullable token) {
+        NSDictionary *latest;
+        @synchronized (self) {
+            if (epoch != self.sessionEpoch || ![[self.lastIdentifyAction objectForKey: @"userHash"] isEqual: userHash]) {
+                return;
+            }
+            latest = self.lastIdentifyAction;
+        }
+        if (token == nil) {
+            send(identify);
+            return;
+        }
+        NSDictionary *fresh = [self identify: latest withUserJwt: token];
+        @synchronized (self) {
+            self.lastIdentifyAction = fresh;
+        }
+        NSMutableDictionary *action = [fresh mutableCopy];
+        if ([identify objectForKey: @"renewFileAccess"] != nil) {
+            [action setObject: [identify objectForKey: @"renewFileAccess"] forKey: @"renewFileAccess"];
+        }
+        send(action);
+    }];
+}
+
+// The identify action with `token` as user hash and the token's user id.
+- (NSDictionary *)identify:(NSDictionary *)identify withUserJwt:(NSString *)token {
+    NSMutableDictionary *action = [identify mutableCopy];
+    [action setObject: token forKey: @"userHash"];
+    [action setObject: [GleapUserJwt userIdOf: token] ?: [identify objectForKey: @"userId"] forKey: @"userId"];
+    [action removeObjectForKey: @"renewFileAccess"];
+    [action removeObjectForKey: @"jwtRetried"];
+    return action;
+}
+
+/*
+ An identify refused with token_expired or token_invalid keeps the identity and the session
+ (contract §3). An expired token is renewed through the provider and the identify sent once more.
+ */
+- (void)handleUserJwtRefusal:(NSString *)refusal forIdentify:(NSDictionary *)identityAction epoch:(NSUInteger)epoch {
+    id userHash = [identityAction objectForKey: @"userHash"];
+    BOOL mayRetry = [refusal isEqualToString: @"token_expired"] && self.userJwtGate.provider != nil && ![[identityAction objectForKey: @"jwtRetried"] boolValue];
+    if (!mayRetry) {
+        if ([refusal isEqualToString: @"token_expired"]) {
+            NSLog(@"[GLEAP_SDK] The identity token has expired. Pass a fresh one to Gleap.setUserJwt, or set Gleap.setUserJwtProvider.");
+        } else {
+            NSLog(@"[GLEAP_SDK] The identity token was refused (token_invalid): check the signing key and the userId claim.");
+        }
+        return;
+    }
+    [self.userJwtGate requestToken:^(NSString * _Nullable token) {
+        NSDictionary *retry;
+        @synchronized (self) {
+            if (token == nil || epoch != self.sessionEpoch || ![[self.lastIdentifyAction objectForKey: @"userHash"] isEqual: userHash]) {
+                return;
+            }
+            NSDictionary *fresh = [self identify: self.lastIdentifyAction withUserJwt: token];
+            self.lastIdentifyAction = fresh;
+            NSMutableDictionary *action = [fresh mutableCopy];
+            [action setObject: @(YES) forKey: @"jwtRetried"];
+            if ([identityAction objectForKey: @"renewFileAccess"] != nil) {
+                [action setObject: [identityAction objectForKey: @"renewFileAccess"] forKey: @"renewFileAccess"];
+            }
+            // A newer identify waiting to go out wins.
+            if (self.openIdentityAction != nil) {
+                return;
+            }
+            self.openIdentityAction = action;
+            retry = action;
+        }
+        if (retry != nil) {
+            [self processOpenIdentityAction];
+        }
+    }];
+}
+
+#pragma mark - Auth tokens
+
+- (void)setAuthTokens:(NSDictionary<NSString *, id> *)tokens {
+    if (![tokens isKindOfClass: [NSDictionary class]]) {
+        NSLog(@"[GLEAP_SDK] setAuthTokens expects a dictionary of { name: token }.");
+        return;
+    }
+    NSRegularExpression *validName = [NSRegularExpression regularExpressionWithPattern: @"^[a-zA-Z][a-zA-Z0-9_-]{0,39}$" options: 0 error: nil];
+    BOOL changed = NO;
+    @synchronized (self) {
+        for (id name in tokens) {
+            id value = [tokens objectForKey: name];
+            if (![name isKindOfClass: [NSString class]] || [validName numberOfMatchesInString: name options: 0 range: NSMakeRange(0, [name length])] == 0) {
+                NSLog(@"[GLEAP_SDK] Auth token name \"%@\" skipped: use a letter followed by up to 39 letters, digits, _ or -.", name);
+                continue;
+            }
+            if (value == nil || value == [NSNull null]) {
+                [self.authTokens removeObjectForKey: name];
+                [self.removedAuthTokens addObject: name];
+            } else if ([value isKindOfClass: [NSString class]]) {
+                [self.authTokens setObject: value forKey: name];
+                [self.removedAuthTokens removeObject: name];
+            } else {
+                NSLog(@"[GLEAP_SDK] Auth token \"%@\" skipped: the value must be a string, or NSNull to remove it.", name);
+                continue;
+            }
+            changed = YES;
+        }
+        if (changed) {
+            self.authTokensSentFor = nil;
+        }
+    }
+    if (changed) {
+        [self sendAuthTokensIfNeeded];
+    }
+}
+
+/*
+ POST /sessions/auth-tokens with every token and the names removed since the last delivery, once
+ the session is there and no identify is on its way; after a signed identify the next session gets
+ them again.
+ */
+- (void)sendAuthTokensIfNeeded {
+    NSString *gleapId;
+    NSMutableDictionary *body;
+    NSSet *removed;
+    @synchronized (self) {
+        gleapId = self.currentSession.gleapId;
+        if (gleapId.length == 0 || self.openIdentityAction != nil || self.identifyInFlight) {
+            return;
+        }
+        if (self.authTokens.count == 0 && self.removedAuthTokens.count == 0) {
+            return;
+        }
+        if ([self.authTokensSentFor isEqualToString: gleapId]) {
+            return;
+        }
+        body = [self.authTokens mutableCopy];
+        removed = [self.removedAuthTokens copy];
+        for (NSString *name in removed) {
+            [body setObject: [NSNull null] forKey: name];
+        }
+    }
+    NSData *jsonBodyData = [NSJSONSerialization dataWithJSONObject: @{ @"tokens": body } options: kNilOptions error: nil];
+    if (jsonBodyData == nil) {
+        return;
+    }
+    NSMutableURLRequest *request = [GleapAPIClient JSONRequestWithMethod: @"POST" path: @"/sessions/auth-tokens" identity: GleapRequestIdentityStored];
+    [request setHTTPBody: jsonBodyData];
+    [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+        if (error != nil) {
+            return;
+        }
+        NSInteger status = [GleapAPIClient statusCodeOfResponse: response];
+        if ([GleapAPIClient isSuccessResponse: response]) {
+            @synchronized (self) {
+                if ([self.currentSession.gleapId isEqualToString: gleapId]) {
+                    [self.removedAuthTokens minusSet: removed];
+                    // A change made while this request was out is sent next.
+                    BOOL unchanged = YES;
+                    for (NSString *name in self.authTokens) {
+                        if (![[body objectForKey: name] isEqual: [self.authTokens objectForKey: name]]) {
+                            unchanged = NO;
+                        }
+                    }
+                    if (unchanged && self.removedAuthTokens.count == 0) {
+                        self.authTokensSentFor = gleapId;
+                    }
+                }
+            }
+        } else if (status == 401) {
+            NSLog(@"[GLEAP_SDK] Auth tokens need a signed identity: call Gleap.setUserJwt first. They are kept and sent after the next signed identify.");
+        }
+    }];
+}
+
 + (void)handlePushNotification:(NSDictionary *)notificationData {
     GleapSessionHelper *helper = [GleapSessionHelper sharedInstance];
     @synchronized (helper) {
@@ -373,14 +625,43 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
         [sessionDataToCheckForUpdate setValue: data.customData forKey: @"customData"];
     }
     
-    bool needsUpdate = [self sessionUpgradeWithDataNeeded: sessionDataToCheckForUpdate];
-    // Only a verified identify issues the file access token, so it is sent even when nothing changed.
     GleapSession *session = self.currentSession;
+    bool needsUpdate;
+    if ([[identityAction objectForKey: @"jwtOnly"] boolValue]) {
+        // setUserJwt sends no contact fields: only another user or language is a change.
+        needsUpdate = [self sessionDataItemNeedsUpgrade: session.userId compareTo: userId] ||
+            [self sessionDataItemNeedsUpgrade: session.lang compareTo: [sessionDataToCheckForUpdate objectForKey: @"lang"]];
+    } else {
+        needsUpdate = [self sessionUpgradeWithDataNeeded: sessionDataToCheckForUpdate];
+    }
+    // Only a verified identify issues the file access token, so it is sent even when nothing changed.
     BOOL needsFileAccess = [userHash isKindOfClass: [NSString class]] && [userHash length] > 0 && session.authenticatedFilesRequired &&
         ([[identityAction objectForKey: @"renewFileAccess"] boolValue] || ![session hasFileAccess]);
-    if (!needsUpdate && !needsFileAccess) {
+    // A grant about to expire is renewed by sending the verified identify again.
+    BOOL needsGrant = [userHash isKindOfClass: [NSString class]] && [userHash length] > 0 && [[identityAction objectForKey: @"renewGrant"] boolValue] &&
+        [[GleapGrant sharedInstance] needsRenewalForGleapId: session.gleapId within: kGleapGrantRenewBefore];
+    // A new identity token is sent even when the contact data is the same.
+    BOOL isUserJwt = [GleapUserJwt isUserJwt: userHash];
+    BOOL needsUserJwt;
+    BOOL hasHash = [userHash isKindOfClass: [NSString class]] && [userHash length] > 0;
+    BOOL needsSignedGrant;
+    @synchronized (self) {
+        // Compared by what the token says, so a token re-minted per launch or login for the same
+        // user and data is not sent again.
+        needsUserJwt = isUserJwt && !([self.sentUserJwt isEqualToString: [GleapUserJwt identityFingerprintOf: userHash]] && [self.sentUserJwtGleapId isEqualToString: session.gleapId]);
+        // The project switched to Signed and this identified session has no grant yet: the held
+        // hash or token is sent once, even unchanged, so a returning user gets one.
+        needsSignedGrant = hasHash && [self signedGrantMissingFor: session];
+    }
+    if (!needsUpdate && !needsFileAccess && !needsUserJwt && !needsGrant && !needsSignedGrant) {
+        [self sendAuthTokensIfNeeded];
         return;
     }
+    // Sent only to get the grant: a refusal keeps the session it was sent for.
+    BOOL signedGrantOnly = needsSignedGrant && !needsUpdate && !needsFileAccess && !needsUserJwt && !needsGrant;
+    // Marked once the server answers (success or a refusal), never before: an identify that got no
+    // answer (offline, a server failure) leaves the session unmarked, so it is asked for again.
+    NSString *signedGrantGleapId = needsSignedGrant ? session.gleapId : nil;
     
     // If update is needed, also append all the custom data fields.
     @try {
@@ -395,6 +676,11 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
         // Add platform and deviceType
         [sessionRequestData setValue: @"iOS" forKey: @"platform"];
         [sessionRequestData setValue: [GleapSessionHelper getDeviceType] forKey: @"deviceType"];
+        // Gleap.setSessionDuration: caps the grant's lifetime (milliseconds).
+        NSNumber *sessionDuration = self.sessionDuration;
+        if (sessionDuration != nil) {
+            [sessionRequestData setValue: sessionDuration forKey: @"sessionDuration"];
+        }
     } @catch (id exp) {}
     
     NSError *error;
@@ -422,17 +708,37 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
                 return;
             }
         }
-        if (error != nil) {
+        NSInteger status = [GleapAPIClient statusCodeOfResponse: response];
+        if (error != nil || status >= 500 || status == 408 || status == 429) {
+            // No answer: the identify stays pending and is sent again.
+            [self retryUnansweredIdentify: identityAction epoch: epoch];
             return;
         }
-        
         NSDictionary *sessionData = [GleapSessionHelper sessionDataInResponse: response data: data];
+        @synchronized (self) {
+            // Answered without a grant for that session (a refusal, or the server issued none): no
+            // second request this launch. An answer with a grant leaves it unmarked, so a grant the
+            // server later rejects (a session answer without a grant) is asked for once more.
+            if (signedGrantGleapId != nil && ![GleapSessionHelper answer: sessionData hasGrantFor: signedGrantGleapId]) {
+                self.signedGrantRequestedFor = signedGrantGleapId;
+            }
+            if (self.unansweredIdentifyAction != nil && self.unansweredIdentifyEpoch == epoch) {
+                self.unansweredIdentifyAction = nil;
+            }
+        }
+        
         if (sessionData != nil) {
             // Send unregister of previous group.
             if (![[sessionData objectForKey: @"gleapHash"] isEqual: self.currentSession.gleapHash]) {
                 [self sendPushMessageUnregister];
             }
             
+            if (isUserJwt) {
+                @synchronized (self) {
+                    self.sentUserJwt = [GleapUserJwt identityFingerprintOf: userHash];
+                    self.sentUserJwtGleapId = [sessionData objectForKey: @"gleapId"];
+                }
+            }
             [self updateLocalSessionWith: sessionData andCompletion:^(bool success) {}];
             
             // Restart logger, unless this identify only renewed the file access.
@@ -441,11 +747,32 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
                 [[GleapEventLogHelper sharedInstance] stop];
                 [[GleapEventLogHelper sharedInstance] start];
             }
+        } else if ([GleapUserJwt isIdentityMismatchForStatus: [GleapAPIClient statusCodeOfResponse: response] body: data]) {
+            // Another user's session (spec §1.3): drop the local session and identify once more as a
+            // fresh visitor; the server merges that visitor into the token's contact.
+            [self restartForIdentify: identityAction];
+        } else if ([GleapUserJwt refusalCodeForStatus: [GleapAPIClient statusCodeOfResponse: response] body: data] != nil) {
+            // A refused identity token keeps the identity and the session (contract §3).
+            NSString *refusedToken = [userHash isKindOfClass: [NSString class]] ? userHash : nil;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self.userJwtGate rememberRefusedToken: refusedToken];
+            });
+            [self handleUserJwtRefusal: [GleapUserJwt refusalCodeForStatus: [GleapAPIClient statusCodeOfResponse: response] body: data]
+                           forIdentify: identityAction
+                                 epoch: epoch];
         } else if ([GleapSessionHelper isErrorAnswerInResponse: response data: data]) {
+            if ([GleapUserJwt isSignatureRequiredForStatus: [GleapAPIClient statusCodeOfResponse: response] body: data]) {
+                NSLog(@"[GLEAP_SDK] Gleap: this project enforces identity verification and the identify had no valid signature (signature_required). Pass a token from your backend to setUserJwt.");
+            }
+            if (signedGrantOnly) {
+                // Only asked for the grant of a session the server already identified: it stays.
+                NSLog(@"[GLEAP_SDK] The signed identify for this session was refused; the session stays unsigned. Pass a token from your backend to setUserJwt.");
+                return;
+            }
             // The server refused this identity (for example a wrong user hash): start over as a guest.
             [self clearSession];
         }
-        // Anything else (overloaded, a server failure, an answer without a session) keeps the identity.
+        // Anything else (an answer without a session) keeps the identity.
     };
     self.identifyInFlight = YES;
     [GleapAPIClient sendRequest: request completion:^(NSData * _Nullable data,
@@ -455,6 +782,10 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
         handleAnswer(data, response, error);
         if (needsUpdate) {
             [self contactRequestEnded];
+        }
+        // Auth tokens need the signed session: sent after a verified identify.
+        if ([userHash isKindOfClass: [NSString class]] && [userHash length] > 0 && [GleapAPIClient isSuccessResponse: response]) {
+            [self sendAuthTokensIfNeeded];
         }
     }];
 }
@@ -622,12 +953,28 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
     
     [self applyFileAccessFrom: data to: gleapSession previous: self.currentSession];
     
+    // The grant of a signed identify; a grant for another session never rides along.
+    GleapGrant *grants = [GleapGrant sharedInstance];
+    [grants applySessionAnswer: data];
+    id identity = [data objectForKey: @"identity"];
+    if ([identity isKindOfClass: [NSDictionary class]]) {
+        id mode = [identity objectForKey: @"mode"];
+        @synchronized (self) {
+            self.identityMode = [mode isKindOfClass: [NSString class]] ? mode : nil;
+        }
+    }
+    if ([grants expiresAt] != nil && [grants grantForGleapId: gleapSession.gleapId] == nil) {
+        [grants clear];
+    }
+    
     // Update local session.
     self.currentSession = gleapSession;
     [self scheduleFileAccessRenewal];
+    [self scheduleGrantRenewal];
     
     // Process any open identity actions.
     [self processOpenIdentityAction];
+    [self requestSignedGrantIfNeeded];
     [self processOpenPushAction];
     [self processOpenUpdateAction];
     
@@ -663,11 +1010,20 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
         self.openIdentityAction = nil;
         self.lastIdentifyAction = nil;
         self.pendingProtectedFileId = nil;
+        // The identity token and the auth tokens go with the user; the JWT provider stays.
+        self.sentUserJwt = nil;
+        self.sentUserJwtGleapId = nil;
+        [self.authTokens removeAllObjects];
+        [self.removedAuthTokens removeAllObjects];
+        self.authTokensSentFor = nil;
+        self.identityMode = nil;
         self.sessionEpoch++;
         self.fileAccessRenewal++;
+        self.grantRenewal++;
     }
     [[NSUserDefaults standardUserDefaults] removeObjectForKey: @"gleapId"];
     [[NSUserDefaults standardUserDefaults] removeObjectForKey: @"gleapHash"];
+    [[GleapGrant sharedInstance] clear];
     
     // Update widget session
     [[GleapWidgetManager sharedInstance] sendSessionUpdate];
@@ -675,6 +1031,284 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
     
     // Restart a session.
     [self startSessionWith:^(bool success) {}];
+}
+
+#pragma mark - Grant
+
+/*
+ YES when the project runs Signed (`identity.mode`), `session` is identified (has a userId) and has
+ no grant, and no signed identify for it was answered without a grant in this app launch. A session
+ answer without a grant (the server rejected the held one: secret rotation, region move, revoked
+ key) has already dropped it in applySessionAnswer, so this asks for a new one. Holds the lock.
+ */
+- (BOOL)signedGrantMissingFor:(nullable GleapSession *)session {
+    @synchronized (self) {
+        if (session.gleapId.length == 0 || session.userId.length == 0 || ![self.identityMode isEqualToString: @"signed"]) {
+            return NO;
+        }
+        if ([self.signedGrantRequestedFor isEqualToString: session.gleapId]) {
+            return NO;
+        }
+        return [[GleapGrant sharedInstance] grantForGleapId: session.gleapId] == nil;
+    }
+}
+
+/*
+ A returning user on a project that switched to Signed: the session is identified but has no grant,
+ and the app's identify of this launch (its hash or token) was skipped as unchanged. Sends it once
+ (through the JWT provider when the token is about to expire); processOpenIdentityAction marks the
+ session so it never repeats.
+ */
+- (void)requestSignedGrantIfNeeded {
+    NSDictionary *identify;
+    @synchronized (self) {
+        GleapSession *session = self.currentSession;
+        identify = self.lastIdentifyAction;
+        if (identify == nil || self.openIdentityAction != nil || self.identifyInFlight || ![self signedGrantMissingFor: session]) {
+            return;
+        }
+        id userHash = [identify objectForKey: @"userHash"];
+        if (![userHash isKindOfClass: [NSString class]] || [userHash length] == 0 || ![[identify objectForKey: @"userId"] isEqual: session.userId]) {
+            return;
+        }
+    }
+    [self withFreshUserJwt: identify send:^(NSDictionary *fresh) {
+        @synchronized (self) {
+            if (self.openIdentityAction != nil) {
+                return;
+            }
+            self.openIdentityAction = fresh;
+        }
+        [self processOpenIdentityAction];
+    }];
+}
+
+// YES when a session answer carries a grant (`identity.grant`) for `gleapId`.
++ (BOOL)answer:(nullable NSDictionary *)sessionData hasGrantFor:(NSString *)gleapId {
+    id identity = [sessionData objectForKey: @"identity"];
+    if (![identity isKindOfClass: [NSDictionary class]]) {
+        return NO;
+    }
+    id grant = [identity objectForKey: @"grant"];
+    return [grant isKindOfClass: [NSString class]] && [grant length] > 0 && [[sessionData objectForKey: @"gleapId"] isEqual: gleapId];
+}
+
+/*
+ An identify that got no answer (a network error, 5xx, 408 or 429) is sent again after 1 and 2
+ seconds, like the Android SDK; after that it waits for the app's return to the foreground. Grant
+ and file access renewals are left to their own schedules. A newer identify or a logout wins.
+ */
+- (void)retryUnansweredIdentify:(NSDictionary *)identityAction epoch:(NSUInteger)epoch {
+    if ([[identityAction objectForKey: @"renewGrant"] boolValue] || [[identityAction objectForKey: @"renewFileAccess"] boolValue]) {
+        return;
+    }
+    NSUInteger attempt = [[identityAction objectForKey: @"retryAttempt"] unsignedIntegerValue];
+    NSMutableDictionary *retry = [identityAction mutableCopy];
+    if (attempt >= kGleapIdentifyRetries) {
+        [retry removeObjectForKey: @"retryAttempt"];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            @synchronized (self) {
+                if (epoch != self.sessionEpoch) {
+                    return;
+                }
+                self.unansweredIdentifyAction = retry;
+                self.unansweredIdentifyEpoch = epoch;
+            }
+        });
+        return;
+    }
+    [retry setObject: @(attempt + 1) forKey: @"retryAttempt"];
+    NSTimeInterval delay = (NSTimeInterval)(1 << attempt);
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        @synchronized (self) {
+            if (epoch != self.sessionEpoch || self.openIdentityAction != nil) {
+                return;
+            }
+            self.openIdentityAction = retry;
+        }
+        [self processOpenIdentityAction];
+    });
+}
+
+/*
+ Sends the identify whose retries got no answer once more (on return to the foreground), unless a
+ newer identify or a logout came first.
+ */
+- (void)resendUnansweredIdentify {
+    @synchronized (self) {
+        NSDictionary *pending = self.unansweredIdentifyAction;
+        if (pending == nil) {
+            return;
+        }
+        if (self.unansweredIdentifyEpoch != self.sessionEpoch) {
+            self.unansweredIdentifyAction = nil;
+            return;
+        }
+        if (self.openIdentityAction != nil || self.identifyInFlight || self.currentSession == nil) {
+            return;
+        }
+        self.unansweredIdentifyAction = nil;
+        self.openIdentityAction = pending;
+    }
+    [self processOpenIdentityAction];
+}
+
+/*
+ The server answered identity_mismatch: the session belongs to another user. Drops the local
+ session (the grant, the stored gleapId / gleapHash; the identify, the JWT provider and the auth
+ tokens stay), starts a fresh visitor session and sends the identify once more on it. A second
+ mismatch starts over as a guest.
+ */
+- (void)restartForIdentify:(NSDictionary *)identityAction {
+    if ([[identityAction objectForKey: @"mismatchRetried"] boolValue]) {
+        NSLog(@"[GLEAP_SDK] The identity was refused twice (identity_mismatch). Starting over as a guest.");
+        [self clearSession];
+        return;
+    }
+    [self sendPushMessageUnregister];
+    [self revokeFileAccess: self.currentSession.fileAccessToken];
+    @synchronized (self) {
+        NSMutableDictionary *retry = [identityAction mutableCopy];
+        [retry setObject: @(YES) forKey: @"mismatchRetried"];
+        [retry removeObjectForKey: @"renewFileAccess"];
+        [retry removeObjectForKey: @"renewGrant"];
+        // A newer identify waiting to go out wins.
+        if (self.openIdentityAction == nil) {
+            self.openIdentityAction = retry;
+        }
+        self.currentSession = nil;
+        self.sentUserJwt = nil;
+        self.sentUserJwtGleapId = nil;
+        self.authTokensSentFor = nil;
+        self.sessionEpoch++;
+        self.fileAccessRenewal++;
+        self.grantRenewal++;
+    }
+    [[NSUserDefaults standardUserDefaults] removeObjectForKey: @"gleapId"];
+    [[NSUserDefaults standardUserDefaults] removeObjectForKey: @"gleapHash"];
+    [[GleapGrant sharedInstance] clear];
+    [[GleapWidgetManager sharedInstance] sendSessionUpdate];
+    // The new session's answer sends the identify waiting above.
+    [self startSessionWith:^(bool success) {}];
+}
+
+/*
+ Replays the app's last verified identify (through the JWT provider when its token is about to
+ expire) when the grant of the current session has expired or expires within 5 minutes. YES when a
+ renewal started.
+ */
+- (BOOL)refreshGrantIfNeeded {
+    GleapSession *session = self.currentSession;
+    NSDictionary *identify;
+    @synchronized (self) {
+        identify = self.lastIdentifyAction;
+        if (session == nil || identify == nil || self.openIdentityAction != nil || self.identifyInFlight) {
+            return NO;
+        }
+    }
+    id userHash = [identify objectForKey: @"userHash"];
+    if (![userHash isKindOfClass: [NSString class]] || [userHash length] == 0) {
+        return NO;
+    }
+    if (![[GleapGrant sharedInstance] needsRenewalForGleapId: session.gleapId within: kGleapGrantRenewBefore]) {
+        return NO;
+    }
+    NSTimeInterval throttled = 0;
+    NSUInteger renewal = 0;
+    @synchronized (self) {
+        NSTimeInterval since = self.lastGrantRenewal != nil ? [[NSDate date] timeIntervalSinceDate: self.lastGrantRenewal] : kGleapFileAccessForegroundInterval;
+        if (since < kGleapFileAccessForegroundInterval) {
+            throttled = kGleapFileAccessForegroundInterval - since;
+            renewal = self.grantRenewal;
+        } else {
+            self.lastGrantRenewal = [NSDate date];
+        }
+    }
+    if (throttled > 0) {
+        // At most one renewal a minute: try again once the minute is over (a short grant renewed
+        // at half its lifetime would otherwise lapse), unless a newer grant reschedules first.
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)((throttled + 1) * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            @synchronized (self) {
+                if (renewal != self.grantRenewal) {
+                    return;
+                }
+            }
+            [self refreshGrantIfNeeded];
+        });
+        return NO;
+    }
+    [self withFreshUserJwt: identify send:^(NSDictionary *fresh) {
+        @synchronized (self) {
+            if (self.openIdentityAction != nil) {
+                return;
+            }
+            NSMutableDictionary *action = [fresh mutableCopy];
+            [action setObject: @(YES) forKey: @"renewGrant"];
+            self.openIdentityAction = action;
+        }
+        [self processOpenIdentityAction];
+    }];
+    [self retryGrantRenewalLater];
+    return YES;
+}
+
+/*
+ A renewal that brings a new grant reschedules (scheduleGrantRenewal). One that failed (offline, a
+ server failure, a refusal, the JWT provider failing) is tried again after kGleapGrantRenewRetry
+ while the app is active, so the grant does not lapse mid-session; in the background the return to
+ the foreground renews it.
+ */
+- (void)retryGrantRenewalLater {
+    NSUInteger renewal;
+    @synchronized (self) {
+        renewal = self.grantRenewal;
+    }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kGleapGrantRenewRetry * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        GleapSession *session;
+        @synchronized (self) {
+            if (renewal != self.grantRenewal) {
+                return;
+            }
+            session = self.currentSession;
+        }
+        if ([UIApplication sharedApplication].applicationState != UIApplicationStateActive) {
+            return;
+        }
+        if (![[GleapGrant sharedInstance] needsRenewalForGleapId: session.gleapId within: kGleapGrantRenewBefore]) {
+            return;
+        }
+        if (![self refreshGrantIfNeeded]) {
+            BOOL busy;
+            @synchronized (self) {
+                busy = self.identifyInFlight || self.openIdentityAction != nil;
+            }
+            if (busy) {
+                // Another identify is on its way: look again later.
+                [self retryGrantRenewalLater];
+            }
+        }
+    });
+}
+
+- (void)scheduleGrantRenewal {
+    NSUInteger renewal;
+    @synchronized (self) {
+        renewal = ++self.grantRenewal;
+    }
+    NSDate *expiresAt = [[GleapGrant sharedInstance] expiresAt];
+    if (expiresAt == nil || [[GleapGrant sharedInstance] grantForGleapId: self.currentSession.gleapId] == nil) {
+        return;
+    }
+    // min(5 minutes, half the grant's lifetime) before it expires.
+    NSTimeInterval delay = MAX(0, [expiresAt timeIntervalSinceNow] - [[GleapGrant sharedInstance] renewBefore: kGleapGrantRenewBefore]);
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        @synchronized (self) {
+            if (renewal != self.grantRenewal) {
+                return;
+            }
+        }
+        [self refreshGrantIfNeeded];
+    });
 }
 
 #pragma mark - Protected files
@@ -714,6 +1348,10 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
 }
 
 - (void)applicationDidBecomeActive {
+    // An identify that got no answer (for example launched offline) is sent again.
+    [self resendUnansweredIdentify];
+    // Timers do not run while the app is suspended: an expired grant is renewed on return.
+    [self refreshGrantIfNeeded];
     @synchronized (self) {
         if (self.lastForegroundRenewal != nil && [[NSDate date] timeIntervalSinceDate: self.lastForegroundRenewal] < kGleapFileAccessForegroundInterval) {
             return;
@@ -751,15 +1389,18 @@ static NSTimeInterval const kGleapContactSettleTimeout = 5;
 }
 
 - (void)renewFileAccessWith:(NSDictionary *)identify {
-    @synchronized (self) {
-        if (self.openIdentityAction != nil) {
-            return;
+    // An identity token about to expire is renewed through the JWT provider first.
+    [self withFreshUserJwt: identify send:^(NSDictionary *fresh) {
+        @synchronized (self) {
+            if (self.openIdentityAction != nil) {
+                return;
+            }
+            NSMutableDictionary *action = [fresh mutableCopy];
+            [action setObject: @(YES) forKey: @"renewFileAccess"];
+            self.openIdentityAction = action;
         }
-        NSMutableDictionary *action = [identify mutableCopy];
-        [action setObject: @(YES) forKey: @"renewFileAccess"];
-        self.openIdentityAction = action;
-    }
-    [self processOpenIdentityAction];
+        [self processOpenIdentityAction];
+    }];
 }
 
 - (void)scheduleFileAccessRenewal {

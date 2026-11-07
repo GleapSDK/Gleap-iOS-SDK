@@ -4,6 +4,7 @@
 //
 
 #import "GleapAPIClient.h"
+#import "GleapGrant.h"
 #import "GleapCore.h"
 #import "GleapSessionHelper.h"
 
@@ -86,6 +87,10 @@ static NSTimeInterval const kGleapPingTotalTimeout = 30.0;
         case GleapRequestIdentityCurrentSession:
             [GleapSessionHelper injectSessionInRequest: request];
             break;
+    }
+    // The grant signs every request of the session it was issued to (Gleap-Grant next to Gleap-Id).
+    if (identity != GleapRequestIdentityNone) {
+        [[GleapGrant sharedInstance] applyToRequest: request];
     }
     return request;
 }

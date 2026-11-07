@@ -22,6 +22,7 @@ typedef NS_ENUM(NSInteger, GleapRequestIdentity) {
     // Api-Token and the current session's Gleap-Id / Gleap-Hash (event stream, reports, uploads).
     GleapRequestIdentityCurrentSession,
 };
+// Every mode but None also sends Gleap-Grant when a signed identify issued one for that Gleap-Id.
 
 typedef void (^GleapAPICompletion)(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error);
 
