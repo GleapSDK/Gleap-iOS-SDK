@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
   s.version      = "19.5.1"
   s.summary      = "Gleap iOS SDK for customer support, live chat, in-app bug reporting and feedback."
   s.homepage     = "https://www.gleap.ai"
-  s.license      = { :type => 'Commercial', :file => 'LICENSE.md' }
+  s.license      = { :type => 'MIT', :file => 'LICENSE.md' }
   s.author       = { "Gleap" => "hello@gleap.io" }
 
   s.platform     = :ios, '15.0'
