@@ -3,3 +3,5 @@
 xcuserdata/
 *.xcuserstate
 DerivedData/
+# Test results of .github/scripts/test.sh
+/build/
