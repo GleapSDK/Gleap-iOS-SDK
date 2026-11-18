@@ -9,4 +9,8 @@ if [ -z "$udid" ] || [ "$udid" = "null" ]; then
   exit 1
 fi
 
-xcodebuild test -scheme Gleap -destination "platform=iOS Simulator,id=$udid" -quiet
+# The result bundle keeps every failure's message, attachments and logs (-quiet prints only the
+# failing test names); CI uploads it when the tests fail.
+result_bundle="${TEST_RESULT_BUNDLE:-build/TestResults.xcresult}"
+rm -rf "$result_bundle"
+xcodebuild test -scheme Gleap -destination "platform=iOS Simulator,id=$udid" -resultBundlePath "$result_bundle" -quiet

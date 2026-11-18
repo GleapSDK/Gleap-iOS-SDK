@@ -30,6 +30,9 @@ let package = Package(
               .linkedLibrary("z"),
               // NWPathMonitor: the realtime socket waits while the device is offline.
               .linkedFramework("Network"),
+              // Protected conversation files open in QuickLook, named with their type's extension.
+              .linkedFramework("QuickLook"),
+              .linkedFramework("UniformTypeIdentifiers"),
            ]
         ),
         .testTarget(

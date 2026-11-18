@@ -18,6 +18,7 @@
 #import "GleapWebViewSupport.h"
 #import "GleapUserJwt.h"
 #import "GleapGrant.h"
+#import "GleapProtectedFiles.h"
 
 // The file access token is renewed this long before it expires (it lives 15 minutes).
 static NSTimeInterval const kGleapFileAccessRenewBefore = 5 * 60;
@@ -1014,6 +1015,8 @@ static NSUInteger const kGleapIdentifyRetries = 2;
 - (void)clearSession {
     [self sendPushMessageUnregister];
     [self revokeFileAccess: self.currentSession.fileAccessToken];
+    // The protected files the user opened stay with them.
+    [GleapProtectedFiles removeDownloadedFiles];
     
     @synchronized (self) {
         self.currentSession = nil;

@@ -24,6 +24,7 @@
 #import "GleapAgentToolHelper.h"
 #import "GleapCaptureManager.h"
 #import "GleapGrant.h"
+#import "GleapProtectedFiles.h"
 #import <objc/runtime.h>
 
 // How long we may take to answer the widget's `collect-ticket-data` request.
@@ -85,6 +86,8 @@ GLEAP_INTERNAL
 @property (retain, nonatomic) UIView *keyboardScrimView;
 // Surveys: the page has something to show (a card its height, a full screen survey itself).
 @property (assign, nonatomic) BOOL surveyContentShown;
+// Downloads and shows the conversation's protected files (open-protected-file).
+@property (retain, nonatomic) GleapProtectedFiles *protectedFiles;
 
 @end
 
@@ -270,8 +273,9 @@ GLEAP_INTERNAL
         @"sessionData": currentSession,
         @"apiUrl": Gleap.sharedInstance.apiUrl,
         @"sdkKey": Gleap.sharedInstance.projectId,
-        // Lets the widget hand a verified contact's session over (adopt-session).
-        @"capabilities": @{ @"adoptSession": @(YES) }
+        // Lets the widget hand a verified contact's session over (adopt-session) and have the app
+        // open a protected conversation file (open-protected-file).
+        @"capabilities": @{ @"adoptSession": @(YES), @"openProtectedFile": @(YES) }
     }];
     
     // The grant of a signed identify: the Messenger sends it as Gleap-Grant on its own requests.
@@ -288,6 +292,9 @@ GLEAP_INTERNAL
         @"name": @"session-update",
         @"data": sessionUpdateData
     }];
+    
+    // A file waiting for a renewed file session.
+    [self.protectedFiles sessionDidChange];
 }
 
 - (void)sendConfigUpdate {
@@ -425,6 +432,10 @@ GLEAP_INTERNAL
         [self runCustomAction: messageData shareToken: [message.body objectForKey: @"shareToken"]];
     } else if ([name isEqualToString: @"open-url"]) {
         [self openURLFromWidget: messageData];
+    } else if ([name isEqualToString: @"open-protected-file"]) {
+        if ([messageData isKindOfClass: [NSDictionary class]]) {
+            [self.protectedFiles openFileAtURL: [messageData objectForKey: @"url"] name: [messageData objectForKey: @"name"]];
+        }
     } else if ([name isEqualToString: @"notify-event"]) {
         [self handleWidgetEvent: messageData];
     } else if ([name isEqualToString: @"send-feedback"]) {
@@ -562,7 +573,16 @@ GLEAP_INTERNAL
 }
 
 - (void)openURLFromWidget:(NSString *)url {
-    if (url == nil) {
+    if (![url isKindOfClass: [NSString class]]) {
+        return;
+    }
+    // A blob: URL only exists inside the page: nothing outside can open it, and handing it on
+    // as an app link closed the widget.
+    if ([[[url stringByTrimmingCharactersInSet: [NSCharacterSet whitespaceAndNewlineCharacterSet]] lowercaseString] hasPrefix: @"blob:"]) {
+        return;
+    }
+    // A protected conversation file needs the file session: a browser only gets a 403.
+    if ([self.protectedFiles openFileAtURL: url name: nil]) {
         return;
     }
     if (Gleap.sharedInstance.closeWidgetOnExternalLinkOpen == YES) {
@@ -738,8 +758,17 @@ GLEAP_INTERNAL
 }
 
 - (WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures {
-    [GleapWebViewSupport presentURLInSafari: navigationAction.request.URL from: self];
+    if (![self.protectedFiles openFileAtURL: navigationAction.request.URL.absoluteString name: nil]) {
+        [GleapWebViewSupport presentURLInSafari: navigationAction.request.URL from: self];
+    }
     return nil;
+}
+
+- (GleapProtectedFiles *)protectedFiles {
+    if (_protectedFiles == nil) {
+        _protectedFiles = [[GleapProtectedFiles alloc] initWithPresenter: self];
+    }
+    return _protectedFiles;
 }
 
 - (void)createWebView {
@@ -853,15 +882,21 @@ GLEAP_INTERNAL
 }
 
 - (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
+    NSURL *url = navigationAction.request.URL;
     if (navigationAction.navigationType == WKNavigationTypeLinkActivated) {
-        [GleapWebViewSupport openTappedLink: navigationAction.request.URL from: self];
+        // A protected file opens in the app (it needs the file session), any other link outside.
+        if (![self.protectedFiles openFileAtURL: url.absoluteString name: nil]) {
+            [GleapWebViewSupport openTappedLink: url from: self];
+        }
         return decisionHandler(WKNavigationActionPolicyCancel);
     }
     
     // The Messenger web view never leaves the Messenger (as on Android): any other main frame
     // navigation (a script redirect, a form) opens outside, http(s) in Safari, the rest nowhere.
-    NSURL *url = navigationAction.request.URL;
     if (navigationAction.targetFrame.isMainFrame && ![GleapWebViewSupport isURL: url sameOriginAsPageURL: Gleap.sharedInstance.frameUrl]) {
+        if ([self.protectedFiles openFileAtURL: url.absoluteString name: nil]) {
+            return decisionHandler(WKNavigationActionPolicyCancel);
+        }
         NSString *scheme = [url.scheme lowercaseString];
         if ([scheme isEqualToString: @"https"] || [scheme isEqualToString: @"http"] || [scheme isEqualToString: @"mailto"]) {
             [GleapWebViewSupport openTappedLink: url from: self];
