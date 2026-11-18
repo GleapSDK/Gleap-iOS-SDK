@@ -13,7 +13,7 @@ import XCTest
 private final class GleapLinkSpy: NSObject, GleapDelegate {
     var links: [URL] = []
 
-    func openExternalLink(_ url: URL!) {
+    func openExternalLink(_ url: URL) {
         links.append(url)
     }
 }
@@ -256,30 +256,57 @@ final class GleapProtectedFilesTests: GleapNetworkTestCase {
     }
 
     /// The whole way on the simulator: the page's message through WebKit's bridge, the download,
-    /// QuickLook presented over the widget in a window, the file deleted when QuickLook closes.
+    /// QuickLook presented over the widget in a key window with the downloaded file, the file
+    /// deleted when QuickLook closes. Each step waits for its own event, with its own deadline:
+    /// - WebKit starts its processes for the first page of the run: 30 to 40 s on a freshly
+    ///   erased iPhone 16e / iOS 26.2 simulator here (5 s warm), more on a slow CI runner. A
+    ///   single 30 s deadline for everything made CI fail now and then.
+    /// - The SwiftPM test host connects no window scene, so its windows are never on screen and
+    ///   UIKit never finishes a presentation's transition (isBeingPresented stays true). What can
+    ///   be checked, and is, is that UIKit takes the presentation: QuickLook is the widget's
+    ///   presented view controller, with the downloaded file as its item.
     func testTheMessengersMessageOpensTheFileInQuickLook() throws {
         installFileAccess()
         GleapStubURLProtocol.stub("GET", Self.filePath, Self.fileReply())
+        // The SwiftPM test host connects no window scene: its windows are scene-less, as in an app
+        // without a scene manifest. A host that has one gets a window in it.
+        let window = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+            .map { UIWindow(windowScene: $0) } ?? UIWindow(frame: UIScreen.main.bounds)
         let page = GleapTestPageFrameManager(format: "survey")
         page.script = "window.webkit.messageHandlers.gleapCallback.postMessage({name: 'open-protected-file', "
             + "data: {url: '\(Self.fileURL)', name: 'Quarterly report'}});"
-        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
-        let window = scene.map { UIWindow(windowScene: $0) } ?? UIWindow(frame: UIScreen.main.bounds)
         window.rootViewController = page
         window.makeKeyAndVisible()
-        defer { window.isHidden = true }
+        defer {
+            // Nothing stays presented for the next test, and a download still on its way finds no
+            // window to present in (the SDK then drops the file).
+            page.presentedViewController?.dismiss(animated: false)
+            window.rootViewController = nil
+            window.isHidden = true
+        }
 
-        XCTAssertTrue(waitUntil(timeout: 30) { page.presentedViewController is QLPreviewController }, "QuickLook is shown over the widget")
-        let preview = try XCTUnwrap(page.presentedViewController as? QLPreviewController)
+        XCTContext.runActivity(named: "The page's message reaches the SDK through WebKit, which downloads the file") { _ in
+            XCTAssertNotNil(waitForRequest(Self.filePath, timeout: 180))
+        }
+        let preview = try XCTContext.runActivity(named: "QuickLook is presented over the widget") { _ -> QLPreviewController in
+            XCTAssertTrue(waitUntil(timeout: 30) { page.presentedViewController is QLPreviewController },
+                          "presented: \(String(describing: page.presentedViewController))")
+            return try XCTUnwrap(page.presentedViewController as? QLPreviewController)
+        }
         let file = try XCTUnwrap(preview.currentPreviewItem?.previewItemURL)
         XCTAssertEqual(file.lastPathComponent, "Quarterly report.pdf")
         XCTAssertEqual(try Data(contentsOf: file), Self.pdf)
         XCTAssertEqual(GleapStubURLProtocol.requests(path: Self.filePath).first?.header("X-File-Session"), Self.token)
 
         // Done: QuickLook goes and so does the file.
-        preview.dismiss(animated: false)
-        preview.delegate?.previewControllerDidDismiss?(preview)
-        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+        XCTContext.runActivity(named: "Closing QuickLook deletes the file") { _ in
+            let dismissed = expectation(description: "QuickLook dismissed")
+            preview.dismiss(animated: false) { dismissed.fulfill() }
+            wait(for: [dismissed], timeout: 10)
+            preview.delegate?.previewControllerDidDismiss?(preview)
+            XCTAssertNil(page.presentedViewController)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+        }
     }
 
     func testTheSessionUpdateAnnouncesThatTheAppOpensProtectedFiles() throws {
