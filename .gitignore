@@ -3,5 +3,5 @@
 xcuserdata/
 *.xcuserstate
 DerivedData/
-# Test results of .github/scripts/test.sh
+# Test results, the pinned dev tools and the output of the checks (scripts/)
 /build/

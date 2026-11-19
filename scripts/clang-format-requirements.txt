@@ -1,0 +1,6 @@
+# clang-format for the .h and .m files a branch adds (scripts/lint-new.sh, the edit hook). The PyPI wheel, so every
+# Mac and CI run the same binary whatever Xcode they have; scripts/clang-format.sh installs it into build/tools.
+# Hashes of the macOS wheels (arm64, x86_64): pip refuses anything else.
+clang-format==23.1.5 \
+    --hash=sha256:3fb740335d939dd02252cd5075050fc8858466b16cf9c1efa2f52da3baa816a7 \
+    --hash=sha256:32ec7498f9f1672dff2e65624cf317a1fd64e48a4f582d6c172d440c511bff00

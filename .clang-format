@@ -1,0 +1,16 @@
+# For the .h and .m files a branch adds (scripts/lint-new.sh; the edit hook formats them). Old files keep their own
+# style and are never reformatted: much of the old code writes `[object message: argument]`, which clang-format cannot
+# express, so formatting old lines would mix two styles in one file. Run with scripts/clang-format.sh (pinned version).
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 120
+ObjCBlockIndentWidth: 4
+ObjCSpaceAfterProperty: true
+ObjCSpaceBeforeProtocolList: true
+PointerAlignment: Right
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortBlocksOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+IndentCaseLabels: true
+SortIncludes: Never

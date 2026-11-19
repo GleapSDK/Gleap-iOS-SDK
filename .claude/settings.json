@@ -1,0 +1,106 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(**/.env*)",
+      "Read(**/*.p12)",
+      "Read(**/*.cer)",
+      "Read(**/*.mobileprovision)",
+      "Read(**/*.p8)",
+      "Bash(cat .env*)",
+      "Bash(head .env*)",
+      "Bash(tail .env*)",
+      "Bash(git tag*)",
+      "Bash(git push --tags*)",
+      "Bash(git push origin [0-9]*)",
+      "Bash(git push origin refs/tags/*)",
+      "Bash(pod trunk*)",
+      "Bash(pod repo push*)",
+      "Bash(gh release*)",
+      "Bash(gh workflow run*)",
+      "Bash(security *)",
+      "Bash(xcrun altool*)",
+      "Bash(xcrun notarytool*)",
+      "Bash(fastlane*)"
+    ],
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "TodoWrite",
+      "Agent",
+      "mcp__context7__*",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git branch*)",
+      "Bash(git show*)",
+      "Bash(git rev-parse*)",
+      "Bash(git fetch*)",
+      "Bash(git remote -v*)",
+      "Bash(git blame*)",
+      "Bash(git merge-base*)",
+      "Bash(ls*)",
+      "Bash(pwd)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(find *)",
+      "Bash(which *)",
+      "Bash(make test-classes*)",
+      "Bash(make analyze)",
+      "Bash(make lint-new*)",
+      "Bash(make api-check*)",
+      "Bash(sh scripts/lint-new.sh*)",
+      "Bash(sh scripts/api-check.sh*)",
+      "Bash(sh scripts/analyze.sh*)",
+      "Bash(sh scripts/clang-format.sh*)",
+      "Bash(bash scripts/test-classes.sh*)",
+      "Bash(xcodebuild -version)",
+      "Bash(xcodebuild -list*)",
+      "Bash(xcodebuild -showBuildSettings*)",
+      "Bash(xcodebuild build *)",
+      "Bash(xcodebuild analyze *)",
+      "Bash(xcodebuild build-for-testing *)",
+      "Bash(xcrun simctl list*)",
+      "Bash(xcrun xccov *)",
+      "Bash(xcrun xcresulttool *)",
+      "Bash(xcrun swift-api-digester *)",
+      "Bash(xcrun swiftc -parse *)",
+      "Bash(swift --version)",
+      "Bash(swift package describe*)",
+      "Bash(pod lib lint*)",
+      "Bash(pod ipc spec*)",
+      "Bash(plutil -lint *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-edited-file.sh",
+            "timeout": 60,
+            "statusMessage": "Syntax check of the edited file, clang-format for a new one..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-before-stop.sh",
+            "timeout": 600,
+            "statusMessage": "make lint-new and the test classes the change reaches..."
+          }
+        ]
+      }
+    ]
+  }
+}
