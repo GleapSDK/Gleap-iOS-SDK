@@ -1,0 +1,37 @@
+#!/bin/sh
+# Stops a push only when scripts/lint-new.sh finds problems in what the branch adds to origin/main: warnings on added
+# or changed lines, an added file clang-format would change, a file over 700 lines that grew, a removed or changed
+# public API. Anything else is noted and the push goes on.
+
+blocked=0
+fetched=
+
+while read -r _ sha remote_ref _; do
+  case "$remote_ref" in refs/heads/*) ;; *) continue ;; esac
+  case "$sha" in *[!0]*) ;; *) continue ;; esac
+  # The checks read the files on disk, so they can only judge the commit that is checked out.
+  if [ "$sha" != "$(git rev-parse HEAD)" ]; then
+    echo "pre-push: $remote_ref is not the checked-out commit, checks skipped."
+    continue
+  fi
+  # This clone's origin/main may be behind, and then main's newer code would look like part of the branch.
+  if [ -z "$fetched" ]; then
+    fetched=1
+    GIT_TERMINAL_PROMPT=0 git fetch -q --no-write-fetch-head origin main 2>/dev/null
+  fi
+  output=$(sh scripts/lint-new.sh origin/main 2>&1 </dev/null)
+  case $? in
+    0) ;;
+    1)
+      printf '%s\n' "$output"
+      blocked=1
+      ;;
+    *) printf '%s\npre-push: scripts/lint-new.sh could not run, pushing anyway.\n' "$output" ;;
+  esac
+done
+
+if [ -n "$(git status --porcelain -- Sources 2>/dev/null)" ] && [ "$blocked" = 1 ]; then
+  echo "Uncommitted changes under Sources/ were checked too."
+fi
+[ "$blocked" = 0 ] || echo "Push stopped. Fix the problems above, commit and push again."
+exit "$blocked"
